@@ -1,0 +1,135 @@
+# 织境（OntoContexture）项目宪法
+
+## Core Principles
+
+### I. 测试驱动开发（不可协商）
+
+- 所有生产代码 MUST 遵循 红 → 绿 → 重构 循环：先写测试并确认其失败，再写最少的实现让测试通过，
+  最后在测试保护下重构。
+- 测试 MUST 先于对应实现提交，PR 内的提交历史 MUST 能体现这一顺序，评审时核对。
+- 缺陷修复 MUST 先提交一个能复现缺陷的失败测试。
+- 测试分层 MUST 覆盖：单元测试；服务间契约测试（每个对外接口）；集成测试（使用真实依赖，
+  如 Testcontainers 启动的数据库、OpenMetadata、消息组件，不用 mock 代替被集成的系统）；
+  关键用户场景的端到端测试。
+- 新增与修改代码的行覆盖率 MUST ≥ 80%；CI 中任一测试失败 MUST 阻止合并。
+
+理由：本产品向数字员工提供“可信上下文”，口径、权限与轨迹出错会直接造成越权或错误决策，
+只有测试先行才能把“答得准、管得住”变成可验证的事实。
+
+### II. 微服务架构与契约优先
+
+- 系统 MUST 按能力域拆分为可独立构建、测试、部署和扩缩的微服务，服务边界对齐产品能力域
+  （三域连接器、统一知识图谱、语义审批、受治理查询、身份与策略、Context API / MCP 交付、
+  自演进等）。
+- 每个自建服务 MUST 独占自己的数据存储；服务之间 MUST 只通过已发布的接口通信，
+  MUST NOT 直接读写其他服务（包括 OpenMetadata）的数据库表。
+- 接口 MUST 契约先行：同步接口用 OpenAPI 或 Protobuf，异步事件用 AsyncAPI 或等价 Schema，
+  契约先评审、先写契约测试，再实现。
+- 接口 MUST 版本化并保持向后兼容；破坏性变更 MUST 发布新版本并给出迁移期。
+- 服务 MUST 无状态（状态外置）、容器化、通过环境变量或配置中心注入配置，
+  并提供健康检查（liveness / readiness）。
+- 新增服务 MUST 在 plan 中说明拆分理由；能放进已有服务边界的能力 MUST NOT 单独拆服务，
+  避免过度拆分。
+
+理由：产品由多个开源底座与自建模块组合而成，清晰的服务边界和契约是独立演进、
+替换开源组件和多环境交付的前提。
+
+### III. 开源优先与许可合规
+
+- 有成熟、许可合规的开源组件时 MUST 优先复用，自建 MUST 在 plan 中说明理由
+  （功能缺口、许可风险或性能约束）。OpenMetadata 为必选底座。
+- 允许纳入交付物的许可：Apache 2.0、MIT、BSD 及同等宽松许可。AGPL、SSPL、BUSL 及
+  “源码可用”类许可的组件 MUST NOT 成为交付物的硬依赖，例外须经架构评审批准并记录。
+- 已知红线：OpenMetadata AI SDK 与 openmetadata-ui 为 Collate Community License 1.0，
+  MUST NOT 作为记忆或 Agent 侧的依赖；时序库 MUST NOT 选 TDengine（AGPL-3.0），优先
+  Apache IoTDB；Langfuse 的附加功能 MUST 逐项确认许可后再启用。
+- 架构说明（plan 及架构文档）MUST 包含开源服务清单，每项写明：组件名、版本、许可、用途、
+  所在微服务、可替换方案。
+- 对 OpenMetadata 等上游的扩展 MUST 优先采用插件 / 扩展方式，需改核心时走“上游 PR +
+  本地扩展”双轨，MUST NOT 长期维护深度分叉。
+- 依赖版本 MUST 锁定；CI MUST 生成 SBOM 并执行许可与漏洞扫描。
+
+理由：产品定位为“开放、不锁定”的上下文层，开源底座决定交付成本和可信度；
+许可失误会直接阻断商业交付。
+
+### IV. 默认最小权限与全程可审计
+
+- 人与 Agent MUST 各自拥有独立身份；Agent 的权限 MUST NOT 超过其所代表的人，可以比人更窄。
+- Agent 代表人调用时 MUST 携带人的身份：人通过企业 SSO 登录，Agent 使用 IdP 签发的短期
+  委托令牌（如 OAuth 2.0 Token Exchange，RFC 8693），令牌 MUST 能区分并标识人与 Agent，
+  具体声明字段在 plan 中确定。Agent MUST NOT 持有或使用人的密码等凭证。
+- 生产环境 MUST 能对接客户已有的 IdP（如 AD / LDAP、飞书、企业 OIDC），对接方式在
+  plan 中确定。
+- 所有授权求值 MUST 先限定在令牌所属租户内；租户标识 MUST 取自签名令牌，跨租户访问
+  默认拒绝。单租户部署视为只有一个租户，规则不变。
+- 服务端 MUST 只信任受信 IdP 签名的令牌；MUST NOT 依据请求头、参数等未签名字段中的用户
+  标识进行授权。
+- 每次对外服务调用（MCP / Context API / Skills / 查询网关）MUST 在返回数据前按
+  “人的角色权限 ∩ Agent 授权 ∩ 数据级别”求值，默认拒绝；授权结果的缓存时长 MUST NOT
+  超过委托令牌的有效期，人的权限变更或撤销后 Agent 最迟在令牌过期时失去相应权限。
+- 无人值守的 Agent（定时任务、自演进 Skill 等）MUST 以服务身份运行并登记一名负责人，
+  权限单独授予，以只读为主。
+- Agent 只能使用已审批的指标口径、记忆与本体元素；未审批内容 MUST NOT 出现在上下文包中。
+- 每次读取与写回 MUST 留存审计记录：人、Agent、令牌来源、授权依据，以及取得或修改了什么；
+  Agent 记忆与决策轨迹 MUST 同时归属于人与 Agent，读取时同样按上述交集求值。
+- 任何写回业务系统的动作 MUST 经人工审批。
+- 密钥与凭证 MUST NOT 出现在代码、镜像或仓库中。
+
+理由：“敢让 Agent 碰生产数据”是产品核心竞争力之一，也是工业数据分类分级的监管要求。
+Agent 可能被提示注入或误调工具，限定其范围可控制影响面；同时记录人与 Agent 才能区分
+“人自己做的”和“Agent 代做的”，支撑决策轨迹与审计。
+
+### V. 可观测性
+
+- 所有服务 MUST 通过 OpenTelemetry 输出 trace、metrics 与日志；日志 MUST 为结构化 JSON
+  并携带 trace_id。
+- 跨服务调用和 Agent 工具调用 MUST 能通过 trace 串联，支撑决策轨迹与故障排查。
+- 观测数据 MUST 经 OpenTelemetry Collector 汇聚，后端可替换，业务代码 MUST NOT 直接依赖
+  具体观测厂商的 SDK。
+
+理由：决策轨迹本身就是产品数据，统一的可观测性同时服务于运维和自演进。
+
+## 部署约束：阿里云测试环境与客户云生产
+
+**阿里云（自有测试环境）**
+
+- 阿里云仅承载开发、测试、演示与 POC 环境，MUST NOT 承载任何客户的生产业务。
+- 容器编排使用 ACK（容器服务 Kubernetes 版），镜像存放于 ACR；dev 与 staging MUST 隔离。
+- 测试环境以一套共享实例支持多个客户（多租户），MUST NOT 为每个客户单独部署一套实例；
+  用于验证单租户或离线模式的发布验证环境除外。
+  租户由 Keycloak 管理（每个客户一个 realm 或 organization），客户的人员与 Agent 身份
+  均在所属租户内签发。
+- 所有数据读写、检索、图谱查询、缓存与审计记录 MUST 按租户隔离（租户规则见原则 IV）。
+- 每个对外接口 MUST 有跨租户隔离测试（用租户 A 的令牌访问租户 B 的数据必须失败），
+  纳入 CI 门禁。
+- 测试环境 MUST NOT 存放客户的三级数据；其他客户真实数据 MUST 先经客户书面授权并脱敏。
+- 访问控制 MUST 使用 RAM 角色与最小权限；凭证 MUST 由 KMS 或 K8s Secret 管理。
+- 测试环境 MUST NOT 作为对外收费的在线服务提供。改变本节任一限制前，MUST 先重新进行
+  许可评审（对外在线服务会触发 Collate Community License 限制）并修订本宪法。
+
+
+## 开发流程与质量门禁
+
+- 功能开发 MUST 按 Spec Kit 流程推进：specify → clarify（按需）→ plan → tasks →
+  implement；plan MUST 通过 Constitution Check，违反条款时须在 Complexity Tracking
+  中给出理由。
+- 所有代码 MUST 通过 Pull Request 合并到 main，至少一名评审人批准；评审 MUST 检查测试先行、
+  契约变更、开源许可、租户隔离与权限审计是否符合本宪法。
+- PR 合并 MUST NOT 使用 squash，以保留测试先行的提交历史。
+- CI 门禁 MUST 全部通过才能合并：构建、单元 / 契约 / 集成测试、覆盖率、代码静态检查、
+  许可与漏洞扫描。
+- 阿里云测试环境 MUST 由流水线基于已合并的提交部署。
+- 客户生产交付 MUST 使用经测试的版本化交付包，按书面的安装、升级与回滚手册执行；
+  每次升级 MUST 可回滚，数据库迁移 MUST 可回退或提供备份恢复方案。
+
+## Governance
+
+- 本宪法优先于其他开发约定；与之冲突的做法以本宪法为准。
+- 修订流程：通过 PR 修改 `.specify/memory/constitution.md`，写明修改原因与影响范围，
+  经项目负责人（产品 owner，当前为 @stephenhuo-code）批准后合并；涉及已有代码不再合规时 MUST 附迁移计划。
+- 版本规则（语义化版本）：MAJOR 用于删除或重新定义原则；MINOR 用于新增原则或章节、
+  实质性扩展要求；PATCH 用于措辞澄清与错别字修正。
+- 合规检查：每个 plan 执行 Constitution Check；每个 PR 评审核对相关条款；
+  每季度复审一次本宪法是否仍符合项目实际。
+
+**Version**: 1.0.0 | **Ratified**: 2026-10-03 | **Last Amended**: 2026-10-03

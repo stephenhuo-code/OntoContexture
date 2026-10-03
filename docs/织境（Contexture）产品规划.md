@@ -48,7 +48,7 @@ Sep 27, 2026 · @coderyan
 
 ## 客户场景
 
-&#91;embedded content: 客户场景路标 · 3 个优先级 5 个场景 2 道门槛\]
+![客户场景路标](images/客户场景路标.svg)
 
 五个 POC 场景按“只读 → 可信 → 写回 → 深本体 → 自演进”递进，归成三个优先级：先用 P1 / P2 验证答得准（三域合一 + 可信语义），再用 P3 / P4 验证管得住（动作写回 + 工业本体），最后 P5 验证越用越准（自演进）；每个场景复用前一个场景已建的本体与数据，详细设计见《织境 POC 场景路线图》。
 
@@ -58,7 +58,7 @@ Sep 27, 2026 · @coderyan
 
 四类玩家各占一角，右上角"跨系统中立 + 工业实体"只有边缘接入产品，没有上下文层产品。
 
-&#91;embedded content: 市场地图 · 覆盖范围 × 工业深度\]
+![市场地图](images/市场地图.svg)
 
 横轴是能否作为中立层供客户已有平台调用，纵轴是语义是否深入到设备、工序、工单；位置为定性判断，依据各家 2025-26 公开资料。
 
@@ -88,7 +88,7 @@ Sep 27, 2026 · @coderyan
 
 ## 产品路标
 
-&#91;embedded content: 功能架构 · 4 个能力域 22 个功能模块，按 3 阶段标记\]
+![功能架构](images/功能架构.svg)
 
 | 竞争力方向 | 阶段一 | 阶段二 | 阶段三 |
 | --- | --- | --- | --- |
@@ -109,7 +109,7 @@ Sep 27, 2026 · @coderyan
 
 - ## 产品功能架构
 
-&#91;embedded content: 产品架构 · 四层 16 个模块\]
+![产品架构](images/产品架构.svg)
 
 - ## 关键竞争力特性&#32;
 
@@ -162,7 +162,7 @@ OKF 是 Google Cloud 2026-06-16 发布的厂商中立规范（当前 v0.2）：�
 
 ## 产品技术架构
 
-&#91;embedded content: 技术架构 · 5 组微服务 24 个组件，自建 7 个\]
+![技术架构](images/技术架构.svg)
 
 许可红线：OM 核心 Apache 2.0，但 AI SDK 和 openmetadata-ui 目录为 [Collate Community License 1.0](https://github.com/open-metadata/OpenMetadata/blob/main/openmetadata-ui/LICENSE)（源码可用，禁止用于与 Collate 竞争的 SaaS / PaaS 在线服务，不可转授权）。本产品只做私有化部署、不做在线服务，所以这条限制不触发：AI SDK 和 openmetadata-ui 可以在客户现场使用，交付时保留版权声明、客户按同一许可使用即可。仍建议记忆和工具调用直接走 Apache 2.0 的 OM REST / MCP 接口，把 AI SDK 当可替换的客户端而非依赖，避免被 Collate 的路线图和许可变更牵制。
 
