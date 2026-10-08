@@ -19,44 +19,42 @@
 ## 2. 代码架构与公共库（用户故事 2）
 
 ```bash
-uvx copier copy templates/service services/sample-svc   # 从模板生成服务
-cd services/sample-svc && uv run pytest                  # 生成后测试即通过
+cd services/bff && uv run pytest          # bff（参考实现）的单元、契约、集成测试
+make components-check                     # 检查所有开源组件目录：清单、版本锁定、许可、离线镜像清单、冒烟测试
 ```
 
-在不修改生成代码的前提下，运行模板自带的跨切面验收测试：
-
-| 测试 | 预期 |
+| 检查 | 预期 |
 | --- | --- |
-| 无令牌 / 过期令牌请求 | 401，错误体符合 `contracts/schemas/error.json` |
-| 令牌租户与资源租户不一致 | 403，`code = auth.tenant_mismatch` |
-| 一次正常请求 | span 与日志带 `ctx.tenant.id`、`ctx.user.id`、`ctx.token.id`（`contracts/otel/attributes.md`） |
-| 经公共 MCP 取数客户端查询 | AI 网关审计中出现对应记录（含 `sub`、`azp`、租户、工具）；服务本身没有数据库账号，直连数据库在测试环境网络策略下失败 |
+| 无令牌 / 过期令牌请求 `bff` | 401，错误体符合 `contracts/schemas/error.json` |
+| 受众不符的令牌 | 403，`code = auth.invalid_audience` |
+| 一次正常请求 | span 与日志带 `ctx.tenant.id`（部署常量）、`ctx.user.id`、`ctx.agent.id`（`contracts/otel/attributes.md`） |
+| 经公共 MCP 取数客户端查询 | AI 网关审计中出现对应记录（含 `sub`、`azp`、`tenant_id`、工具）；`bff` 没有数据库账号 |
+| `bff` 源码 | 不含自写的令牌验证、令牌交换、关联属性与错误格式代码 |
+| 删除某组件 `component.yaml` 中的版本号 | `make components-check` 失败 |
 
-**预期**：30 分钟内完成（SC-003、SC-004）。
+**预期**：30 分钟内参照 `bff` 新增一个接口并跑通测试（SC-003、SC-004）。
 
 ## 3. 端到端骨架（用户故事 3）
 
 ```bash
-make skeleton-up           # 在 kind 中部署：Keycloak（含租户 A / B）、OM（自建镜像）、Fuseki（OM 的 RDF
+make skeleton-up           # 在 kind 中部署（单租户）：Keycloak、OM（自建镜像）、Fuseki（OM 的 RDF
                            # 存储）、Doris、Airflow、OTel Collector、Langfuse、
-                           # AI 网关、MCP Toolbox（租户 A / B 各一个实例）、bff、web
+                           # AI 网关、MCP Toolbox、bff、web
 make skeleton-seed         # 在 OM 术语库预置“设备”对象及其属性并审批通过；
-                           # 为租户 A / B 各预置少量设备实例
+                           # 预置少量设备实例
 ```
 
-1. 浏览器打开 `http://localhost:8080`，以租户 A 的测试用户登录。
+1. 浏览器打开 `http://localhost:8080`，以测试用户登录。
 2. 进入示例页面，查询对象类型 `equipment`。
-3. 预期：显示“设备”对象类型的属性定义与租户 A 的设备实例（接口见
+3. 预期：显示“设备”对象类型的属性定义与设备实例（接口见
    `contracts/openapi/skeleton.yaml` 的 `bffListObjects`）。
 4. 在追踪界面按本次 `trace_id` 查看：一条追踪包含 web → bff → AI 网关 → MCP Toolbox → Doris 与 bff → OM 的
-   全部 span，每个 span 的 `ctx.tenant.id` 相同（SC-005）。
+   全部 span，每个 span 带相同的 `ctx.tenant.id`（部署常量，SC-005）。
 5. 按本次 `trace_id` 查询 AI 网关的审计记录：可见一条 `read` 记录，含人（`sub`）、Agent / 服务（`azp`）、
-   租户、工具与查询摘要；返回行数可由 Toolbox / Doris 审计按同一 `trace_id` 查到。
-6. 改用租户 B 的用户登录重复查询：只看到租户 B 的数据；用租户 B 的令牌直接请求租户 A 的 Toolbox 路由
-   被 AI 网关拒绝（403，SC-005）。
+   `tenant_id`、工具与查询摘要；返回行数可由 Toolbox / Doris 审计按同一 `trace_id` 查到。
 
 ## 4. 回归
 
 ```bash
-make skeleton-test         # 运行骨架的端到端测试，公共库或模板升级时必须通过（FR-011）
+make skeleton-test         # 运行骨架的端到端测试，公共库或组件版本升级时必须通过（FR-011）
 ```

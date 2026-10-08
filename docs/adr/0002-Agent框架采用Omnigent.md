@@ -3,7 +3,7 @@
 - 状态：已接受
 - 日期：2026-10-03
 - 决策人：@stephenhuo-code
-- 影响特性：001、002、005、006、007、008、019、024，二期自演进
+- 影响特性：001、002、005、012、021、011，二期自演进
 - 相关宪法条款：II（服务边界）、III（开源许可、不长期深度分叉）、IV（身份与授权）、V（可观测性）
 - 相关 ADR：ADR-0001（轨迹与运行状态存储）
 
@@ -11,7 +11,7 @@
 
 织境有两类 Agent：
 
-- **客户侧 Agent**：作为织境的客户端，调用 MCP / Context API，验证身份与权限契约（019、024 的参考实现）。
+- **客户侧 Agent**：作为织境的客户端，调用 MCP / Context API，验证身份与权限契约（021、011 的参考实现）。
 - **织境内部 Agent**：织境自身的 Agent 能力。大部分场景需要真正执行 SQL 或数据处理管线
   （探索取数、口径校验、映射验证、数据质量检查、自演进分析），可能是多 Agent 系统，
   需要会话管理、并发、隔离执行与界面。
@@ -30,29 +30,26 @@ Omnigent（Apache 2.0，工程化完整）、OmniAgent（GPL-3.0，排除）、M
 （含 Kubernetes 与 [kubernetes-sigs/agent-sandbox](https://github.com/kubernetes-sigs/agent-sandbox)
 及预热池）。这些用 Pydantic AI 都需要自建。
 
-### 执行与沙箱
+### 执行
 
-- **SQL**：一律经统一取数网关（006）执行：只读、授权求值、超时与扫描量上限、审计；Doris 按
-  租户与 Agent 划分 workload group；管线需要写中间结果时，每次运行分配临时 schema，设配额并到期清理。
-- **Python / 数据处理管线**：在沙箱中执行，沙箱层采用 agent-sandbox（Apache 2.0），配合 gVisor 或
-  Kata（Apache 2.0）加固，经 Omnigent 的沙箱提供者接入。
-- 沙箱内 MUST NOT 放数据库账号，取数一律经统一取数网关；每次执行注入短期委托令牌；网络策略只放行
-  统一取数网关、对象存储与模型网关；限制 CPU、内存与时长；文件系统临时，产出物经对象存储带出；
-  每次执行写入审计与轨迹。
-- 云端沙箱服务（Modal、Daytona、E2B Cloud 等）MUST NOT 用于交付，客户云与离线环境只用自托管的
-  K8s 沙箱。
+- **取数与调模型**：一律经 AI 网关（005，ADR-0013）：取数走 MCP Toolbox（只读账号、超时与行数上限、审计），
+  模型走 AI 网关的模型网关。
+- **Phase 1 不做执行沙箱**：内部 Agent 只开放 MCP 工具，不开放 shell 与代码执行；Omnigent 运行在普通 Pod 中，
+  不持有数据库账号与厂商 key，网络策略只放行 AI 网关。数据处理由 Airflow 管线完成，不由 Agent 临时执行代码。
+- 将来需要运行 Agent 生成的代码时，再评估引入执行沙箱（候选 agent-sandbox + gVisor / Kata，经 Omnigent 的沙箱
+  提供者接入）；云端沙箱服务（Modal、Daytona、E2B Cloud 等）不得用于交付。
 
 ### 需要改造或验证的能力
 
 | # | 能力 | 现状（v0.16.0） | 处理 |
 | --- | --- | --- | --- |
 | 1 | 持久化执行 | 回合与 steering 状态只在 runner 进程内存（`omnigent/runner/app.py`），重启即丢；上游已移除 DBOS 设计 | 改造：按 ADR-0001 写 rollout 到 PostgreSQL，支持等待审批与重启后恢复 |
-| 2 | 委托令牌透传 | 支持 OIDC 登录其界面；会话调用 MCP 时携带当前用户令牌未见文档 | 改造：每个会话、每次 MCP 调用与每次沙箱执行携带人 + Agent 的委托令牌；恢复时重新换取 |
-| 3 | 多租户 | 有用户与邀请制，无租户概念 | 改造：Keycloak 租户映射到会话、Agent、沙箱、轨迹（Langfuse project）的隔离 |
+| 2 | 委托令牌透传 | 支持 OIDC 登录其界面；会话调用 MCP 时携带当前用户令牌未见文档 | 改造：以 Agent 的 Keycloak 客户端身份做标准令牌交换（ADR-0013），每个会话与每次 MCP 调用携带该令牌；恢复时重新交换 |
+| 3 | 多租户 | 有用户与邀请制，无租户概念 | 暂缓：Phase 1 单租户（ADR-0007），是否多租户另行评估 |
 | 4 | OTel 轨迹 | 文档未提 OpenTelemetry；自带匿名使用遥测 | 改造：以 OTLP 输出到 Collector，带 ADR-0001 规定的关联属性；**关闭对外遥测** |
 | 5 | 并发规模 | 运行状态在进程内存，设计目标为团队协作 | 验证：Phase 1 压测 500 个并发运行；不足时改造 runner 水平扩展 |
 | 6 | 离线与私有化模型 | 支持 OpenAI / Anthropic 兼容网关接 vLLM、Ollama 等 | 验证：断网环境 + 私有化模型跑通；选定内部 Agent 使用的执行器（harness），须支持私有化模型 |
-| 7 | 界面融合 | Omnigent 自有完整 Web 应用 | 设计：以小补丁在 OpenMetadata UI 中挂载 Agent 面板（计划第 4 节前端方案 B），面板基于 Omnigent API |
+| 7 | 界面融合 | Omnigent 自有完整 Web 应用 | 设计：织境 Web 自建 Agent 交互界面，经 `bff` 调用 Omnigent API（ADR-0003） |
 | 8 | 版本与升级 | 0.x，约每周发版 | 锁定版本；每次升级跑完整回归后再跟进 |
 
 ### 改造方式（宪法 VI）
@@ -69,14 +66,14 @@ Omnigent（Apache 2.0，工程化完整）、OmniAgent（GPL-3.0，排除）、M
 ## 影响
 
 正面：
-- 会话、界面、策略、沙箱编排、定时任务直接复用，内部 Agent 与客户侧 Agent 用同一套运行时。
+- 会话、策略、定时任务直接复用，内部 Agent 与客户侧 Agent 用同一套运行时。
 - 团队熟悉架构，改造可控。
 
 负面与代价：
 - 持久化、委托令牌、多租户、OTel 四项改造落在 Omnigent 核心代码（runner 与服务端），与上游保持
   同步的成本较高；上游此前主动放弃了持久化设计，被接受的可能性低。
 - 依赖 0.x 项目，接口变动频繁。
-- 沙箱、统一取数网关、权限三层由织境自建，与框架无关。
+- 取数入口（AI 网关）与权限与框架无关，由织境集成与配置。
 
 ## 考虑过的其他方案
 
@@ -90,11 +87,9 @@ Omnigent（Apache 2.0，工程化完整）、OmniAgent（GPL-3.0，排除）、M
 
 ## 后续工作
 
-- 计划已新增两个 M1 特性（排在首个使用 Agent 的 010 之前）：
-  - **007 执行沙箱**：agent-sandbox + gVisor / Kata、预热池、令牌注入、网络策略。
-  - **008 内部 Agent 运行时**：部署 Omnigent，完成改造项 #1–#4、#6，压测 #5。
-- 统一取数网关已前移到 M1 并改为 006：内部 Agent 在 P1 即需要经网关执行 SQL；由已审批指标生成 SQL
-  的能力移到 020。
+- **012 内部 Agent 运行时**（排在首个使用 Agent 的 013 之前）：部署 Omnigent，完成改造项 #1、#2、#4、#6，压测 #5。
+- 数据访问（005，AI 网关 + MCP Toolbox）在 M1：内部 Agent 在 P1 即需要取数；由已审批指标生成 SQL 的能力
+  在 007。
 - 002 spike：Keycloak 中“Agent 服务身份代表用户换取令牌”的配置方式。
 - 建立 Omnigent 补丁登记表与升级回归流程。
 
@@ -106,7 +101,10 @@ Omnigent（Apache 2.0，工程化完整）、OmniAgent（GPL-3.0，排除）、M
 
 ## 修订（2026-10-08，见 [ADR-0013](0013-数据访问与AI网关.md)）
 
-- SQL 不再经自建网关：Omnigent 与沙箱中的任务经 AI 网关以 MCP 访问 MCP Toolbox；模型调用也经 AI 网关（模型网关）。
-  沙箱网络策略只放行 AI 网关与对象存储。
-- 委托令牌：Omnigent 服务端以各 Agent 的 Keycloak 客户端身份做标准令牌交换（`sub` = 人，`azp` = Agent），客户端
-  密钥不进沙箱。
+- SQL 不再经自建网关：Omnigent 经 AI 网关以 MCP 访问 MCP Toolbox；模型调用也经 AI 网关（模型网关）。
+- 委托令牌：Omnigent 服务端以各 Agent 的 Keycloak 客户端身份做标准令牌交换（`sub` = 人，`azp` = Agent）。
+- Phase 1 不做执行沙箱（2026-10-08），内部 Agent 只开放 MCP 工具。
+
+## 修订（2026-10-08，Phase 1 单租户，见 ADR-0007 修订）
+
+- Omnigent 改造项中的“多租户”暂缓（是否多租户另行评估）；Phase 1 保留持久化执行、委托令牌、OTel 轨迹三项改造。

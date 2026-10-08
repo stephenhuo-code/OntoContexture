@@ -5,7 +5,7 @@
 
 | 属性名 | 必填 | 说明 | Langfuse 映射 |
 | --- | --- | --- | --- |
-| `ctx.tenant.id` | 是 | 租户 | project（每租户一个） |
+| `ctx.tenant.id` | 是 | 租户（Phase 1 为部署常量） | project（Phase 1 只有一个） |
 | `ctx.user.id` | 有人参与时 | 人（令牌 `sub`） | `user_id` |
 | `ctx.agent.id` | 有 Agent 参与时 | Agent | metadata `agent.id` |
 | `ctx.run.id` | Agent 运行时 | 一次运行 | metadata |
@@ -17,8 +17,8 @@
 ## 异步边界
 
 - HTTP：使用 W3C `traceparent` / `tracestate` 头传递；`ctx.*` 属性通过 W3C Baggage 传递。
-- OM 事件回调：处理事件时以事件中的租户与实体信息恢复上下文，并新建关联的 span。
-- Airflow 管线：DAG 运行配置携带 `tenant_id` 与 `traceparent`，任务启动时由公共库恢复上下文。
+- OM 事件回调：处理事件时以事件中的实体信息恢复上下文（`tenant_id` 取部署常量），并新建关联的 span。
+- Airflow 管线：DAG 运行配置携带 `traceparent`，任务启动时由公共库恢复上下文（`tenant_id` 取部署常量）。
 
 ## 版本
 

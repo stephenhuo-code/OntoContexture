@@ -13,11 +13,13 @@
   契约先行的 REST，Agent 与 `bff` 取数一律经 AI 网关以 MCP 访问；Phase 1 不引入消息中间件；跨切面能力由
   公共库 `contexture-core` 统一提供，边缘用 Gateway API 网关；令牌以 Keycloak 标准令牌交换得到
   （`sub` = 人，`azp` = Agent 或服务，受众收窄）。
-- **代码架构**：monorepo（uv / pnpm workspace），服务内 `api → app → domain` 分层、`adapters` 隔离外部
-  依赖，Copier 服务模板。
-- **四项待定决策**：多租户隔离（ADR-0007，已接受）、本体六要素的定义与实现（ADR-0008：**不改 OM 核心；Phase 1 只做对象、关系、属性，直接使用 OM 的本体能力（术语库、审批、RDF / Fuseki），不另建本体服务**）、仓库结构
+- **代码架构**：monorepo（uv / pnpm workspace）；自建服务按需分层（`api`、`adapters` 必有）；开源组件每个一个
+  标准目录（清单、Chart、参数、配置即代码与测试，CI 检查）；Phase 1 不做服务模板，`bff` 为参考实现（ADR-0009）。
+- **单租户**：Phase 1 一套环境只服务一个客户（可有多个用户与 Agent），`tenant_id` 为部署常量（宪法 v1.5.0、
+  ADR-0007 修订）。
+- **四项待定决策**：多租户隔离（ADR-0007，已接受；Phase 1 按单租户执行）、本体六要素的定义与实现（ADR-0008：**不改 OM 核心；Phase 1 只做对象、关系、属性，直接使用 OM 的本体能力（术语库、审批、RDF / Fuseki），不另建本体服务**）、仓库结构
   与代码架构（ADR-0009）、数字员工平台（ADR-0010，待确认）。
-- **端到端骨架**：web → bff → AI 网关 → MCP Toolbox → Doris，`bff` 经公共库 `ontology` 从 OM 读取已审批的对象定义；两个测试租户互访验证。
+- **端到端骨架**：web → bff → AI 网关 → MCP Toolbox → Doris，`bff` 经公共库 `ontology` 从 OM 读取已审批的对象定义；单租户部署。
 
 决策依据见 [research.md](research.md)。
 
@@ -51,13 +53,13 @@
 
 | 条款 | 检查 | 结论 |
 | --- | --- | --- |
-| I 测试驱动 | 服务模板含单元 / 契约 / 集成测试样例；骨架有端到端测试；公共库升级须骨架回归 | 通过 |
+| I 测试驱动 | `bff` 含单元 / 契约 / 集成测试；组件配置即代码各带测试；骨架有端到端测试；公共库升级须骨架回归 | 通过 |
 | II 微服务与契约优先 | 按能力域拆分，每个服务独占数据库并写明拆分理由；契约在 `contracts/` 先行，oasdiff 检测破坏性变更 | 通过 |
 | III 开源与许可 | 全部组件为宽松许可；排除 MinIO（AGPL）、Redis（非宽松许可），改用 SeaweedFS、Valkey；开源服务清单见下文 | 通过 |
-| IV 最小权限与审计 | Keycloak 标准令牌交换（`sub` = 人，`azp` = Agent，受众收窄）；公共库统一验签与租户校验；数据层授权按 v1.4.0 的 Phase 1 例外推迟；AI 网关记录每次取数调用 | 通过（按例外） |
+| IV 最小权限与审计 | Keycloak 标准令牌交换（`sub` = 人，`azp` = Agent，受众收窄）；公共库统一验签；数据层授权按 v1.5.0 的 Phase 1 例外推迟；AI 网关记录每次取数调用 | 通过（按例外） |
 | V 可观测性 | 公共库注入关联属性，异步边界传递规则已定义；后端可替换 | 通过 |
 | VI 以服务方式集成 | 外部组件均以独立服务集成；OM 与 Omnigent 以上游镜像仓库维护，OM 的 Phase 1 补丁仅 OKF v0.2（ADR-0012）；改动逐提交登记 | 通过 |
-| 部署约束 | 同一套交付物覆盖三种环境；多租户隔离见 ADR-0007；测试环境共享实例 | 通过 |
+| 部署约束 | 同一套交付物覆盖三种环境；Phase 1 单租户，测试环境每套实例服务一个客户（v1.5.0 部署约束的 Phase 1 例外） | 通过（按例外） |
 | 开发流程与质量门禁 | 门禁、多环境部署、离线打包在 tasks 准备阶段搭建（spec 已说明不作为用户故事） | 通过 |
 
 无违反项，不需要 Complexity Tracking。
@@ -71,7 +73,7 @@ FR-001 的产出，为唯一维护版本）。要点：
   （ADR-0012、0013）。
 - **第三方底座**：OpenMetadata（从织境维护的仓库构建、独立部署，不改核心）、Keycloak、Langfuse、OTel
   Collector、Doris、Airflow、Omnigent（织境维护的仓库）、AI 网关（agentgateway 或 Agent Router）、MCP Toolbox、
-  agent-sandbox、Envoy Gateway、PostgreSQL、OpenSearch、
+  Envoy Gateway、PostgreSQL、OpenSearch、
   Fuseki、Valkey、对象存储。
 - **关键约束**：实例与分析数据只经 AI 网关以 MCP 访问（数据管线写入 Doris 除外）；审批只用 OM 治理工作流；上下文复用 OM（OKF v0.2 补丁）；
   轨迹复用 Langfuse；管线在 Airflow；Phase 1 无消息中间件、不建服务网格、不做数据层授权。
@@ -80,9 +82,9 @@ FR-001 的产出，为唯一维护版本）。要点：
 
 ## 代码架构
 
-见 ADR-0009（仓库结构、服务内分层、公共库模块、契约规则、服务模板）。本特性实现其中的公共库
-`contexture-core` 全部模块的最小可用版本、服务模板，骨架涉及的 `bff`、`web` 的最小版本，以及 AI 网关、
-MCP Toolbox、Keycloak 的骨架配置。
+见 ADR-0009（仓库结构、组件统一管理、服务内分层、公共库模块、契约规则）。本特性实现其中的公共库
+`contexture-core` 全部模块的最小可用版本，骨架涉及的 `bff`、`web` 的最小版本，骨架涉及的开源组件目录
+（Keycloak、OM、AI 网关、MCP Toolbox、Doris、OTel Collector、Langfuse）及其清单检查。
 
 ## Project Structure
 
@@ -102,8 +104,8 @@ specs/001-engineering-foundation/
 └── tasks.md             # /speckit-tasks 产出
 ```
 
-另在仓库产出：`docs/architecture/platform-architecture.md`、`docs/architecture/code-architecture.md`
-（由本 plan 的架构章节整理），`docs/adr/0007`–`0010`。
+另在仓库产出：`docs/architecture/platform-architecture.md`（平台技术架构）、`docs/adr/0007`–`0013`（代码架构即
+ADR-0009，不另写文档）。
 
 ### Source Code (repository root)
 
@@ -117,10 +119,11 @@ packages/
 ├── py-core/                      # contexture-core：auth、telemetry、ontology、mcp、errors、tenancy、config
 └── ts-api/                       # 由 contracts 生成的前端客户端
 contracts/{openapi,schemas,otel}/ # 由本特性 contracts/ 拆分落位
-config/keycloak/、config/agents/   # realm 与 Agent 客户端（骨架只含两个测试租户与一个示例 Agent）
-config/gateway/、config/toolbox/   # AI 网关路由与策略；MCP Toolbox 数据源与示例查询工具
-templates/service/                # Copier 服务模板
-deploy/helm/、deploy/values/local/、deploy/terraform/aliyun/、deploy/offline/
+agents/sample/                    # 示例 Agent：omnigent.yaml + registration.yaml（生成 Keycloak 客户端）
+deploy/components/<组件>/          # 骨架涉及的组件：component.yaml、Chart、values、config、tests
+                                  # （keycloak 的 realm 与客户端、ai-gateway 的路由与策略、toolbox 的示例查询工具等）
+contracts/mcp/                    # 示例查询工具的 MCP 契约
+deploy/helm/、deploy/terraform/aliyun/、deploy/offline/
 extensions/                       # 空目录 + 说明（宪法 VI）
 third_party/openmetadata/         # 织境维护的 OM 仓库（子仓库）+ UPSTREAM.yaml、PATCHES.md、build/（ADR-0011）
 tests/e2e/skeleton/               # 骨架端到端测试
@@ -142,7 +145,7 @@ docs/architecture/
 
 ## 需要用户确认的事项
 
-1. ADR-0008 改变了计划原假设：011 不再改 OM 核心，OM 为本体唯一来源；`third_party/openmetadata/` 为织境维护的 OM 仓库（子仓库），Phase 1 发布分支与上游一致（ADR-0011）。
+1. ADR-0008 改变了计划原假设：014 不再改 OM 核心，OM 为本体唯一来源；`third_party/openmetadata/` 为织境维护的 OM 仓库（子仓库），Phase 1 发布分支只含 OKF v0.2 补丁（ADR-0011、0012）。
 2. ADR-0010 需确认 POC 客户实际使用的飞书 Agent 产品，以及能否携带用户令牌调用外部 MCP。
 3. ADR-0009、ADR-0010 待评审（ADR-0007、0008、0011 已接受）。
 4. 架构文档第 8 节的四项待决事项。

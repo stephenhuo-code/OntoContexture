@@ -1,6 +1,6 @@
 # Research: 平台技术架构与代码架构基座
 
-本文件记录 001 plan 阶段的架构决策。输入为已接受的 ADR 与宪法 v1.4.0。
+本文件记录 001 plan 阶段的架构决策。输入为已接受的 ADR 与宪法 v1.5.0。
 跨多个特性的决策另成 ADR（0007–0010，状态“提议”，经架构评审后改为“已接受”）。
 
 ## R1 服务划分
@@ -29,7 +29,7 @@
 ## R3 跨切面能力的实现位置
 
 - **Decision**：**公共库为主 + 边缘网关为辅**，Phase 1 不引入服务网格。
-  - 公共库 `contexture-core`（Python）嵌入每个服务与管线：令牌验证与请求上下文（人 / Agent / 租户）、
+  - 公共库 `contexture-core`（Python）嵌入每个服务与管线：令牌验证与请求上下文（人 / Agent，`tenant_id` 为部署常量）、
     OTel 初始化与关联属性、本体读取（`ontology`）、MCP 取数客户端与令牌交换（`mcp`）、统一错误格式、配置加载。
   - 边缘网关：Kubernetes Gateway API 的实现（Envoy Gateway，Apache 2.0），负责 TLS、路由、限流。
 - **Rationale**：全部服务与管线为 Python，一份公共库即可覆盖；Phase 1 不做数据层授权（宪法 IV 例外）。服务网格对 Phase 1 规模而言复杂度过高。
@@ -42,7 +42,7 @@
   - 人经 Keycloak OIDC（授权码 + PKCE）登录。
   - 每个 Agent（以及 `bff`）在 Keycloak 中是一个客户端。代表人调用时，以自己的客户端身份对人的令牌做
     **标准令牌交换**：新令牌 `sub` = 人、`azp` = Agent、`aud` 收窄到目标（AI 网关等）、有效期短。人的登录令牌
-    经受众映射包含这些客户端。客户端密钥由 Omnigent 服务端与 `bff` 保管，不进沙箱。
+    经受众映射包含这些客户端。客户端密钥由 Omnigent 服务端与 `bff` 保管，不下发给 Agent 执行进程。
   - 每个服务用 Keycloak 的 JWKS 本地验签；交换按会话与目标缓存，不在每一跳重复。
   - 无人值守任务（Airflow 管线、自演进）：以服务账号用 client credentials 取令牌。
 - **Rationale**：令牌中有签名的人与 Agent，满足宪法 IV；受众收窄符合 MCP 授权规范，Agent 拿不到人的全部权限；
@@ -50,15 +50,14 @@
 - **Alternatives**：Agent 直接携带人的登录令牌——分不出人与 Agent；Keycloak 委托交换（`act` 声明）——预览
   状态，二期写回时再评估。
 
-## R5 多租户隔离 → ADR-0007
+## R5 多租户隔离 → ADR-0007（Phase 1 单租户）
 
-- **Decision**：Keycloak 单 realm + Organizations（每租户一个 organization，令牌含租户声明）；各存储
-  按其特性选择隔离方式（见 ADR-0007 表）：PostgreSQL 共享库 + 行级安全；Doris 每租户一个 database；
-  OpenMetadata 每租户一个 Domain + 服务层过滤；Fuseki 每租户命名图；实例搜索索引每租户一个；Langfuse
-  每租户一个 project；对象存储每租户前缀；Airflow 按租户参数化运行。
-- **Rationale**：测试环境以共享实例支持多客户（宪法“部署约束”）；单 realm 使所有服务只需信任一个签发者。
-- **Alternatives**：每租户一个 realm——签发者随租户变化，服务需动态信任多签发者；每租户一套 OM——
-  宪法禁止测试环境按客户部署多套实例。
+- **Decision**：Phase 1 按单租户设计与交付：一套环境只服务一个客户，可有多个用户与 Agent；`tenant_id` 作为部署
+  常量写入审计、追踪与日志；Keycloak 一个 realm，不用 Organization；各组件各一份（宪法 v1.5.0 部署约束的
+  Phase 1 例外，ADR-0007 修订）。ADR-0007 原多租户设计（Organization、每租户 database / project / 域等）暂缓，是否采用另行评估。
+- **Rationale**：Phase 1 只有一个 POC 客户；单租户可去掉网关租户路由、OM 域隔离、Omnigent 多租户改造与跨租户
+  测试，显著降低工作量；保留 `tenant_id` 字段使二期改造不影响数据格式。
+- **Alternatives**：Phase 1 即共享实例多租户——工作量大且 POC 用不上；不保留 `tenant_id`——将来如需多租户须迁移审计与追踪数据。
 
 ## R6 本体六要素的实现 → ADR-0008
 
@@ -73,7 +72,8 @@
 ## R7 仓库结构与代码架构 → ADR-0009
 
 - **Decision**：monorepo；Python 用 uv workspace，前端用 pnpm workspace；目录与服务内分层见 plan.md
-  “代码架构”；服务模板用 Copier（MIT）生成。
+  “代码架构”；开源组件每个一个标准目录（清单 + CI 检查）；Phase 1 不做服务模板，`bff` 为参考实现，二期再从
+  `bff` 提炼 Copier 模板。
 - **Rationale**：公共库、契约、本体、部署描述需要与服务同步演进；单仓便于一次 PR 内完成跨服务变更与
   回归。
 - **Alternatives**：多仓（每服务一仓）——公共库与契约版本协调成本高。
@@ -120,9 +120,9 @@
 ## R13 端到端骨架的组成
 
 - **Decision**：骨架使用真实组件的最小配置：`web` 登录 → `bff`（经 `contexture-core.ontology` 从 OM 读取已审批的
-  对象定义；以 `bff` 客户端身份交换令牌）→ AI 网关（验签、按租户路由、审计）→ 该租户的 MCP Toolbox 实例
-  （示例参数化查询工具，只读账号）→ Doris。Keycloak 预置两个测试租户与一个示例 Agent 客户端。
-- **Rationale**：骨架即后续 003、006、015 的起点，并顺带完成 ADR-0013 spike 的第 1、2、3、5 项。
+  对象定义；以 `bff` 客户端身份交换令牌）→ AI 网关（验签、审计）→ MCP Toolbox（示例参数化查询工具，只读
+  账号）→ Doris。单租户部署；Keycloak 预置测试用户与一个示例 Agent 客户端。
+- **Rationale**：骨架即后续 004、005、019 的起点，并顺带完成 ADR-0013 spike 的第 1、2、3、5 项。
 
 ## R14 CI 与制品
 
@@ -133,7 +133,7 @@
 ## R15 性能与规模基线
 
 - **Decision**：骨架端到端（本地环境）P95 ≤ 1 秒；AI 网关加 MCP Toolbox 的取数开销（不含查询执行）P95 ≤ 100 毫秒，spike 中测定后确认；平台设计容量为 Phase 1 压测目标 500 个并发 Agent 运行（ADR-0002）。
-  具体压测在 006、008 中进行。
+  具体压测在 005、012 中进行。
 
 ## R16 OpenMetadata 的构建与部署 → ADR-0011
 
@@ -153,8 +153,8 @@
 
 ## R18 数据访问与 AI 网关 → ADR-0013
 
-- **Decision**：Agent 取数一律经 MCP。AI 网关（agentgateway 或 Agent Router，spike 选定）统一校验令牌、按租户与
-  工具授权、路由与审计，并兼作模型网关；数据库后端统一用 MCP Toolbox（每租户一个实例，只读账号），Doris 优先
+- **Decision**：Agent 取数一律经 MCP。AI 网关（agentgateway 或 Agent Router，spike 选定）统一校验令牌、按工具
+  授权、路由与审计，并兼作模型网关；数据库后端统一用 MCP Toolbox（Phase 1 单租户，一个实例，只读账号），Doris 优先
   用其 mysql 数据源，不可行时用 Apache Doris MCP Server。不自建 `sql-gateway`；不用 LiteLLM 作网关。
 - **Rationale**：主流数据库普遍提供 MCP 服务，但身份、审计、租户路由没有统一，集中由网关配置完成；一条取数路径
   覆盖 Doris 与客户的各种数据库。

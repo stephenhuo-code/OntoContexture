@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: |
     001 端到端骨架涉及的接口。实施时按 ADR-0009 拆分到 contracts/openapi/<服务>.yaml。
-    取数不经自建 REST 服务：bff 经 AI 网关以 MCP 调用 MCP Toolbox 的工具（ADR-0013），工具定义在 config/toolbox/。
+    取数不经自建 REST 服务：bff 经 AI 网关以 MCP 调用 MCP Toolbox 的工具（ADR-0013），工具定义在 deploy/components/toolbox/config/，契约在 contracts/mcp/。
     所有接口要求 Bearer 委托令牌；错误统一使用 urn:ctx:schema:error:v1。
 servers:
   - url: /
@@ -15,7 +15,7 @@ paths:
   /bff/v1/me:
     get:
       operationId: bffGetMe
-      summary: 当前用户与租户
+      summary: 当前用户（含部署常量 tenant_id）
       responses:
         "200":
           description: OK

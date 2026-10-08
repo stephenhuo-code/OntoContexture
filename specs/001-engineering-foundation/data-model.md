@@ -11,7 +11,7 @@
 
 | 字段 | 类型 | 来源 / 规则 |
 | --- | --- | --- |
-| `tenant_id` | string | 令牌 `tenant_id` 声明（由 Keycloak organization 映射）；MUST 存在 |
+| `tenant_id` | string | 部署配置常量（Phase 1 单租户，ADR-0007 修订）；不来自令牌 |
 | `user_id` | string | 令牌 `sub`；无人值守任务为空 |
 | `agent_id` | string? | 令牌 `azp`：经标准令牌交换得到，为 Agent（或 `bff` 等服务）的 Keycloak 客户端（ADR-0013） |
 | `agent_owner_id` | string? | 无人值守 Agent 的登记负责人（来自 Agent 登记） |
@@ -22,7 +22,7 @@
 | `run_id` / `session_id` | string? | Agent 运行与会话标识（ADR-0001） |
 | `trace_id` | string | 当前 OTel trace |
 
-校验规则：令牌验签失败、过期、缺少 `tenant_id` → 401；令牌租户与资源租户不一致 → 403；均由公共库
+校验规则：令牌验签失败、过期 → 401；受众不符 → 403；均由公共库
 统一返回，业务代码不处理。
 
 ### CorrelationAttributes（可观测关联属性）
@@ -81,21 +81,21 @@ JSON Schema 见 [contracts/schemas/error.json](contracts/schemas/error.json)：`
 
 | 字段 | 说明 |
 | --- | --- |
-| `object_uri` | `urn:ctx:obj:<租户>:<类型名>:<业务主键>` |
+| `object_uri` | `urn:ctx:obj:<tenant_id>:<类型名>:<业务主键>`（保留 `tenant_id` 段，便于将来如需多租户时演进） |
 | `type_uri` | 所属对象类型 |
 | `attributes` | 属性值 |
 | `source` | 数据来源（系统、表） |
 
-骨架在每个测试租户的 Doris database 中预置少量手工数据。
+骨架在 Doris 本体实例库中预置少量手工数据。
 
 ### 取数调用（MCP 工具）
 
-骨架在每个租户的 MCP Toolbox 实例中定义一个参数化查询工具（配置在 `config/toolbox/`）：
+骨架在 MCP Toolbox 中定义一个参数化查询工具（配置在 `deploy/components/toolbox/config/`，契约在 `contracts/mcp/`）：
 
 | 项 | 内容 |
 | --- | --- |
-| 工具 | `list_objects`：参数 `type_key`、`limit`（≤ 100）；SQL 模板只查该租户 database 中对应的实例表 |
+| 工具 | `list_objects`：参数 `type_key`、`limit`（≤ 100）；SQL 模板只查本体实例库中对应的实例表 |
 | 调用方 | `bff`（经 `contexture-core.mcp`，以 `bff` 客户端身份交换令牌，受众为 AI 网关） |
-| 路由 | AI 网关按令牌租户声明转发到该租户的 Toolbox 实例；跨租户不可达 |
+| 路由 | AI 网关校验令牌后转发到 Toolbox（Phase 1 单租户，不做租户路由） |
 | 结果 | 列与行；超过行数上限时截断并标记 |
-| 约束 | Toolbox 使用该租户的 Doris 只读账号；超时与行数上限在 Toolbox / Doris 配置；Phase 1 不做数据层授权 |
+| 约束 | Toolbox 使用 Doris 只读账号；超时与行数上限在 Toolbox / Doris 配置；Phase 1 不做数据层授权 |
