@@ -1,0 +1,91 @@
+openapi: 3.1.0
+info:
+  title: 织境端到端骨架接口（bff 的最小集）
+  version: 0.1.0
+  description: |
+    001 端到端骨架涉及的接口。实施时按 ADR-0009 拆分到 contracts/openapi/<服务>.yaml。
+    取数不经自建 REST 服务：bff 经 AI 网关以 MCP 调用 MCP Toolbox 的工具（ADR-0013），工具定义在 config/toolbox/。
+    所有接口要求 Bearer 委托令牌；错误统一使用 urn:ctx:schema:error:v1。
+servers:
+  - url: /
+security:
+  - bearer: []
+paths:
+  # ---------- bff（浏览器唯一入口，ADR-0003） ----------
+  /bff/v1/me:
+    get:
+      operationId: bffGetMe
+      summary: 当前用户与租户
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        default: { $ref: "#/components/responses/Error" }
+  /bff/v1/object-types/{typeKey}/objects:
+    get:
+      operationId: bffListObjects
+      summary: 示例查询：对象类型定义 + 该类型的对象实例
+      parameters:
+        - { name: typeKey, in: path, required: true, schema: { type: string }, example: equipment }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ObjectListView" }
+        default: { $ref: "#/components/responses/Error" }
+
+components:
+  securitySchemes:
+    bearer: { type: http, scheme: bearer, bearerFormat: JWT }
+  responses:
+    Error:
+      description: 统一错误格式
+      content:
+        application/json:
+          schema: { $ref: "urn:ctx:schema:error:v1" }
+  schemas:
+    Me:
+      type: object
+      required: [tenant_id, user_id]
+      properties:
+        tenant_id: { type: string }
+        user_id: { type: string }
+        display_name: { type: string }
+        roles: { type: array, items: { type: string } }
+    ObjectTypeRef:
+      type: object
+      required: [type_uri, name, version, attributes]
+      properties:
+        type_uri: { type: string, example: "urn:ctx:type:quality:Equipment" }
+        name: { type: string }
+        display_name: { type: string }
+        version: { type: string }
+        attributes:
+          type: array
+          items:
+            type: object
+            required: [name, data_type]
+            properties:
+              name: { type: string }
+              data_type: { type: string }
+              required: { type: boolean }
+              data_level: { type: integer }
+    ObjectInstance:
+      type: object
+      required: [object_uri, type_uri, attributes]
+      properties:
+        object_uri: { type: string, example: "urn:ctx:obj:tenant-a:Equipment:CNC-07" }
+        type_uri: { type: string }
+        attributes: { type: object, additionalProperties: true }
+        source: { type: string }
+    ObjectListView:
+      type: object
+      required: [object_type, items]
+      properties:
+        object_type: { $ref: "#/components/schemas/ObjectTypeRef" }
+        items: { type: array, items: { $ref: "#/components/schemas/ObjectInstance" } }
+        trace_id: { type: string, description: 用于查询本次取数的审计记录 }

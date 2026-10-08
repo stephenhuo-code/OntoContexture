@@ -58,10 +58,13 @@ Omnigent（Apache 2.0，工程化完整）、OmniAgent（GPL-3.0，排除）、M
 ### 改造方式（宪法 VI）
 
 - 优先级：① 用 Omnigent 的扩展点（`omnigent.sandbox_providers` 入口、extensions、策略、YAML）；
-  ② 向上游提 issue / PR；③ 本地补丁。
-- 本地补丁集中在独立目录或分支，每个补丁登记：目的、对应上游 issue / PR、能否随上游升级删除。
-- MUST NOT 长期维护深度分叉。若某项改造（尤其 #1 持久化）上游不接受且补丁持续增大，MUST 重新评估
-  本 ADR，并按宪法修订流程记录例外。
+  ② 向上游提 issue / PR；③ 补丁。
+- 补丁采用**上游镜像仓库**方式（宪法 VI 第 2 种，与 OM 一致，ADR-0011）：织境维护的 Omnigent 仓库以子仓库挂在
+  `third_party/omnigent/`；主分支只同步上游，改动只放在发布分支 `ctx/<上游版本>`；每个提交在
+  `third_party/omnigent/PATCHES.md` 登记（目的、上游 issue / PR、能否随升级删除）；CI 核对发布分支与上游标签
+  的差异与登记表一致。
+- 补丁只为上游增加扩展缝隙，功能实现在 `extensions/omnigent-plugins`。若某项改造（尤其 #1 持久化）上游不接受
+  且改动持续增大，或连续两次升级冲突，MUST 重新评估本 ADR。
 
 ## 影响
 
@@ -94,3 +97,16 @@ Omnigent（Apache 2.0，工程化完整）、OmniAgent（GPL-3.0，排除）、M
   的能力移到 020。
 - 002 spike：Keycloak 中“Agent 服务身份代表用户换取令牌”的配置方式。
 - 建立 Omnigent 补丁登记表与升级回归流程。
+
+## 修订（2026-10-07，ADR-0012）
+
+- “统一取数网关”改名为 SQL 网关（`sql-gateway`）；Phase 1 不做数据层授权（宪法 IV 例外），网关只做令牌与租户
+  校验、只读、限流与查询审计，上文“授权求值”在 Phase 1 不适用。
+- Agent 取上下文经 OM 内置 MCP 服务与资产 AI 上下文，不建织境 MCP 服务。
+
+## 修订（2026-10-08，见 [ADR-0013](0013-数据访问与AI网关.md)）
+
+- SQL 不再经自建网关：Omnigent 与沙箱中的任务经 AI 网关以 MCP 访问 MCP Toolbox；模型调用也经 AI 网关（模型网关）。
+  沙箱网络策略只放行 AI 网关与对象存储。
+- 委托令牌：Omnigent 服务端以各 Agent 的 Keycloak 客户端身份做标准令牌交换（`sub` = 人，`azp` = Agent），客户端
+  密钥不进沙箱。

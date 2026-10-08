@@ -104,3 +104,9 @@
 - 009：按本 ADR 实现轨迹采集、人工修订写回、Datasets 导出。
 - 019：推送到飞书的草稿携带 `trace_id`；spike 验证 Omnigent 的轨迹以 OTLP 进入 Langfuse 的呈现。
 - 008 内部 Agent 运行时（见 ADR-0002）：在 Omnigent 中实现 `agent_run` / `agent_rollout` 与恢复逻辑。
+
+## 修订（2026-10-07，见 ADR-0012）
+
+- 不设 `trace` 服务：轨迹查询直接使用 Langfuse 的界面与公开 API；织境 Web 的“决策轨迹”页面经 `bff` 调用 Langfuse API。
+- 人工修订（如飞书中修改 8D 草稿）由飞书同步的 Airflow 管线经 Langfuse API 写回为评分或人工修订节点。
+- Phase 1 轨迹查询不做数据层授权（宪法 IV Phase 1 例外）。
