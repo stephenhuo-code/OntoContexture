@@ -6,7 +6,7 @@
 
 ## Summary
 
-为织境 Phase 1 的 24 个特性确定平台技术架构与代码架构，并以端到端骨架验证。
+为织境 Phase 1 的 26 个特性确定平台技术架构与代码架构，并以端到端骨架验证。
 
 - **技术架构**：Phase 1 只自建 `bff` 一个后端服务 + 织境 Web + 管线任务镜像，其余复用 Keycloak、OM、
   Langfuse、Airflow、AI 网关、MCP Toolbox（ADR-0012、0013）；外部组件以服务方式集成；浏览器经 `bff` 用
@@ -145,7 +145,7 @@ docs/architecture/
 
 ## 需要用户确认的事项
 
-1. ADR-0008 改变了计划原假设：014 不再改 OM 核心，OM 为本体唯一来源；`third_party/openmetadata/` 为织境维护的 OM 仓库（子仓库），Phase 1 发布分支只含 OKF v0.2 补丁（ADR-0011、0012）。
+1. ADR-0008 改变了计划原假设：016 不再改 OM 核心，OM 为本体唯一来源；`third_party/openmetadata/` 为织境维护的 OM 仓库（子仓库），Phase 1 发布分支只含 OKF v0.2 补丁（ADR-0011、0012）。
 2. ADR-0010 需确认 POC 客户实际使用的飞书 Agent 产品，以及能否携带用户令牌调用外部 MCP。
 3. ADR-0009、ADR-0010 待评审（ADR-0007、0008、0011 已接受）。
 4. 架构文档第 8 节的四项待决事项。
