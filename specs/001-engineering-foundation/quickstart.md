@@ -1,60 +1,63 @@
-# Quickstart: 验证平台架构基座
+# Quickstart: 验收 001 工程基座
 
-用于验收 001 的三个用户故事。命令为目标形态，具体脚本在 tasks 阶段实现。
+对应 spec 的 4 个用户故事与“最终演示”。命令为目标形态，具体脚本在 tasks 阶段实现。
 
 ## 前置条件
 
-- 本地单机 Kubernetes（kind）、Helm、uv、pnpm、Docker。
-- 已克隆仓库并处于 `001-engineering-foundation` 分支。
+- 本地：kind、Helm、uv、pnpm、Docker。
+- 本地 Keycloak 26.8.0 随 `make up` 部署；模型服务 key 由负责人自行配置。阿里云测试环境在 004 之后搭建。
 
-## 1. 平台技术架构（用户故事 1）
-
-1. 打开 `docs/architecture/platform-architecture.md`（由本特性产出，内容基于 plan.md“平台技术架构”）。
-2. 从 `docs/Phase1-特性列表与开发计划.md` 任选 5 个特性，逐一在服务目录中确认：所属服务、独占存储、
-   接口类型、依赖。
-3. 确认 `docs/adr/0007` 至 `0010` 均已由“提议”改为“已接受”（0010 需确认 POC 平台后接受）。
-
-**预期**：26 个特性全部有归属；每次查找不超过 5 分钟（SC-001、SC-002）。
-
-## 2. 代码架构与公共库（用户故事 2）
+## 1. 仓库与公共库（用户故事 1）
 
 ```bash
-cd services/bff && uv run pytest          # bff（参考实现）的单元、契约、集成测试
-make components-check                     # 检查所有开源组件目录：清单、版本锁定、许可、离线镜像清单、冒烟测试
+make test                                   # 仓库骨架、公共库、bff、web 的全部测试
+cd services/bff && uv run pytest            # bff 单元、契约、集成测试
 ```
 
 | 检查 | 预期 |
 | --- | --- |
 | 无令牌 / 过期令牌请求 `bff` | 401，错误体符合 `contracts/schemas/error.json` |
 | 受众不符的令牌 | 403，`code = auth.invalid_audience` |
-| 一次正常请求 | span 与日志带 `ctx.tenant.id`（部署常量）、`ctx.user.id`、`ctx.agent.id`（`contracts/otel/attributes.md`） |
-| 经公共 MCP 取数客户端查询 | AI 网关审计中出现对应记录（含 `sub`、`azp`、`tenant_id`、工具）；`bff` 没有数据库账号 |
-| `bff` 源码 | 不含自写的令牌验证、令牌交换、关联属性与错误格式代码 |
-| 删除某组件 `component.yaml` 中的版本号 | `make components-check` 失败 |
+| 一次正常请求 | 日志与追踪带 `ctx.tenant.id`、`ctx.user.id`、`ctx.agent.id` |
+| `bff` 源码 | 不含自写的令牌验证、令牌交换、追踪与错误格式代码 |
+| 参照 `bff` 新增一个接口 | 30 分钟内测试通过（SC-001） |
 
-**预期**：30 分钟内参照 `bff` 新增一个接口并跑通测试（SC-003、SC-004）。
-
-## 3. 端到端骨架（用户故事 3）
+## 2. 一键部署与 CI（用户故事 2）
 
 ```bash
-make skeleton-up           # 在 kind 中部署（单租户）：Keycloak、OM（自建镜像）、Fuseki（OM 的 RDF
-                           # 存储）、Doris、Airflow、OTel Collector、Langfuse、
-                           # AI 网关、MCP Toolbox、bff、web
-make skeleton-seed         # 在 OM 术语库预置“设备”对象及其属性并审批通过；
-                           # 预置少量设备实例
+make up                  # 在本地 kind 部署全部组件与 bff、web（SC-002）
+make components-check    # 检查每个组件的清单、版本锁定、许可、离线镜像清单、冒烟测试
+make offline-package     # 打离线安装包，再在断网 kind 中安装（SC-005）
 ```
 
-1. 浏览器打开 `http://localhost:8080`，以测试用户登录。
-2. 进入示例页面，查询对象类型 `equipment`。
-3. 预期：显示“设备”对象类型的属性定义与设备实例（接口见
-   `contracts/openapi/skeleton.yaml` 的 `bffListObjects`）。
-4. 在追踪界面按本次 `trace_id` 查看：一条追踪包含 web → bff → AI 网关 → MCP Toolbox → Doris 与 bff → OM 的
-   全部 span，每个 span 带相同的 `ctx.tenant.id`（部署常量，SC-005）。
-5. 按本次 `trace_id` 查询 AI 网关的审计记录：可见一条 `read` 记录，含人（`sub`）、Agent / 服务（`azp`）、
-   `tenant_id`、工具与查询摘要；返回行数可由 Toolbox / Doris 审计按同一 `trace_id` 查到。
+CI 故意失败用例（SC-004）：加入一个 AGPL 依赖 → 失败；删除某组件 `component.yaml` 中的版本号 → 失败。
 
-## 4. 回归
+
+## 3. 最终演示（用户故事 3，SC-003）
 
 ```bash
-make skeleton-test         # 运行骨架的端到端测试，公共库或组件版本升级时必须通过（FR-011）
+make seed                # 在 OM 预置已审批的“设备”对象定义，在 Doris 预置少量设备数据
+```
+
+1. 浏览器打开织境 Web，用测试用户登录（跳转 Keycloak）。
+2. 打开示例页面：看到“设备”的属性定义（来自 OM）与设备列表（来自 Doris）。接口见 `contracts/openapi/skeleton.yaml`。
+3. 按本次 `trace_id` 查看追踪：web → bff → AI 网关 → MCP Toolbox → Doris，以及 bff → OM；每跳 `ctx.tenant.id` 相同。
+4. 查看 AI 网关审计：人（`sub`）、调用方（`azp` = bff）、工具名、查询摘要、返回行数。
+5. 用无令牌或受众不符的令牌直接调 `bff`：401 / 403，错误格式统一。
+6. 触发 CI 的故意失败用例，确认被拦截。
+
+在本地环境执行；阿里云测试环境在 004 之后搭建，届时复演一遍。
+
+## 4. 三项选型（用户故事 4，SC-006）
+
+| 选型 | 验证 | 结论写入 |
+| --- | --- | --- |
+| AI 网关 | ADR-0013 的 4 项验证（Toolbox 连 Doris、审计字段、模型网关、令牌受众） | ADR-0013 |
+| Toolbox 连 Doris | 用 mysql 数据源执行示例查询工具 | ADR-0013 |
+| 系统可观测后端 | 候选 Prometheus + Jaeger + OpenSearch Dashboards，部署并能查服务指标与日志 | 架构文档 |
+
+## 回归
+
+```bash
+make e2e                 # 最小链路端到端测试；公共库或组件版本升级时必须通过
 ```

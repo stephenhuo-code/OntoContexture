@@ -12,6 +12,32 @@ security:
   - bearer: []
 paths:
   # ---------- bff（浏览器唯一入口，ADR-0003） ----------
+  /bff/v1/auth/login:
+    get:
+      operationId: bffLogin
+      summary: 跳转 Keycloak 登录（BFF 模式：令牌只在 bff，浏览器只持有会话 Cookie）
+      security: []
+      parameters:
+        - { name: return_to, in: query, schema: { type: string } }
+      responses:
+        "302": { description: 重定向到 Keycloak 授权端点 }
+  /bff/v1/auth/callback:
+    get:
+      operationId: bffLoginCallback
+      summary: Keycloak 回调；换取令牌、建立会话后跳回页面
+      security: []
+      parameters:
+        - { name: code, in: query, required: true, schema: { type: string } }
+        - { name: state, in: query, required: true, schema: { type: string } }
+      responses:
+        "302": { description: 跳回 return_to }
+        default: { $ref: "#/components/responses/Error" }
+  /bff/v1/auth/logout:
+    post:
+      operationId: bffLogout
+      summary: 清除会话并在 Keycloak 登出
+      responses:
+        "204": { description: 已登出 }
   /bff/v1/me:
     get:
       operationId: bffGetMe

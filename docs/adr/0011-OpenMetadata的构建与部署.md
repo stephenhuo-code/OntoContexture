@@ -17,8 +17,8 @@ Helm Chart（含依赖组件的打包）。织境需要跟随 OM 最新版本，
 
 ### 1. 从织境维护的 OM 仓库构建镜像
 
-- 织境克隆并维护一个 OM 仓库（上游镜像仓库，宪法 VI 第 2 种方式），以子仓库（git submodule）挂在本仓库
-  `third_party/openmetadata/`，锁定到具体提交；镜像从该仓库构建。
+- 织境维护一个 OM 仓库（上游镜像仓库，宪法 VI 第 2 种方式）：`https://github.com/stephenhuo-code/OpenMetadata`（fork 自上游）。
+  以子仓库（git submodule，浅克隆）挂在本仓库 `third_party/openmetadata/src/`，锁定到具体提交；镜像从该仓库构建。
 - 分支规则：
 
   | 分支 | 内容 | 规则 |
@@ -26,7 +26,7 @@ Helm Chart（含依赖组件的打包）。织境需要跟随 OM 最新版本，
   | 主分支 | 与上游 `open-metadata/OpenMetadata` 同步 | 只同步上游，不提交织境改动 |
   | 发布分支 `ctx/<上游版本>`，如 `ctx/2.0.3` | 上游版本标签（如 `2.0.3-release`）+ 织境提交 | 构建从此分支产出；Phase 1 的织境提交只有 OKF v0.2 改动（ADR-0012），本体部分不改 OM 核心（ADR-0008） |
 
-- `third_party/openmetadata/` 中另有：`UPSTREAM.yaml`（上游地址、当前版本标签、镜像仓库地址、许可）、
+- `third_party/openmetadata/` 中、子仓库目录之外另有：`UPSTREAM.yaml`（上游地址、当前版本标签、镜像仓库地址、许可）、
   `PATCHES.md`（发布分支上每个织境提交的登记：目的、上游 issue / PR、状态、删除条件）、`build/`（构建脚本
   与 Dockerfile）。
 - CI 核对：发布分支相对上游版本标签的差异必须与 `PATCHES.md` 一一对应，否则构建失败。

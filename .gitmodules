@@ -1,0 +1,10 @@
+[submodule "third_party/openmetadata/src"]
+	path = third_party/openmetadata/src
+	url = https://github.com/stephenhuo-code/OpenMetadata.git
+	branch = ctx/2.0.3
+	shallow = true
+[submodule "third_party/omnigent/src"]
+	path = third_party/omnigent/src
+	url = https://github.com/stephenhuo-code/contexture-omnigent.git
+	branch = ctx/v0.18.0
+	shallow = true

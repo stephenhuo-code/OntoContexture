@@ -1,0 +1,17 @@
+# 织境维护的 OpenMetadata 仓库（宪法 VI 上游镜像仓库方式，ADR-0011）
+component: openmetadata
+upstream:
+  repo: https://github.com/open-metadata/OpenMetadata
+  tag: 2.0.3-release
+  commit: b76076bf43746423d1b07de5957caccf04c57d4b
+mirror:
+  repo: https://github.com/stephenhuo-code/OpenMetadata
+  release_branch: ctx/2.0.3          # 上游版本标签 + 织境补丁；构建从此分支产出
+  main_branch: main                  # 只同步上游，不提交织境改动
+submodule_path: third_party/openmetadata/src
+image_version: 2.0.3-ctx.0           # <上游版本>-ctx.<修订号>，有补丁后递增
+license:
+  server: Apache-2.0
+  ingestion: Collate Community License 1.0   # 已批准例外（ADR-0011）
+  mcp: Collate Community License 1.0         # 已批准例外（ADR-0011、0012）
+  ui: Collate Community License 1.0          # 不交付给客户使用

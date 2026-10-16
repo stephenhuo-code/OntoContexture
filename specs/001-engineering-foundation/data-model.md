@@ -90,7 +90,7 @@ JSON Schema 见 [contracts/schemas/error.json](contracts/schemas/error.json)：`
 
 ### 取数调用（MCP 工具）
 
-骨架在 MCP Toolbox 中定义一个参数化查询工具（配置在 `deploy/components/toolbox/config/`，契约在 `contracts/mcp/`）：
+骨架在 MCP Toolbox 中定义一个参数化查询工具（配置在 `deploy/components/mcp-toolbox/config/`，契约在 `contracts/mcp/`）：
 
 | 项 | 内容 |
 | --- | --- |

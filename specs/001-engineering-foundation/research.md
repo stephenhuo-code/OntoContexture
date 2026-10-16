@@ -122,7 +122,7 @@
 - **Decision**：骨架使用真实组件的最小配置：`web` 登录 → `bff`（经 `contexture-core.ontology` 从 OM 读取已审批的
   对象定义；以 `bff` 客户端身份交换令牌）→ AI 网关（验签、审计）→ MCP Toolbox（示例参数化查询工具，只读
   账号）→ Doris。单租户部署；Keycloak 预置测试用户与一个示例 Agent 客户端。
-- **Rationale**：骨架即后续 004、005、021 的起点，并顺带完成 ADR-0013 spike 的第 1、2、3、5 项。
+- **Rationale**：骨架即后续 004、005、021 的起点，并顺带完成 ADR-0013 spike 的第 1、3、4、5 项（第 2 项因单租户取消）。
 
 ## R14 CI 与制品
 

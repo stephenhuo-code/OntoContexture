@@ -57,7 +57,7 @@ Omnigent（Apache 2.0，工程化完整）、OmniAgent（GPL-3.0，排除）、M
 - 优先级：① 用 Omnigent 的扩展点（`omnigent.sandbox_providers` 入口、extensions、策略、YAML）；
   ② 向上游提 issue / PR；③ 补丁。
 - 补丁采用**上游镜像仓库**方式（宪法 VI 第 2 种，与 OM 一致，ADR-0011）：织境维护的 Omnigent 仓库以子仓库挂在
-  `third_party/omnigent/`；主分支只同步上游，改动只放在发布分支 `ctx/<上游版本>`；每个提交在
+  `third_party/omnigent/src/`（见文末 2026-10-16 修订）；主分支只同步上游，改动只放在发布分支 `ctx/<上游版本>`；每个提交在
   `third_party/omnigent/PATCHES.md` 登记（目的、上游 issue / PR、能否随升级删除）；CI 核对发布分支与上游标签
   的差异与登记表一致。
 - 补丁只为上游增加扩展缝隙，功能实现在 `extensions/omnigent-plugins`。若某项改造（尤其 #1 持久化）上游不接受
@@ -108,3 +108,12 @@ Omnigent（Apache 2.0，工程化完整）、OmniAgent（GPL-3.0，排除）、M
 ## 修订（2026-10-08，Phase 1 单租户，见 ADR-0007 修订）
 
 - Omnigent 改造项中的“多租户”暂缓（是否多租户另行评估）；Phase 1 保留持久化执行、委托令牌、OTel 轨迹三项改造。
+
+## 修订（2026-10-16）：维护仓库、版本与前端
+
+- **维护仓库**：`https://github.com/stephenhuo-code/contexture-omnigent`（独立仓库，非 fork，与负责人其他项目的 Omnigent fork
+  分开）。`main` 同步上游 `omnigent-ai/omnigent`；发布分支 `ctx/v0.18.0` 起点为上游 `v0.18.0`（提交 `a8676d23`）。以子仓库挂在
+  `third_party/omnigent/src/`，`UPSTREAM.yaml`、`PATCHES.md`、`build/` 放在子仓库之外。向上游提 PR 时临时 fork 上游后提交。
+- **锁定版本**：v0.18.0（上文评估基于 v0.16.0，014 开工前复核改造项现状）。
+- **补丁范围**：只做后端运行时（014：持久化、令牌交换、OTel），功能实现放 `extensions/omnigent-plugins/`。
+- **前端**：Omnigent 前端不以补丁维护，按需复制到 `apps/web/` 作为织境代码修改（ADR-0003），保留 Apache 2.0 许可与 NOTICE 署名。
