@@ -58,7 +58,7 @@ ADR-0001–0013，技术决策见 [research.md](research.md)。
 | --- | --- | --- | --- |
 | D1 | 仓库骨架 | 按 ADR-0009 建目录；`pyproject.toml`（uv workspace：py-core、bff、tools）、`pnpm-workspace.yaml`（web、ts-api）；`Makefile` 目标：`test`、`up`、`down`、`seed`、`e2e`、`components-check`、`offline-package`；pre-commit（ruff、pyright、eslint） | — |
 | D2 | 公共库 v0.1 | `auth`：PyJWT 加 JWKS 缓存验签，解析 `sub`、`azp`、角色，`tenant_id` 取自 `config`；FastAPI 依赖项统一返回 401 / 403<br>`mcp`：调用 Keycloak 令牌端点做标准令牌交换（受众 = AI 网关），按受众缓存；用 MCP SDK 的 Streamable HTTP 客户端调用工具，并传递 `traceparent`<br>`telemetry`：OTel 初始化，按 `contracts/otel/attributes.md` 注入关联属性<br>`ontology`：读取 OM 中已审批的术语与属性，缓存<br>`errors`：按 `contracts/schemas/error.json` 输出<br>`config`：pydantic-settings | D1 |
-| D3 | `bff` 最小版本 | FastAPI，分层只有 `api` 与 `adapters`，另有 `migrations/`（Alembic，会话表）（ADR-0009）。按 BFF 模式由 `bff` 完成 OIDC 登录：`/bff/v1/auth/login`、`/callback`、`/logout`，会话存 PostgreSQL 的独占 database `bff`（不新增组件），浏览器不持有令牌；业务接口 `GET /bff/v1/me`、`GET /bff/v1/object-types/{typeKey}/objects`（契约 `contracts/openapi/skeleton.yaml`）；后者经 `ontology` 读 OM，经 `mcp` 调 Toolbox 工具 `list_objects` | D2、D10①② |
+| D3 | `bff` 最小版本 | FastAPI，分层只有 `api` 与 `adapters`，另有 `migrations/`（Alembic，会话表）（ADR-0009）。按 BFF 模式由 `bff` 完成 OIDC 登录：`/bff/v1/auth/login`、`/callback`、`/logout`，会话存 PostgreSQL 的独占 database `bff`（不新增组件），浏览器不持有令牌；业务接口 `GET /bff/v1/me`、`GET /bff/v1/object-types/{typeKey}/objects`（契约 `contracts/openapi/bff.yaml`）；后者经 `ontology` 读 OM，经 `mcp` 调 Toolbox 工具 `list_objects` | D2、D10①② |
 | D4 | 织境 Web 最小外壳 | React 单页应用：登录跳转、示例页面（对象定义表 + 设备列表）；前端 API 客户端由契约生成到 `packages/ts-api/`；构建为 nginx 静态镜像 | D3 |
 | D5 | 组件部署目录 | 每个组件：`component.yaml`（版本、镜像来源、许可、定制级别、负责人）、Chart 或上游 Chart 引用、`values/base.yaml` 与各环境参数、`config/`、`tests/`。组件与来源见下表 | D1 |
 | D6 | 本地一键部署 | 伞形 Chart `deploy/helm/contexture/` 汇总全部组件与 `bff`、`web`；kind 配置；Keycloak 默认接入外部实例（本机为负责人现有 Keycloak、与 Paperclip 同一 realm），开关 `keycloak.enabled=true` 时随织境部署 26.8.0；两种模式都由 keycloak-config-cli 增量导入织境配置；`make up` 部署并等待就绪；`make seed` 预置 OM 对象定义与 Doris 示例数据 | D5 |
@@ -106,7 +106,7 @@ ADR-0001–0013，技术决策见 [research.md](research.md)。
 | SeaweedFS | 4.48 | Apache-2.0 | 对象存储（本地 / 离线） | 组件 `langfuse` | 阿里云 OSS（测试环境） |
 | Valkey | 9.1.2 | BSD-3-Clause | Langfuse 缓存 | 组件 `langfuse` | — |
 | Apache Airflow | 3.3.2 | Apache-2.0 | 管线编排（001 只验证就绪） | 组件 `airflow` | Argo Workflows（Apache-2.0） |
-| keycloak-config-cli | 6.5.1 | Apache-2.0 | 增量导入织境的 Keycloak 配置 | 组件 `keycloak` | Keycloak 管理接口脚本 |
+| keycloak-config-cli | 6.5.1（镜像 `6.5.1-26.5.5`，上游尚无对应 26.8 的构建，测试中对 26.8.0 导入通过） | Apache-2.0 | 增量导入织境的 Keycloak 配置 | 组件 `keycloak` | Keycloak 管理接口脚本 |
 | Envoy Gateway | 1.9.2 | Apache-2.0 | 边缘网关与路由 | 组件 `envoy-gateway` | ingress-nginx（已退役，不选） |
 | nginx | 1.31.7 | BSD-2-Clause | `web` 静态资源服务 | 组件 `web` | Caddy（Apache-2.0） |
 | 可观测后端（D10 候选） | Prometheus 3.15.0；Jaeger 2.22.0；OpenSearch Dashboards 3.9.0 | Apache-2.0 | 服务指标、追踪、日志查看 | 组件 `prometheus`、`jaeger`、`opensearch-dashboards` | Grafana 系（AGPL，不选） |
@@ -180,6 +180,6 @@ tests/e2e/                        # 最终演示的端到端测试
 3. 模型服务 key 由负责人在验证 AI 网关时自行配置（D10①）。
 4. 阿里云测试环境放到 004 之后（见开发计划 004）。
 6. 现有 Keycloak：已核实可从容器内访问（`https://sso.127.0.0.1.nip.io`，realm `digital-workforce`，26.8.0）。需要负责人在该 realm
-   内创建一个仅管理本 realm 的服务账号供 keycloak-config-cli 导入，凭证放本地环境变量。
+   内创建一个仅管理本 realm 的服务账号 `contexture-provisioner` 供 keycloak-config-cli 导入（`realm-management` 角色：manage-clients、manage-realm、view-realm、view-identity-providers、view-users，测试用户导入另需 manage-users），凭证放本地 `.env.local`。
 5. **004 开工前决定**：Omnigent 前端复制到 `apps/web/` 后深度改造，与宪法 VI“不得在两种方式之外维护分叉”冲突（analyze C3）。
    需修订宪法增加衍生代码例外，或改为补丁方式。

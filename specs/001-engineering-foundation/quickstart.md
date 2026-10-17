@@ -41,7 +41,7 @@ make seed                # 在 OM 预置已审批的“设备”对象定义，�
 ```
 
 1. 浏览器打开织境 Web，用测试用户登录（跳转 Keycloak）。
-2. 打开示例页面：看到“设备”的属性定义（来自 OM）与设备列表（来自 Doris）。接口见 `contracts/openapi/skeleton.yaml`。
+2. 打开示例页面：看到“设备”的属性定义（来自 OM）与设备列表（来自 Doris）。接口见 `contracts/openapi/bff.yaml`。
 3. 按本次 `trace_id` 查看追踪：web → bff → AI 网关 → MCP Toolbox → Doris，以及 bff → OM；每跳 `ctx.tenant.id` 相同。
 4. 查看 AI 网关审计：人（`sub`）、调用方（`azp` = bff）、工具名、查询摘要、返回行数。
 5. 用无令牌或受众不符的令牌直接调 `bff`：401 / 403，错误格式统一。

@@ -1,0 +1,25 @@
+# 会话库迁移：安装与升级前执行（Alembic）
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-bff-migrate
+  labels: {{- include "bff.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels: {{- include "bff.labels" . | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      containers:
+        - name: migrate
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ["python", "-m", "contexture_bff.migrate"]
+          env: {{- include "bff.env" . | nindent 12 }}
+          volumeMounts: {{- include "bff.volumeMounts" . | nindent 12 }}
+          securityContext: {{- include "bff.securityContext" . | nindent 12 }}
+      volumes: {{- include "bff.volumes" . | nindent 8 }}

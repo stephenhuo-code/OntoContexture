@@ -1,0 +1,27 @@
+# 测试用户：只在测试与自带 Keycloak 模式下导入，接入客户已有 Keycloak 时不导入。
+realm: digital-workforce
+users:
+  - username: admin1
+    enabled: true
+    email: admin1@contexture.local
+    emailVerified: true
+    firstName: Admin
+    lastName: One
+    credentials: [{ type: password, value: admin1, temporary: false }]
+    realmRoles: [admin]
+  - username: engineer1
+    enabled: true
+    email: engineer1@contexture.local
+    emailVerified: true
+    firstName: Engineer
+    lastName: One
+    credentials: [{ type: password, value: engineer1, temporary: false }]
+    realmRoles: [ai-engineer]
+  - username: user1
+    enabled: true
+    email: user1@contexture.local
+    emailVerified: true
+    firstName: User
+    lastName: One
+    credentials: [{ type: password, value: user1, temporary: false }]
+    realmRoles: [business-user]

@@ -1,0 +1,24 @@
+# 许可白名单（宪法 III）。组件检查与 SBOM 许可扫描都以本文件为准。
+allowed:
+  - Apache-2.0
+  - MIT
+  - BSD-2-Clause
+  - BSD-3-Clause
+  - ISC
+  - PostgreSQL
+  - Zlib
+  - 0BSD
+
+denied:
+  - AGPL-3.0
+  - AGPL-3.0-only
+  - AGPL-3.0-or-later
+  - SSPL-1.0
+  - BUSL-1.1
+
+# 已批准的例外：须经架构评审并记录在 ADR 中。
+exceptions:
+  - license: CCL-1.0
+    component: openmetadata
+    scope: OM 界面静态资源、内置 MCP 服务、Python 采集框架；AI SDK 不使用
+    adr: docs/adr/0011-OpenMetadata的构建与部署.md

@@ -1,0 +1,18 @@
+# 本地 kind 集群：1 控制面 + 2 工作节点。
+# 宿主机 80 / 443 已被 Paperclip 的 Caddy 占用，织境入口（Envoy Gateway）映射到 8080 / 8443。
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: contexture
+nodes:
+  - role: control-plane
+    labels:
+      ingress-ready: "true"
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 8080
+        protocol: TCP
+      - containerPort: 30443
+        hostPort: 8443
+        protocol: TCP
+  - role: worker
+  - role: worker

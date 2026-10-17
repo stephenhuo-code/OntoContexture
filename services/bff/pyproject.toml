@@ -1,0 +1,21 @@
+[project]
+name = "contexture-bff"
+version = "0.1.0"
+description = "织境 Web 的后端（BFF）"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "alembic>=1.14",
+    "asyncpg>=0.30",
+    "authlib>=1.4",
+    "contexture-core",
+    "fastapi>=0.115",
+    "sqlalchemy[asyncio]>=2.0",
+    "uvicorn>=0.34",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/contexture_bff"]

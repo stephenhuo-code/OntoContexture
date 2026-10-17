@@ -36,14 +36,14 @@ description: "Task list for 001 工程基座"
 
 **Purpose**: 按 ADR-0009 建立仓库与工作区，所有后续任务都在此基础上进行
 
-- [ ] T001 按 ADR-0009 创建目录骨架并为每个空目录加 `README.md` 说明用途：`apps/web/`、`services/bff/`、`packages/py-core/`、`packages/ts-api/`、`contracts/{openapi,mcp,schemas,otel}/`、`deploy/{components,helm/contexture,kind,offline}/`、`tools/`、`tests/e2e/`、`extensions/`、`third_party/`
-- [ ] T002 在 `pyproject.toml` 建立 uv workspace（成员 `packages/py-core`、`services/bff`、`tools`），Python 3.12，配置 ruff、pyright（strict）与 pytest-cov（`fail_under = 80`）
-- [ ] T003 [P] 在 `pnpm-workspace.yaml` 与根 `package.json` 建立 pnpm workspace（成员 `apps/web`、`packages/ts-api`），配置 eslint、prettier、TypeScript 5
-- [ ] T004 [P] 在 `Makefile` 定义目标 `test`、`lint`、`up`、`down`、`seed`、`e2e`、`components-check`、`patches-check`、`offline-package`（暂为占位，后续任务实现）
-- [ ] T005 [P] 在 `.pre-commit-config.yaml` 配置 ruff、pyright、eslint，并更新 `.gitignore`（Python、Node、kind、Helm 产物）
-- [ ] T006 [P] 将契约落位：`specs/001-engineering-foundation/contracts/openapi/skeleton.yaml` → `contracts/openapi/bff.yaml`；`error.json`、`audit-event.json` → `contracts/schemas/`；`attributes.md` → `contracts/otel/`
-- [ ] T007 [P] 在 `contracts/mcp/list_objects.yaml` 编写示例工具契约：工具名 `list_objects`，输入 `type_key`（string，必填）、`limit`（integer，`≤ 100`，默认 20），输出 `columns`（string[]）、`rows`（array）、`truncated`（boolean）
-- [ ] T008 [P] 在 `tools/license-allowlist.yaml` 列出允许的许可（Apache-2.0、MIT、BSD-2-Clause、BSD-3-Clause、ISC、PostgreSQL 及同等宽松许可），并列出禁止项（AGPL、SSPL、BUSL）；已批准例外单列（OM 采集框架与内置 MCP 的 CCL，ADR-0011）
+- [x] T001 按 ADR-0009 创建目录骨架并为每个空目录加 `README.md` 说明用途：`apps/web/`、`services/bff/`、`packages/py-core/`、`packages/ts-api/`、`contracts/{openapi,mcp,schemas,otel}/`、`deploy/{components,helm/contexture,kind,offline}/`、`tools/`、`tests/e2e/`、`extensions/`、`third_party/`
+- [x] T002 在 `pyproject.toml` 建立 uv workspace（成员 `packages/py-core`、`services/bff`、`tools`），Python 3.12，配置 ruff、pyright（strict）与 pytest-cov（`fail_under = 80`）
+- [x] T003 [P] 在 `pnpm-workspace.yaml` 与根 `package.json` 建立 pnpm workspace（成员 `apps/web`、`packages/ts-api`），配置 eslint、prettier、TypeScript 5
+- [x] T004 [P] 在 `Makefile` 定义目标 `test`、`lint`、`up`、`down`、`seed`、`e2e`、`components-check`、`patches-check`、`offline-package`（暂为占位，后续任务实现）
+- [x] T005 [P] 在 `.pre-commit-config.yaml` 配置 ruff、pyright、eslint，并更新 `.gitignore`（Python、Node、kind、Helm 产物）
+- [x] T006 [P] 将契约落位：`specs/001-engineering-foundation/contracts/openapi/skeleton.yaml` → `contracts/openapi/bff.yaml`；`error.json`、`audit-event.json` → `contracts/schemas/`；`attributes.md` → `contracts/otel/`
+- [x] T007 [P] 在 `contracts/mcp/list_objects.yaml` 编写示例工具契约：工具名 `list_objects`，输入 `type_key`（string，必填）、`limit`（integer，`≤ 100`，默认 20），输出 `columns`（string[]）、`rows`（array）、`truncated`（boolean）
+- [x] T008 [P] 在 `tools/license-allowlist.yaml` 列出允许的许可（Apache-2.0、MIT、BSD-2-Clause、BSD-3-Clause、ISC、PostgreSQL 及同等宽松许可），并列出禁止项（AGPL、SSPL、BUSL）；已批准例外单列（OM 采集框架与内置 MCP 的 CCL，ADR-0011）
 - [x] T009 以子仓库方式添加织境维护的 OM 仓库到 `third_party/openmetadata/src/`（`https://github.com/stephenhuo-code/OpenMetadata`，分支 `ctx/2.0.3`，锁定上游 `2.0.3-release` 提交 `b76076bf`，浅克隆），并编写 `third_party/openmetadata/UPSTREAM.yaml` 与空的 `PATCHES.md`
 
 ---
@@ -52,13 +52,13 @@ description: "Task list for 001 工程基座"
 
 **Purpose**: 组件清单规范、基础 CI、本地集群与 Keycloak 配置；完成前任何故事不得开始
 
-- [ ] T010 [P] 在 `deploy/components/component.schema.json` 定义组件清单 JSON Schema：必填 `name`、`version`（必须是确切版本，不得为 `latest` 或范围）、`image`（`source`: `official` | `self-built`，`refs`: string[]）、`license`、`customization`（`config` | `extension` | `patch`）、`upstream`、`owner`、`smoke_test`
-- [ ] T011 [P] 在 `tools/tests/test_components_check.py` 编写失败测试：缺少 `component.yaml`、版本为 `latest`、许可不在 `tools/license-allowlist.yaml`、镜像未列入离线清单、缺少冒烟测试，均使检查失败
-- [ ] T012 在 `tools/components_check.py` 实现组件检查（遍历 `deploy/components/*/component.yaml`，按 T010 的 Schema 与 T008 的白名单校验），并接入 `make components-check`
-- [ ] T013 在 `.github/workflows/ci.yml` 建立基础 CI：ruff、pyright、eslint、`make test`、`make components-check`（扫描与覆盖率门禁在 US2 补齐）
-- [ ] T014 [P] 在 `deploy/kind/cluster.yaml` 编写本地集群配置（1 控制面 + 2 工作节点，映射 8080 / 8443 端口供 Envoy Gateway 使用，避开 Paperclip 的 Caddy 已占用的 80 / 443）；在 `deploy/kind/coredns-hosts.yaml` 把 `sso.127.0.0.1.nip.io` 解析到宿主机网关；在 `deploy/kind/README.md` 说明从 Paperclip 的 Caddy 容器导出根证书（`/data/caddy/pki/authorities/local/root.crt`）并以 Secret `ctx-trusted-ca` 注入集群
-- [ ] T015 在 `deploy/components/keycloak/tests/test_realm.py` 编写失败测试：用 Testcontainers 启动 Keycloak 26.8.0，用 keycloak-config-cli 增量导入织境配置（先预置一个代表 Paperclip 的已有客户端，导入后它保持不变），`user1` 登录后以 `contexture-bff` 做标准令牌交换（`audience=contexture-ai-gateway`），断言新令牌 `sub` 为 `user1`、`azp` 为 `contexture-bff`、`aud` 含 `contexture-ai-gateway`、`realm_access.roles` 含 `business-user`
-- [ ] T016 在 `deploy/components/keycloak/config/contexture.yaml` 编写 keycloak-config-cli 的增量导入配置（统一约定中的客户端、角色；测试用户只在测试与自带模式下导入；`contexture-bff` 的标准令牌交换开启；受众映射器把 `contexture-ai-gateway` 加入登录令牌的 `aud`），使 T015 通过
+- [x] T010 [P] 在 `deploy/components/component.schema.json` 定义组件清单 JSON Schema：必填 `name`、`version`（必须是确切版本，不得为 `latest` 或范围）、`image`（`source`: `official` | `self-built`，`refs`: string[]）、`license`、`customization`（`config` | `extension` | `patch`）、`upstream`、`owner`、`smoke_test`
+- [x] T011 [P] 在 `tools/tests/test_components_check.py` 编写失败测试：缺少 `component.yaml`、版本为 `latest`、许可不在 `tools/license-allowlist.yaml`、镜像未锁定标签或摘要（无法列入离线包，离线清单由 T058 从各 `component.yaml` 汇总，故此处只校验可打包）、缺少冒烟测试，均使检查失败
+- [x] T012 在 `tools/components_check.py` 实现组件检查（遍历 `deploy/components/*/component.yaml`，按 T010 的 Schema 与 T008 的白名单校验），并接入 `make components-check`
+- [x] T013 在 `.github/workflows/ci.yml` 建立基础 CI：ruff、pyright、eslint、`make test`、`make components-check`（扫描与覆盖率门禁在 US2 补齐）
+- [x] T014 [P] 在 `deploy/kind/cluster.yaml` 编写本地集群配置（1 控制面 + 2 工作节点，映射 8080 / 8443 端口供 Envoy Gateway 使用，避开 Paperclip 的 Caddy 已占用的 80 / 443）；在 `deploy/kind/coredns-hosts.yaml` 把 `sso.127.0.0.1.nip.io` 解析到宿主机网关；在 `deploy/kind/README.md` 说明从 Paperclip 的 Caddy 容器导出根证书（`/data/caddy/pki/authorities/local/root.crt`）并以 Secret `ctx-trusted-ca` 注入集群
+- [x] T015 在 `deploy/components/keycloak/tests/test_realm.py` 编写失败测试：用 Testcontainers 启动 Keycloak 26.8.0，用 keycloak-config-cli 增量导入织境配置（先预置一个代表 Paperclip 的已有客户端，导入后它保持不变），`user1` 登录后以 `contexture-bff` 做标准令牌交换（`audience=contexture-ai-gateway`），断言新令牌 `sub` 为 `user1` 的用户 ID（`preferred_username` 为 `user1`）、`azp` 为 `contexture-bff`、`aud` 含 `contexture-ai-gateway`、`realm_access.roles` 含 `business-user`
+- [x] T016 在 `deploy/components/keycloak/config/contexture.yaml` 编写 keycloak-config-cli 的增量导入配置（统一约定中的客户端、角色；测试用户只在测试与自带模式下导入；`contexture-bff` 的标准令牌交换开启；受众映射器把 `contexture-ai-gateway` 加入登录令牌的 `aud`），使 T015 通过
 
 **Checkpoint**: 组件清单规范可校验，基础 CI 运行，Keycloak realm 的令牌交换已验证
 
@@ -72,32 +72,32 @@ description: "Task list for 001 工程基座"
 
 ### Tests for User Story 1（先写并确认失败）⚠️
 
-- [ ] T017 [P] [US1] 在 `packages/py-core/tests/test_config.py` 编写测试：`CTX_TENANT_ID` 缺失时启动失败；配置可从环境变量与挂载文件加载
-- [ ] T018 [P] [US1] 在 `packages/py-core/tests/test_errors.py` 编写测试：错误输出符合 `contracts/schemas/error.json`（必填 `code`、`message`、`trace_id`，`code` 匹配 `^[a-z]+(\.[a-z_]+)+$`，不允许额外字段）
-- [ ] T019 [P] [US1] 在 `packages/py-core/tests/test_auth.py` 编写测试（用本地生成的 JWKS 签发令牌）：合法令牌构建出请求上下文（`tenant_id` 取自配置、`user_id` = `sub`、`agent_id` = `azp`、`roles`、`token_id` = `jti`）；验签失败或过期 → 401 `auth.invalid_token`；受众不符 → 403 `auth.invalid_audience`
-- [ ] T020 [P] [US1] 在 `packages/py-core/tests/test_telemetry.py` 编写测试：一次请求的 span 与结构化日志自动带 `ctx.tenant.id`、`ctx.user.id`、`ctx.agent.id`、`ctx.token.id`；出站 HTTP 携带 W3C `traceparent` 与 Baggage
-- [ ] T021 [P] [US1] 在 `packages/py-core/tests/test_mcp.py` 编写测试：令牌交换请求为 `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`、`audience=contexture-ai-gateway`，结果按受众缓存至过期前；用测试内启动的 MCP 服务器（MCP SDK，Streamable HTTP）调用 `list_objects`，断言请求带 Bearer 令牌与 `traceparent`，`limit` 大于 100 时在客户端报错
-- [ ] T022 [P] [US1] 在 `packages/py-core/tests/test_ontology.py` 编写测试（模拟 OM REST 接口）：只返回审批状态为已批准的术语与属性，未批准的不返回；结果映射为 `ObjectTypeRef`（`type_uri` 形如 `urn:ctx:type:<领域包>:<类型名>`，`attributes` 含 `name`、`data_type`、`required`、`data_level`）；结果缓存
-- [ ] T023 [P] [US1] 在 `services/bff/tests/contract/test_contract.py` 编写 Schemathesis 契约测试，覆盖 `contracts/openapi/bff.yaml` 的全部接口
-- [ ] T024 [P] [US1] 在 `services/bff/tests/unit/test_objects.py` 编写测试：`GET /bff/v1/object-types/{typeKey}/objects` 组合 OM 的对象定义与 `list_objects` 的结果，返回 `ObjectListView`（`object_type`、`items`、`trace_id`）；`limit` 取值范围 1–100；OM 或 AI 网关不可用时返回 502 `upstream.unavailable` 并记录追踪
-- [ ] T025 [P] [US1] 在 `services/bff/tests/integration/test_auth_flow.py` 编写集成测试（Testcontainers：Keycloak 26.8.0 + PostgreSQL 17）：`/bff/v1/auth/login` 302 跳转 Keycloak，回调后建立会话，`GET /bff/v1/me` 返回 `tenant_id` 与 `user_id`，`POST /bff/v1/auth/logout` 返回 204 后再访问为 401；浏览器侧只有会话 Cookie
+- [x] T017 [P] [US1] 在 `packages/py-core/tests/test_config.py` 编写测试：`CTX_TENANT_ID` 缺失时启动失败；配置可从环境变量与挂载文件加载
+- [x] T018 [P] [US1] 在 `packages/py-core/tests/test_errors.py` 编写测试：错误输出符合 `contracts/schemas/error.json`（必填 `code`、`message`、`trace_id`，`code` 匹配 `^[a-z]+(\.[a-z_]+)+$`，不允许额外字段）
+- [x] T019 [P] [US1] 在 `packages/py-core/tests/test_auth.py` 编写测试（用本地生成的 JWKS 签发令牌）：合法令牌构建出请求上下文（`tenant_id` 取自配置、`user_id` = `sub`、`agent_id` = `azp`、`roles`、`token_id` = `jti`）；验签失败或过期 → 401 `auth.invalid_token`；受众不符 → 403 `auth.invalid_audience`
+- [x] T020 [P] [US1] 在 `packages/py-core/tests/test_telemetry.py` 编写测试：一次请求的 span 与结构化日志自动带 `ctx.tenant.id`、`ctx.user.id`、`ctx.agent.id`、`ctx.token.id`；出站 HTTP 携带 W3C `traceparent` 与 Baggage
+- [x] T021 [P] [US1] 在 `packages/py-core/tests/test_mcp.py` 编写测试：令牌交换请求为 `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`、`audience=contexture-ai-gateway`，结果按受众缓存至过期前；用测试内启动的 MCP 服务器（MCP SDK，Streamable HTTP）调用 `list_objects`，断言请求带 Bearer 令牌与 `traceparent`，`limit` 大于 100 时在客户端报错
+- [x] T022 [P] [US1] 在 `packages/py-core/tests/test_ontology.py` 编写测试（模拟 OM REST 接口）：只返回审批状态为已批准的术语与属性，未批准的不返回；结果映射为 `ObjectTypeRef`（`type_uri` 取术语的 `ctx_uri`，缺省为 `urn:ctx:object:<领域包>:<类型名>`，与 ADR-0008 一致，`attributes` 含 `name`、`data_type`、`required`、`data_level`）；结果缓存
+- [x] T023 [P] [US1] 在 `services/bff/tests/contract/test_contract.py` 编写 Schemathesis 契约测试，覆盖 `contracts/openapi/bff.yaml` 的全部接口
+- [x] T024 [P] [US1] 在 `services/bff/tests/unit/test_objects.py` 编写测试：`GET /bff/v1/object-types/{typeKey}/objects` 组合 OM 的对象定义与 `list_objects` 的结果，返回 `ObjectListView`（`object_type`、`items`、`trace_id`）；`limit` 取值范围 1–100；OM 或 AI 网关不可用时返回 502 `upstream.unavailable` 并记录追踪
+- [x] T025 [P] [US1] 在 `services/bff/tests/integration/test_auth_flow.py` 编写集成测试（Testcontainers：Keycloak 26.8.0 + PostgreSQL 17）：`/bff/v1/auth/login` 302 跳转 Keycloak，回调后建立会话，`GET /bff/v1/me` 返回 `tenant_id` 与 `user_id`，`POST /bff/v1/auth/logout` 返回 204 后再访问为 401；浏览器侧只有会话 Cookie
 
 ### Implementation for User Story 1
 
-- [ ] T026 [P] [US1] 在 `packages/py-core/src/contexture_core/config.py` 实现配置加载（pydantic-settings），提供 `tenant_id` 常量（T017）
-- [ ] T027 [P] [US1] 在 `packages/py-core/src/contexture_core/errors.py` 实现统一错误类型与 FastAPI 异常处理器（T018）
-- [ ] T028 [US1] 在 `packages/py-core/src/contexture_core/auth.py` 实现 JWKS 缓存验签与请求上下文构建，以 FastAPI 依赖项提供，统一返回 401 / 403（T019）
-- [ ] T029 [US1] 在 `packages/py-core/src/contexture_core/telemetry.py` 实现 OTel 初始化与关联属性注入（FastAPI 与 httpx 插桩、日志关联），属性名严格取自 `contracts/otel/attributes.md`（T020）
-- [ ] T030 [US1] 在 `packages/py-core/src/contexture_core/mcp.py` 实现标准令牌交换客户端（按受众缓存）与 MCP 调用封装（MCP SDK Streamable HTTP，透传 `traceparent`）（T021）
-- [ ] T031 [US1] 在 `packages/py-core/src/contexture_core/ontology.py` 实现经 OM REST 读取已审批术语与属性并缓存（T022）
-- [ ] T032 [US1] 在 `packages/py-core/pyproject.toml` 设定版本 `0.1.0` 与依赖锁定，并在 `packages/py-core/README.md` 说明各模块用法
-- [ ] T033 [US1] 在 `services/bff/src/contexture_bff/main.py` 组装应用：只通过公共库获得配置、鉴权、追踪与错误处理
-- [ ] T034 [US1] 在 `services/bff/src/contexture_bff/api/auth.py` 实现 `/bff/v1/auth/login`、`/callback`、`/logout`（Authlib OIDC 授权码 + PKCE；会话存 PostgreSQL 的独占 database `bff`，表结构用 Alembic 迁移，会话过期自动清理）（T025）
-- [ ] T035 [P] [US1] 在 `services/bff/src/contexture_bff/api/me.py` 实现 `GET /bff/v1/me`（`tenant_id`、`user_id`、`display_name`、`roles`）
-- [ ] T036 [P] [US1] 在 `services/bff/src/contexture_bff/adapters/om.py` 与 `adapters/data.py` 分别封装对象定义读取（公共库 `ontology`）与 `list_objects` 调用（公共库 `mcp`）
-- [ ] T037 [US1] 在 `services/bff/src/contexture_bff/api/objects.py` 实现 `GET /bff/v1/object-types/{typeKey}/objects`（T023、T024）
-- [ ] T038 [P] [US1] 编写 `services/bff/Dockerfile`（非 root、只读文件系统）与 `deploy/helm/contexture/charts/bff/` 子 Chart（挂载 Secret `ctx-trusted-ca`，经 `SSL_CERT_FILE` 信任外部 Keycloak 证书）
-- [ ] T039 [US1] 在 `services/bff/README.md` 编写“新增一个接口”的步骤（契约 → 测试 → 实现），并按此实际演练一次、记录用时（SC-001）
+- [x] T026 [P] [US1] 在 `packages/py-core/src/contexture_core/config.py` 实现配置加载（pydantic-settings），提供 `tenant_id` 常量（T017）
+- [x] T027 [P] [US1] 在 `packages/py-core/src/contexture_core/errors.py` 实现统一错误类型与 FastAPI 异常处理器（T018）
+- [x] T028 [US1] 在 `packages/py-core/src/contexture_core/auth.py` 实现 JWKS 缓存验签与请求上下文构建，以 FastAPI 依赖项提供，统一返回 401 / 403（T019）
+- [x] T029 [US1] 在 `packages/py-core/src/contexture_core/telemetry.py` 实现 OTel 初始化与关联属性注入（FastAPI 与 httpx 插桩、日志关联），属性名严格取自 `contracts/otel/attributes.md`（T020）
+- [x] T030 [US1] 在 `packages/py-core/src/contexture_core/mcp.py` 实现标准令牌交换客户端（按受众缓存）与 MCP 调用封装（MCP SDK Streamable HTTP，透传 `traceparent`）（T021）
+- [x] T031 [US1] 在 `packages/py-core/src/contexture_core/ontology.py` 实现经 OM REST 读取已审批术语与属性并缓存（T022）
+- [x] T032 [US1] 在 `packages/py-core/pyproject.toml` 设定版本 `0.1.0` 与依赖锁定，并在 `packages/py-core/README.md` 说明各模块用法
+- [x] T033 [US1] 在 `services/bff/src/contexture_bff/main.py` 组装应用：只通过公共库获得配置、鉴权、追踪与错误处理
+- [x] T034 [US1] 在 `services/bff/src/contexture_bff/api/auth.py` 实现 `/bff/v1/auth/login`、`/callback`、`/logout`（Authlib OIDC 授权码 + PKCE；会话存 PostgreSQL 的独占 database `bff`，表结构用 Alembic 迁移，会话过期自动清理）（T025）
+- [x] T035 [P] [US1] 在 `services/bff/src/contexture_bff/api/me.py` 实现 `GET /bff/v1/me`（`tenant_id`、`user_id`、`display_name`、`roles`）
+- [x] T036 [P] [US1] 在 `services/bff/src/contexture_bff/adapters/om.py` 与 `adapters/data.py` 分别封装对象定义读取（公共库 `ontology`）与 `list_objects` 调用（公共库 `mcp`）
+- [x] T037 [US1] 在 `services/bff/src/contexture_bff/api/objects.py` 实现 `GET /bff/v1/object-types/{typeKey}/objects`（T023、T024）
+- [x] T038 [P] [US1] 编写 `services/bff/Dockerfile`（非 root、只读文件系统）与 `deploy/helm/contexture/charts/bff/` 子 Chart（挂载 Secret `ctx-trusted-ca`，经 `SSL_CERT_FILE` 信任外部 Keycloak 证书）
+- [x] T039 [US1] 在 `services/bff/README.md` 编写“新增一个接口”的步骤（契约 → 测试 → 实现），并按此实际演练一次、记录用时（SC-001）
 
 **Checkpoint**: 公共库与 `bff` 的单元、契约、集成测试全部通过；覆盖率 ≥ 80%
 

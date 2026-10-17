@@ -70,7 +70,7 @@ JSON Schema 见 [contracts/schemas/error.json](contracts/schemas/error.json)：`
 
 | 字段 | 说明 |
 | --- | --- |
-| `type_uri` | `urn:ctx:type:<领域包>:<类型名>`（ADR-0008） |
+| `type_uri` | `urn:ctx:object:<领域包>:<类型名>`（ADR-0008；取术语的 `ctx_uri`） |
 | `name`、`display_name` | 名称 |
 | `version` | 本体版本 |
 | `attributes` | 属性列表：`name`、`data_type`、`required`、`data_level` |
