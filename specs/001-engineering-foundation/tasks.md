@@ -21,7 +21,7 @@ description: "Task list for 001 工程基座"
 
 ## 统一约定（各任务引用）
 
-- Keycloak 本地 realm：`contexture`；客户端 `contexture-bff`（机密客户端，开启标准令牌交换）、`contexture-ai-gateway`（作为受众）；
+- Keycloak：默认接入外部实例。本机为负责人现有 Keycloak：地址 `https://sso.127.0.0.1.nip.io`（经 Caddy，证书由 Caddy 本地 CA 签发），realm `digital-workforce`（与 Paperclip 共用，配置项 `KEYCLOAK_URL`、`KEYCLOAK_REALM`）；导入用的管理账号为该 realm 内的专用服务账号，凭证只放本地环境变量；开关 `keycloak.enabled=true` 时随织境部署；织境配置以 keycloak-config-cli 增量导入；客户端 `contexture-bff`（机密客户端，开启标准令牌交换）、`contexture-ai-gateway`（作为受众）；
   角色 `admin`（管理员）、`ai-engineer`（AI 工程师）、`business-user`（业务用户）；测试用户 `admin1`、`engineer1`、`user1`。
 - 部署常量：`CTX_TENANT_ID=local`。
 - 错误码：`auth.invalid_token`（401）、`auth.invalid_audience`（403）、`upstream.unavailable`（502）；格式见
@@ -50,15 +50,15 @@ description: "Task list for 001 工程基座"
 
 ## Phase 2: Foundational（阻塞所有故事的前置）
 
-**Purpose**: 组件清单规范、基础 CI、本地集群与 Keycloak realm；完成前任何故事不得开始
+**Purpose**: 组件清单规范、基础 CI、本地集群与 Keycloak 配置；完成前任何故事不得开始
 
 - [ ] T010 [P] 在 `deploy/components/component.schema.json` 定义组件清单 JSON Schema：必填 `name`、`version`（必须是确切版本，不得为 `latest` 或范围）、`image`（`source`: `official` | `self-built`，`refs`: string[]）、`license`、`customization`（`config` | `extension` | `patch`）、`upstream`、`owner`、`smoke_test`
 - [ ] T011 [P] 在 `tools/tests/test_components_check.py` 编写失败测试：缺少 `component.yaml`、版本为 `latest`、许可不在 `tools/license-allowlist.yaml`、镜像未列入离线清单、缺少冒烟测试，均使检查失败
 - [ ] T012 在 `tools/components_check.py` 实现组件检查（遍历 `deploy/components/*/component.yaml`，按 T010 的 Schema 与 T008 的白名单校验），并接入 `make components-check`
 - [ ] T013 在 `.github/workflows/ci.yml` 建立基础 CI：ruff、pyright、eslint、`make test`、`make components-check`（扫描与覆盖率门禁在 US2 补齐）
-- [ ] T014 [P] 在 `deploy/kind/cluster.yaml` 编写本地集群配置（1 控制面 + 2 工作节点，映射 80 / 443 端口供 Envoy Gateway 使用）
-- [ ] T015 在 `deploy/components/keycloak/tests/test_realm.py` 编写失败测试：用 Testcontainers 启动 Keycloak 26.8.0 并导入 realm，`user1` 登录后以 `contexture-bff` 做标准令牌交换（`audience=contexture-ai-gateway`），断言新令牌 `sub` 为 `user1`、`azp` 为 `contexture-bff`、`aud` 含 `contexture-ai-gateway`、`realm_access.roles` 含 `business-user`
-- [ ] T016 在 `deploy/components/keycloak/config/realm-contexture.json` 编写 realm 配置（统一约定中的客户端、角色、测试用户；`contexture-bff` 的标准令牌交换开启；受众映射器把 `contexture-ai-gateway` 加入登录令牌的 `aud`），使 T015 通过
+- [ ] T014 [P] 在 `deploy/kind/cluster.yaml` 编写本地集群配置（1 控制面 + 2 工作节点，映射 8080 / 8443 端口供 Envoy Gateway 使用，避开 Paperclip 的 Caddy 已占用的 80 / 443）；在 `deploy/kind/coredns-hosts.yaml` 把 `sso.127.0.0.1.nip.io` 解析到宿主机网关；在 `deploy/kind/README.md` 说明从 Paperclip 的 Caddy 容器导出根证书（`/data/caddy/pki/authorities/local/root.crt`）并以 Secret `ctx-trusted-ca` 注入集群
+- [ ] T015 在 `deploy/components/keycloak/tests/test_realm.py` 编写失败测试：用 Testcontainers 启动 Keycloak 26.8.0，用 keycloak-config-cli 增量导入织境配置（先预置一个代表 Paperclip 的已有客户端，导入后它保持不变），`user1` 登录后以 `contexture-bff` 做标准令牌交换（`audience=contexture-ai-gateway`），断言新令牌 `sub` 为 `user1`、`azp` 为 `contexture-bff`、`aud` 含 `contexture-ai-gateway`、`realm_access.roles` 含 `business-user`
+- [ ] T016 在 `deploy/components/keycloak/config/contexture.yaml` 编写 keycloak-config-cli 的增量导入配置（统一约定中的客户端、角色；测试用户只在测试与自带模式下导入；`contexture-bff` 的标准令牌交换开启；受众映射器把 `contexture-ai-gateway` 加入登录令牌的 `aud`），使 T015 通过
 
 **Checkpoint**: 组件清单规范可校验，基础 CI 运行，Keycloak realm 的令牌交换已验证
 
@@ -96,7 +96,7 @@ description: "Task list for 001 工程基座"
 - [ ] T035 [P] [US1] 在 `services/bff/src/contexture_bff/api/me.py` 实现 `GET /bff/v1/me`（`tenant_id`、`user_id`、`display_name`、`roles`）
 - [ ] T036 [P] [US1] 在 `services/bff/src/contexture_bff/adapters/om.py` 与 `adapters/data.py` 分别封装对象定义读取（公共库 `ontology`）与 `list_objects` 调用（公共库 `mcp`）
 - [ ] T037 [US1] 在 `services/bff/src/contexture_bff/api/objects.py` 实现 `GET /bff/v1/object-types/{typeKey}/objects`（T023、T024）
-- [ ] T038 [P] [US1] 编写 `services/bff/Dockerfile`（非 root、只读文件系统）与 `deploy/helm/contexture/charts/bff/` 子 Chart
+- [ ] T038 [P] [US1] 编写 `services/bff/Dockerfile`（非 root、只读文件系统）与 `deploy/helm/contexture/charts/bff/` 子 Chart（挂载 Secret `ctx-trusted-ca`，经 `SSL_CERT_FILE` 信任外部 Keycloak 证书）
 - [ ] T039 [US1] 在 `services/bff/README.md` 编写“新增一个接口”的步骤（契约 → 测试 → 实现），并按此实际演练一次、记录用时（SC-001）
 
 **Checkpoint**: 公共库与 `bff` 的单元、契约、集成测试全部通过；覆盖率 ≥ 80%
@@ -117,10 +117,10 @@ description: "Task list for 001 工程基座"
 
 ### Implementation for User Story 2（每个组件：`component.yaml` + Chart 或上游 Chart 引用 + `values/base.yaml` + `values/local.yaml` + `tests/` 冒烟测试）
 
-- [ ] T043 [P] [US2] 组件 Keycloak：`deploy/components/keycloak/`（官方镜像 26.8.0，导入 T016 的 realm）
+- [ ] T043 [P] [US2] 组件 Keycloak：`deploy/components/keycloak/`（导入任务信任 Secret `ctx-trusted-ca`；开关 `keycloak.enabled` 默认 `false`：关闭时只运行一次 keycloak-config-cli 任务，把 T016 的配置增量导入外部 Keycloak；打开时部署官方镜像 26.8.0 并导入同一配置；`values/local.yaml` 指向负责人现有 Keycloak；两种模式各写一个冒烟测试）
 - [ ] T044 [P] [US2] 组件 PostgreSQL：`deploy/components/postgresql/`（CloudNativePG，为 openmetadata、langfuse、airflow、keycloak、bff 各建一个 database 与独立账号）
 - [ ] T045 [P] [US2] OM 镜像构建：`third_party/openmetadata/build/`（Dockerfile 与构建脚本，从子仓库 `third_party/openmetadata/src/` 构建 `openmetadata-server` 与 `openmetadata-ingestion`，镜像版本 `2.0.3-ctx.0`）
-- [ ] T046 [US2] 组件 OpenMetadata：`deploy/components/openmetadata/`（自建镜像，开启 RDF 指向 Fuseki，身份接本地 Keycloak 自定义 OIDC，`config/` 中初始化共用字段与 `hasProperty` 关系类型）
+- [ ] T046 [US2] 组件 OpenMetadata：`deploy/components/openmetadata/`（自建镜像，开启 RDF 指向 Fuseki，身份接 Keycloak（自定义 OIDC，地址取自伞形 Chart 的统一配置；把 Secret `ctx-trusted-ca` 导入 OM 的 Java truststore），`config/` 中初始化共用字段与 `hasProperty` 关系类型）
 - [ ] T047 [P] [US2] 组件 Jena Fuseki：`deploy/components/fuseki/`
 - [ ] T048 [P] [US2] 组件 OpenSearch：`deploy/components/opensearch/`
 - [ ] T049 [P] [US2] 组件 Doris：`deploy/components/doris/`（Doris Operator；`config/` 中建本体实例库 database 与只读账号 `ctx_reader`，按负载类型划分 workload group）
@@ -197,6 +197,7 @@ description: "Task list for 001 工程基座"
 - [ ] T082 [P] 按 quickstart 第 1、2、4 节逐项验收，并在 `specs/001-engineering-foundation/quickstart.md` 中修正与实际不符的命令
 - [ ] T083 记录 D1–D11 各交付物的实际用时，汇总后更新 `docs/Phase1-特性列表与开发计划.md` 第 3 节的估算（D11）
 - [ ] T084 复核宪法检查：组件许可清单（`deploy/components/*/component.yaml`）与架构文档第 4 节的第三方组件表一致；更新 `docs/architecture/platform-architecture.md` 中与实际部署不符之处
+- [ ] T085 按宪法 v1.6.0 编写 `specs/001-engineering-foundation/acceptance.md`：以 spec 的“最终演示”6 步与 quickstart 为基础，写明前置条件与数据准备（`make up`、`make seed`、测试账号）、逐步操作、每步预期结果（含截图位置或要看到的字段）、与 US1–US4 和 SC-001–SC-006 的对应、验收记录表；交产品负责人手动验收，问题修复后复验
 
 ---
 
@@ -208,9 +209,9 @@ description: "Task list for 001 工程基座"
 - **Foundational（Phase 2）**：依赖 Setup；阻塞全部用户故事
 - **US1（Phase 3）**：依赖 Foundational
 - **US2（Phase 4）**：依赖 Foundational；T045、T046 依赖 T009
-- **US4（Phase 6）**：T073–T076 依赖 US2 的 T043、T049、T050（Keycloak、Doris、Toolbox 已部署）；**应在第 1 周优先执行**
+- **US4（Phase 6）**：T073–T076 依赖 US2 的 T043、T049、T050（Keycloak 配置已导入、Doris、Toolbox 已部署）；**应在第 1 周优先执行**
 - **US3（Phase 5）**：依赖 US1、US2，以及 US4 的 T075–T078
-- **Polish（Phase 7）**：依赖全部故事
+- **Polish（Phase 7）**：依赖全部故事；T085 手动验收通过后 001 才算完成并合并到 main（宪法 v1.6.0）
 
 ### User Story Dependencies
 
@@ -256,7 +257,7 @@ Task: "组件 Langfuse：deploy/components/langfuse/"
 
 ### Incremental Delivery（对应 plan 的两周安排）
 
-- **第 1 周**：Setup → Foundational → US1 公共库；US2 的 Keycloak、PostgreSQL、OM、Doris、Toolbox；US4 的网关与 Toolbox 验证
+- **第 1 周**：Setup → Foundational → US1 公共库；US2 的 Keycloak 配置导入、PostgreSQL、OM、Doris、Toolbox；US4 的网关与 Toolbox 验证
 - **第 2 周**：US1 `bff`；US2 其余组件、伞形 Chart、CI 门禁、离线包；US3 最小链路与最终演示；US4 可观测后端；Polish
 
 ### Parallel Team Strategy（2–3 人）

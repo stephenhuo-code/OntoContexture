@@ -19,9 +19,9 @@ ADR-0001–0013，技术决策见 [research.md](research.md)。
 - 后端：FastAPI、Pydantic v2 + pydantic-settings、httpx、PyJWT（JWKS 验签）、Authlib（`bff` 的 OIDC 登录）、MCP 官方 Python SDK
   （Streamable HTTP 客户端）、OpenTelemetry SDK 与 FastAPI 插桩
 - 前端：React 18、Vite、TanStack Query、react-router 7（001 只做最小外壳，设计系统与 Omnigent 前端改造在 004）
-- 部署：Helm、kind、CloudNativePG、Doris Operator；Keycloak realm 配置导入用 keycloak-config-cli（候选，许可在 tasks 中核实）
+- 部署：Helm、kind、CloudNativePG、Doris Operator；Keycloak 配置以 keycloak-config-cli（Apache-2.0，v6.5.1）增量导入
 
-**Storage**: Doris（本体实例库，示例数据）；PostgreSQL（OM、Keycloak 本地、Langfuse、Airflow、`bff` 各一个 database）；OpenSearch
+**Storage**: Doris（本体实例库，示例数据）；PostgreSQL（OM、Langfuse、Airflow、`bff` 各一个 database；自带 Keycloak 模式下另加 `keycloak`）；OpenSearch
 （OM 索引）；Fuseki（OM 的 RDF）；ClickHouse + Valkey + 对象存储（Langfuse）；PostgreSQL `bff` database（`bff` 会话，独占）
 
 **Testing**: pytest + Testcontainers（Keycloak 等真实依赖）、Schemathesis（契约）、oasdiff（破坏性变更）、Vitest、Playwright
@@ -46,11 +46,11 @@ ADR-0001–0013，技术决策见 [research.md](research.md)。
 | I 测试驱动 | 公共库、`bff`、`web` 先写测试；组件配置各带冒烟测试；最终演示有端到端测试；覆盖率 ≥ 80% | 通过 |
 | II 微服务与契约优先 | 只自建 `bff`；接口契约在 `contracts/` 先行，oasdiff 检测破坏性变更 | 通过 |
 | III 开源与许可 | 全部组件宽松许可，开源服务清单见下文；CI 做 SBOM、许可白名单与漏洞扫描 | 通过 |
-| IV 最小权限与审计 | `bff` 以客户端身份做标准令牌交换（`sub` = 人，`azp` = bff）；AI 网关记录审计；001 使用本地 Keycloak | 通过（按 Phase 1 例外不做数据层授权） |
+| IV 最小权限与审计 | `bff` 以客户端身份做标准令牌交换（`sub` = 人，`azp` = bff）；AI 网关记录审计；接入外部 Keycloak 时只增量导入织境的客户端与角色，不改动已有配置 | 通过（按 Phase 1 例外不做数据层授权） |
 | V 可观测性 | 公共库注入关联属性；追踪覆盖最小链路每一跳；可观测后端在 D10 选定 | 通过 |
 | VI 以服务方式集成 | 组件均以独立服务部署；OM 从织境维护的仓库构建（001 用上游 2.0.3 标签，不含补丁）；CI 核对 OM 与 Omnigent 发布分支相对上游标签的差异与 `PATCHES.md` 一一对应 | 通过 |
 | 部署约束 | 伞形 Chart 可直接用于后续的测试环境；离线安装包；单租户（v1.5.0 例外） | 通过（按例外） |
-| 开发流程与质量门禁 | CI 门禁、本地部署、离线打包即交付物 D6、D8、D9；测试环境部署在 004 之后 | 通过 |
+| 开发流程与质量门禁 | CI 门禁、本地部署、离线打包即交付物 D6、D8、D9；手动验收文档 D12，产品负责人验收通过后合并；测试环境部署在 004 之后 | 通过 |
 
 ## 实施方案（按交付物）
 
@@ -61,17 +61,18 @@ ADR-0001–0013，技术决策见 [research.md](research.md)。
 | D3 | `bff` 最小版本 | FastAPI，分层只有 `api` 与 `adapters`，另有 `migrations/`（Alembic，会话表）（ADR-0009）。按 BFF 模式由 `bff` 完成 OIDC 登录：`/bff/v1/auth/login`、`/callback`、`/logout`，会话存 PostgreSQL 的独占 database `bff`（不新增组件），浏览器不持有令牌；业务接口 `GET /bff/v1/me`、`GET /bff/v1/object-types/{typeKey}/objects`（契约 `contracts/openapi/skeleton.yaml`）；后者经 `ontology` 读 OM，经 `mcp` 调 Toolbox 工具 `list_objects` | D2、D10①② |
 | D4 | 织境 Web 最小外壳 | React 单页应用：登录跳转、示例页面（对象定义表 + 设备列表）；前端 API 客户端由契约生成到 `packages/ts-api/`；构建为 nginx 静态镜像 | D3 |
 | D5 | 组件部署目录 | 每个组件：`component.yaml`（版本、镜像来源、许可、定制级别、负责人）、Chart 或上游 Chart 引用、`values/base.yaml` 与各环境参数、`config/`、`tests/`。组件与来源见下表 | D1 |
-| D6 | 本地一键部署 | 伞形 Chart `deploy/helm/contexture/` 汇总全部组件与 `bff`、`web`；kind 配置与本地 Keycloak（26.8.0，导入织境 realm）；`make up` 部署并等待就绪；`make seed` 预置 OM 对象定义与 Doris 示例数据 | D5 |
+| D6 | 本地一键部署 | 伞形 Chart `deploy/helm/contexture/` 汇总全部组件与 `bff`、`web`；kind 配置；Keycloak 默认接入外部实例（本机为负责人现有 Keycloak、与 Paperclip 同一 realm），开关 `keycloak.enabled=true` 时随织境部署 26.8.0；两种模式都由 keycloak-config-cli 增量导入织境配置；`make up` 部署并等待就绪；`make seed` 预置 OM 对象定义与 Doris 示例数据 | D5 |
 | D8 | CI 门禁 | GitHub Actions：构建；补丁一致性检查（`tools/patches_check.py`：OM 与 Omnigent 发布分支相对上游标签的每个提交都须在 `PATCHES.md` 登记，否则失败）；单元 / 契约 / 集成测试与覆盖率 ≥ 80%；ruff、pyright、eslint；oasdiff；Syft 生成 SBOM，Grype / Trivy 漏洞扫描，许可白名单检查；`components-check`（脚本放 `tools/`）；测试环境的自动部署在 004 之后加入 | D1、D5 |
 | D9 | 离线安装包 | 从各组件 `component.yaml` 汇总镜像清单，导出镜像与 Chart；提供安装脚本；在断网 kind 中验证安装 | D6 |
 | D10 | 三项选型 | ① AI 网关：agentgateway 与 Agent Router 各搭一套，按 ADR-0013 的 4 项（Toolbox 连 Doris、审计字段、模型网关、令牌受众）对比后选定；② Toolbox 的 mysql 数据源连 Doris 执行 `list_objects`，不行则改用 Doris MCP Server；③ 可观测后端：候选 Prometheus + Jaeger + OpenSearch Dashboards，部署后能查服务指标、日志与追踪 | D5（基础组件就绪） |
 | D11 | 实际用时记录 | 每个交付物完成时记录用时，001 结束时汇总，更新开发计划第 3 节的估算 | 全部 |
+| D12 | 手动验收文档 | 基于最终演示与 quickstart 编写 `acceptance.md`，交产品负责人手动验收（宪法 v1.6.0） | 全部 |
 
 **组件与来源（D5）**
 
 | 组件 | 来源 | 本地 | 测试环境 |
 | --- | --- | --- | --- |
-| Keycloak | 官方镜像 | 部署 26.8.0，导入织境 realm | 004 之后接入现有实例（只导入织境的客户端与角色） |
+| Keycloak | 官方镜像；开关 `keycloak.enabled` 默认关闭 | 不部署，接入负责人现有 Keycloak（`https://sso.127.0.0.1.nip.io`，realm `digital-workforce`），增量导入织境配置；kind 内用 CoreDNS 把该域名解析到宿主机网关，并信任 Caddy 本地 CA 根证书 | 同一套开关与导入方式 |
 | OpenMetadata | 从 `third_party/openmetadata/` 构建（上游 2.0.3 标签），开启 RDF | 部署 | 部署 |
 | Jena Fuseki、OpenSearch | 官方镜像 / Chart | 部署 | 部署 |
 | PostgreSQL | CloudNativePG | 部署 | 部署 |
@@ -92,7 +93,7 @@ ADR-0001–0013，技术决策见 [research.md](research.md)。
 | 组件 | 初定版本 | 许可 | 用途 | 所在位置 | 可替换方案 |
 | --- | --- | --- | --- | --- | --- |
 | OpenMetadata | 2.0.3（自建镜像 `2.0.3-ctx.0`） | 服务端 Apache-2.0；采集框架与内置 MCP 为 CCL 1.0（已批准例外）；界面 CCL 1.0（不交付） | 本体、元数据、血缘、审批、上下文 | 组件 `openmetadata` | DataHub（Apache-2.0） |
-| Keycloak | 26.8.0（与现有 Keycloak 一致） | Apache-2.0 | 身份、角色、标准令牌交换 | 组件 `keycloak` | Zitadel（Apache-2.0）、Authentik |
+| Keycloak | 26.8.0（自带模式；外部 Keycloak 须 ≥ 26.2） | Apache-2.0 | 身份、角色、标准令牌交换 | 组件 `keycloak`（默认关闭，接入外部） | Zitadel（Apache-2.0）、Authentik |
 | Jena Fuseki | 6.x（按 OM 要求锁定） | Apache-2.0 | OM 的 RDF 存储 | 组件 `fuseki` | 不启用 OM 的 RDF |
 | OpenSearch | 3.9.0（按 OM 兼容矩阵锁定） | Apache-2.0 | OM 搜索索引；服务日志 | 组件 `opensearch` | Elasticsearch（许可不宽松，不选） |
 | PostgreSQL + CloudNativePG | PostgreSQL 17；CloudNativePG 1.30.1 | PostgreSQL License；Apache-2.0 | OM、Keycloak、Langfuse、Airflow 的数据库；`bff` 会话（独立 database） | 组件 `postgresql` | MySQL（OM 支持） |
@@ -105,6 +106,7 @@ ADR-0001–0013，技术决策见 [research.md](research.md)。
 | SeaweedFS | 4.48 | Apache-2.0 | 对象存储（本地 / 离线） | 组件 `langfuse` | 阿里云 OSS（测试环境） |
 | Valkey | 9.1.2 | BSD-3-Clause | Langfuse 缓存 | 组件 `langfuse` | — |
 | Apache Airflow | 3.3.2 | Apache-2.0 | 管线编排（001 只验证就绪） | 组件 `airflow` | Argo Workflows（Apache-2.0） |
+| keycloak-config-cli | 6.5.1 | Apache-2.0 | 增量导入织境的 Keycloak 配置 | 组件 `keycloak` | Keycloak 管理接口脚本 |
 | Envoy Gateway | 1.9.2 | Apache-2.0 | 边缘网关与路由 | 组件 `envoy-gateway` | ingress-nginx（已退役，不选） |
 | nginx | 1.31.7 | BSD-2-Clause | `web` 静态资源服务 | 组件 `web` | Caddy（Apache-2.0） |
 | 可观测后端（D10 候选） | Prometheus 3.15.0；Jaeger 2.22.0；OpenSearch Dashboards 3.9.0 | Apache-2.0 | 服务指标、追踪、日志查看 | 组件 `prometheus`、`jaeger`、`opensearch-dashboards` | Grafana 系（AGPL，不选） |
@@ -115,7 +117,7 @@ ADR-0001–0013，技术决策见 [research.md](research.md)。
 
 | 周 | 内容 |
 | --- | --- |
-| 第 1 周 | D1 仓库骨架 → D8 基础 CI；D2 公共库；D5 先落地 Keycloak、PostgreSQL、OM、Doris、MCP Toolbox；D10 ①②（AI 网关与 Toolbox 连 Doris，D3 依赖其结论） |
+| 第 1 周 | D1 仓库骨架 → D8 基础 CI；D2 公共库；D5 先落地 Keycloak 配置导入（接入现有实例）、PostgreSQL、OM、Doris、MCP Toolbox；D10 ①②（AI 网关与 Toolbox 连 Doris，D3 依赖其结论） |
 | 第 2 周 | D3 `bff`、D4 `web`；D5 其余组件；D6 伞形 Chart 与 `make up`；D8 补齐扫描；D9 离线包；D10 ③；最终演示（本地）；D11 汇总用时 |
 
 关键路径：D1 → D2 → D10①② → D3 → D4 → 最终演示。
@@ -173,8 +175,11 @@ tests/e2e/                        # 最终演示的端到端测试
 ## 需要用户提供或确认
 
 1. 织境维护的 OM 仓库：已就绪（`stephenhuo-code/OpenMetadata`，分支 `ctx/2.0.3`，子仓库 `third_party/openmetadata/src/`）。
-2. 本地开发机配置是否满足 16 核 / 64 GB；不满足时 D6 提供精简配置（降低副本与资源）。
+2. 本地资源：当前 Docker Desktop 分配 18 CPU / 15.23 GB 内存（Paperclip 已用约 4.3 GB），低于建议的 64 GB。需调大 Docker Desktop 内存，
+   或使用 D6 的精简配置（`values-lite.yaml`）；以实测为准。
 3. 模型服务 key 由负责人在验证 AI 网关时自行配置（D10①）。
-4. 阿里云测试环境与接入现有 Keycloak 放到 004 之后（见开发计划 004）。
+4. 阿里云测试环境放到 004 之后（见开发计划 004）。
+6. 现有 Keycloak：已核实可从容器内访问（`https://sso.127.0.0.1.nip.io`，realm `digital-workforce`，26.8.0）。需要负责人在该 realm
+   内创建一个仅管理本 realm 的服务账号供 keycloak-config-cli 导入，凭证放本地环境变量。
 5. **004 开工前决定**：Omnigent 前端复制到 `apps/web/` 后深度改造，与宪法 VI“不得在两种方式之外维护分叉”冲突（analyze C3）。
    需修订宪法增加衍生代码例外，或改为补丁方式。

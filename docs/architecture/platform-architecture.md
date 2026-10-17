@@ -71,7 +71,7 @@
 | 组件 | 版本 | 许可 | 用途 | 部署单元 / 所在位置 | 集成方式 | 可替换方案 |
 | --- | --- | --- | --- | --- | --- | --- |
 | OpenMetadata | 2.0.3（自建镜像 `2.0.3-ctx.N`） | 服务端 Apache 2.0；采集框架与内置 MCP 为 CCL（已批准例外，私有化交付可用）；界面仅内部使用 | 本体、元数据、血缘、审批、上下文 | `openmetadata-server`、迁移任务；采集任务由 Airflow 拉起 | 从织境维护的 OM 仓库构建；Phase 1 补丁仅 OKF v0.2（ADR-0011、0012） | DataHub |
-| Keycloak | 26.8.0 | Apache 2.0 | 身份、角色、标准令牌交换 | `keycloak`（测试环境与 Paperclip 共用） | 配置（realm 与客户端即代码） | Zitadel、Authentik |
+| Keycloak | 26.8.0（外部实例须 ≥ 26.2） | Apache 2.0 | 身份、角色、标准令牌交换 | 默认接入客户已有 Keycloak（本机与 Paperclip 共用）；开关 `keycloak.enabled` 打开时随织境部署 | keycloak-config-cli 增量导入织境的客户端与角色；客户 IdP 可接入自带 Keycloak | Zitadel、Authentik |
 | AI 网关 | agentgateway 1.6.0 或 Agent Router 1.2.0（spike 选定） | Apache 2.0 | MCP 网关 + 模型网关、审计 | `ai-gateway` | 配置（路由、令牌校验、CEL 授权、审计） | 自建薄网关（ADR-0013 后备） |
 | MCP Toolbox | 1.14.0 | Apache 2.0 | 数据库 MCP 服务 | `toolbox`（一个实例） | 配置（数据源与工具定义） | Apache Doris MCP Server |
 | Langfuse | 4.63.0 | MIT（不启用 `ee` 功能） | 决策轨迹 | `langfuse-web`、`langfuse-worker`；依赖 ClickHouse 26.9、Valkey 9.1、对象存储 | 配置 | 自建 |

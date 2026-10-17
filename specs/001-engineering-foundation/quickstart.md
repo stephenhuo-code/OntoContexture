@@ -4,8 +4,9 @@
 
 ## 前置条件
 
-- 本地：kind、Helm、uv、pnpm、Docker。
-- 本地 Keycloak 26.8.0 随 `make up` 部署；模型服务 key 由负责人自行配置。阿里云测试环境在 004 之后搭建。
+- 本地：kind（在 Docker 中运行的 Kubernetes）、Helm、uv、pnpm、Docker Desktop（内存不足 64 GB 时用 `values-lite.yaml`）。
+- 外部 Keycloak：`https://sso.127.0.0.1.nip.io`，realm `digital-workforce`；导出 Paperclip Caddy 的根证书供集群信任（见 `deploy/kind/README.md`）。
+- 使用负责人现有的 Keycloak（与 Paperclip 同一 realm），`make up` 时增量导入织境的客户端与角色；没有 Keycloak 的环境用 `--set keycloak.enabled=true` 随织境部署；模型服务 key 由负责人自行配置。阿里云测试环境在 004 之后搭建。
 
 ## 1. 仓库与公共库（用户故事 1）
 

@@ -1,6 +1,6 @@
 # 织境 Phase 1 特性列表与开发计划
 
-2026-10-08 · 依据：《织境（Contexture）产品规划》、《织境 POC 场景路线图》、项目宪法 v1.5.0、[平台技术架构](architecture/platform-architecture.md)
+2026-10-08 · 依据：《织境（Contexture）产品规划》、《织境 POC 场景路线图》、项目宪法 v1.6.0、[平台技术架构](architecture/platform-architecture.md)
 
 ## 1. 范围
 
@@ -727,7 +727,8 @@ Notebook、固化上线）。P2 分两段验收：指标审批与问数准确率
 | 7 | `/speckit-analyze` | spec、plan、tasks 一致性检查，问题修完再实现 |
 | 8 | `/speckit-implement`（或 TDD 版 `/speckit.tdd-implement`） | 红 → 绿 → 重构，测试先于实现提交 |
 | 9 | `/speckit-converge` | 对照 spec 找出未完成项，补为任务并完成 |
-| 10 | PR → 评审 → 合并（非 squash） | CI 全绿；评审核对测试先行、契约、许可、权限审计 |
+| 10 | 编写手动验收文档 `acceptance.md` → 产品负责人手动验收 | 宪法 v1.6.0：不读代码可执行；问题修复后复验 |
+| 11 | PR → 评审 → 合并（非 squash） | CI 全绿；评审核对测试先行、契约、许可、权限审计 |
 
 ## 7. 风险
 
