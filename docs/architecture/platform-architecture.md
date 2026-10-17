@@ -52,7 +52,7 @@
 | 组件 | 职责 | 承载特性 | 独占存储 | 对外接口 | 主要依赖 |
 | --- | --- | --- | --- | --- | --- |
 | `web` | 织境 Web 前端（React 单页应用），打包为静态资源镜像，由 nginx 提供；Envoy 把页面请求路由到它（ADR-0003） | 004、008、022 等页面 | — | 静态资源（HTTP） | 浏览器内只调用 `bff` |
-| `bff` | 浏览器唯一入口；本体读写；审批待办；轨迹页面；Omnigent 代理；页面取数（经 AI 网关） | 004、010（轨迹页面）、016（本体读写） | Valkey（会话） | REST + SSE（仅浏览器） | OM、Langfuse、Omnigent、AI 网关 |
+| `bff` | 浏览器唯一入口；本体读写；审批待办；轨迹页面；Omnigent 代理；页面取数（经 AI 网关） | 004、010（轨迹页面）、016（本体读写） | PostgreSQL `bff` database（会话） | REST + SSE（仅浏览器） | OM、Langfuse、Omnigent、AI 网关 |
 | `pipelines`（镜像） | Airflow 任务 | 006、015、016、019、020、018 | 不独占（写入各自目标） | Airflow 任务 | Airflow、OM、Langfuse、Doris |
 | 公共库 `contexture-core` | 令牌验证与上下文、令牌交换客户端、可观测关联属性、本体读取（`ontology`）、统一错误格式、配置 | 全部 | — | Python 库 | — |
 | Paperclip 插件与下发 CLI | 轨迹回传 Langfuse；数字员工下发到 Paperclip | 011、012 | — | Paperclip 插件、CLI | Paperclip、Langfuse |
@@ -64,27 +64,30 @@
 （OM 术语库与分类标签）；017 质量领域包（本体内容）；021 追溯（Toolbox 参数化查询工具）；018 / 009 上下文（OM 上下文中心、
 资产 AI 上下文、MCP，OKF v0.2 补丁）；023 / 013 参考 Skill。
 
-## 4. 第三方组件
+## 4. 第三方组件（开源服务清单，宪法 III）
 
-| 组件 | 部署单元 | 集成方式 | 许可 |
-| --- | --- | --- | --- |
-| OpenMetadata | `openmetadata-server`、迁移任务；采集任务由 Airflow 拉起 | 从织境维护的 OM 仓库（子仓库）构建、独立部署；Phase 1 补丁仅 OKF v0.2（ADR-0011、0012） | 服务端 Apache 2.0；采集框架与内置 MCP 为 CCL（已批准例外，私有化交付可用）；界面仅内部使用 |
-| Keycloak | `keycloak` | 配置（realm 与 Agent 客户端即代码） | Apache 2.0 |
-| AI 网关 | agentgateway 或 Agent Router（spike 选定） | 配置（路由、令牌校验、CEL 授权、审计） | Apache 2.0 |
-| MCP Toolbox | `toolbox`（一个实例） | 配置（数据源与工具定义） | Apache 2.0 |
-| Langfuse | `langfuse-web`、`langfuse-worker`；依赖 ClickHouse、Valkey、对象存储 | 配置 | MIT / Apache 2.0 / BSD-3 |
-| OTel Collector | 网关模式，开启持久化队列 | 配置 | Apache 2.0 |
-| Doris | FE、BE | 配置 | Apache 2.0 |
-| Apache Airflow | scheduler、api-server、dag-processor、triggerer；任务 Pod | 配置 + DAG | Apache 2.0 |
-| Omnigent | `omnigent-server`、runner、host（普通 Pod，只开放 MCP 工具） | 从织境维护的仓库（子仓库）构建；补丁 + 扩展（ADR-0002） | Apache 2.0 |
-| Envoy Gateway | 控制器 + Envoy 代理 | 配置（页面 → `web`，`/bff/*` → `bff`，MCP 与模型 → AI 网关） | Apache 2.0 |
-| nginx | `web` 镜像内的静态资源服务 | 配置 | BSD-2-Clause |
-| PostgreSQL | 高可用集群（CloudNativePG） | 每个组件一个独立 database | PostgreSQL License |
-| OpenSearch | 集群 | OM 索引 | Apache 2.0 |
-| Jena Fuseki | 服务器 | OM 的 RDF 存储 | Apache 2.0 |
-| Valkey | 主从或哨兵 | 缓存 | BSD-3 |
-| 对象存储 | 测试环境 OSS；离线 SeaweedFS | S3 兼容接口 | Apache 2.0 |
-| JupyterHub（P2） | hub、proxy；用户 Pod | 配置 + 扩展 | BSD |
+版本为初定版本（2026-10-17），在各组件的 `component.yaml` 中锁定；与 OpenMetadata 2.0.3 有依赖关系的组件以 OM 支持的版本为准。
+
+| 组件 | 版本 | 许可 | 用途 | 部署单元 / 所在位置 | 集成方式 | 可替换方案 |
+| --- | --- | --- | --- | --- | --- | --- |
+| OpenMetadata | 2.0.3（自建镜像 `2.0.3-ctx.N`） | 服务端 Apache 2.0；采集框架与内置 MCP 为 CCL（已批准例外，私有化交付可用）；界面仅内部使用 | 本体、元数据、血缘、审批、上下文 | `openmetadata-server`、迁移任务；采集任务由 Airflow 拉起 | 从织境维护的 OM 仓库构建；Phase 1 补丁仅 OKF v0.2（ADR-0011、0012） | DataHub |
+| Keycloak | 26.8.0 | Apache 2.0 | 身份、角色、标准令牌交换 | `keycloak`（测试环境与 Paperclip 共用） | 配置（realm 与客户端即代码） | Zitadel、Authentik |
+| AI 网关 | agentgateway 1.6.0 或 Agent Router 1.2.0（spike 选定） | Apache 2.0 | MCP 网关 + 模型网关、审计 | `ai-gateway` | 配置（路由、令牌校验、CEL 授权、审计） | 自建薄网关（ADR-0013 后备） |
+| MCP Toolbox | 1.14.0 | Apache 2.0 | 数据库 MCP 服务 | `toolbox`（一个实例） | 配置（数据源与工具定义） | Apache Doris MCP Server |
+| Langfuse | 4.63.0 | MIT（不启用 `ee` 功能） | 决策轨迹 | `langfuse-web`、`langfuse-worker`；依赖 ClickHouse 26.9、Valkey 9.1、对象存储 | 配置 | 自建 |
+| OTel Collector | 0.163.1 | Apache 2.0 | 追踪汇聚 | 网关模式，开启持久化队列 | 配置 | 各组件直连后端 |
+| Doris | 4.1.5（Operator 26.0.1） | Apache 2.0 | 本体实例库 | FE、BE | 配置 | StarRocks |
+| Apache Airflow | 3.3.2 | Apache 2.0 | 管线编排 | scheduler、api-server、dag-processor、triggerer；任务 Pod | 配置 + DAG | Argo Workflows |
+| Omnigent | v0.18.0（`ctx/v0.18.0`） | Apache 2.0 | 内部 Agent 运行时 | `omnigent-server`、runner、host（普通 Pod，只开放 MCP 工具） | 从织境维护的仓库构建；补丁 + 扩展（ADR-0002） | Pydantic AI（需自建会话与界面） |
+| Paperclip | 使用方部署的版本 | MIT | 数字员工平台（最终用户） | 使用方部署，织境经 MCP 接入 | 配置 + 织境插件（ADR-0010） | 其他支持远程 MCP 的平台 |
+| Envoy Gateway | 1.9.2 | Apache 2.0 | 边缘网关 | 控制器 + Envoy 代理 | 配置（页面 → `web`，`/bff/*` → `bff`，MCP 与模型 → AI 网关） | Kubernetes Gateway API 的其他实现 |
+| nginx | 1.31.7 | BSD-2-Clause | `web` 静态资源 | `web` 镜像内 | 配置 | Caddy |
+| PostgreSQL | 17（CloudNativePG 1.30.1） | PostgreSQL License / Apache 2.0 | 各组件数据库 | 高可用集群 | 每个组件一个独立 database | MySQL（OM 支持） |
+| OpenSearch | 3.9.0（按 OM 兼容矩阵锁定） | Apache 2.0 | OM 索引、服务日志 | 集群 | 配置 | — |
+| Jena Fuseki | 6.x（按 OM 要求锁定） | Apache 2.0 | OM 的 RDF 存储 | 服务器 | 配置 | 不启用 OM 的 RDF |
+| 对象存储 | 测试环境 OSS；离线 SeaweedFS 4.48 | Apache 2.0 | 文件与 Langfuse 存储 | — | S3 兼容接口 | MinIO（AGPL，不选） |
+| 可观测后端（待定） | 候选 Prometheus 3.15.0、Jaeger 2.22.0、OpenSearch Dashboards 3.9.0 | Apache 2.0 | 服务指标、追踪、日志查看 | 001 的 D10 选定 | 配置 | Grafana 系（AGPL，不选） |
+| JupyterHub（P2） | 在 025 中锁定 | BSD | Notebook 工作台 | hub、proxy；用户 Pod | 配置 + 扩展 | — |
 
 **统一管理**：每个组件在 `deploy/components/<组件>/` 有标准目录：清单 `component.yaml`（版本、镜像来源、许可、
 定制级别、负责人）、Chart、各环境参数、配置即代码与测试；CI 检查清单完整、版本锁定、许可合规、镜像进入离线包

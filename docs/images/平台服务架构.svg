@@ -75,7 +75,7 @@
 <text x="1298.0" y="527" font-size="11.5" fill="#59636e" text-anchor="middle">飞书同步、文档解析、治理</text>
 <rect x="150" y="618" width="166" height="72" rx="9" fill="#f1f3f4" stroke="#5f6368" stroke-width="1.6" />
 <text x="233.0" y="642" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">PostgreSQL</text>
-<text x="233.0" y="662" font-size="11.5" fill="#59636e" text-anchor="middle">OM、Keycloak、Omnigent 等</text>
+<text x="233.0" y="662" font-size="11.5" fill="#59636e" text-anchor="middle">OM、Keycloak、bff 会话等</text>
 <rect x="332" y="618" width="166" height="72" rx="9" fill="#f1f3f4" stroke="#5f6368" stroke-width="1.6" />
 <text x="415.0" y="642" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">OpenSearch</text>
 <text x="415.0" y="662" font-size="11.5" fill="#59636e" text-anchor="middle">OM 搜索索引</text>
@@ -84,7 +84,7 @@
 <text x="597.0" y="662" font-size="11.5" fill="#59636e" text-anchor="middle">OM 的 RDF 存储</text>
 <rect x="696" y="618" width="166" height="72" rx="9" fill="#f1f3f4" stroke="#5f6368" stroke-width="1.6" />
 <text x="779.0" y="642" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">Valkey</text>
-<text x="779.0" y="662" font-size="11.5" fill="#59636e" text-anchor="middle">缓存、bff 会话</text>
+<text x="779.0" y="662" font-size="11.5" fill="#59636e" text-anchor="middle">Langfuse 缓存</text>
 <rect x="878" y="618" width="166" height="72" rx="9" fill="#f1f3f4" stroke="#5f6368" stroke-width="1.6" />
 <text x="961.0" y="642" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">对象存储</text>
 <text x="961.0" y="662" font-size="11.5" fill="#59636e" text-anchor="middle">OSS / SeaweedFS</text>
