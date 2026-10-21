@@ -1,0 +1,12 @@
+name: mcp-toolbox
+version: 1.14.0
+image:
+  source: official
+  refs:
+    - us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:1.14.0
+    - busybox:1.37.0
+license: Apache-2.0
+customization: config
+upstream: https://github.com/googleapis/genai-toolbox
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

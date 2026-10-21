@@ -1,0 +1,3 @@
+# 精简：不部署 triggerer（001 不使用延迟任务）
+triggerer:
+  enabled: false

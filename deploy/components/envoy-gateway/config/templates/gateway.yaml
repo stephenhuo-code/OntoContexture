@@ -1,0 +1,70 @@
+# 织境入口：一个 Gateway，NodePort 30080 映射到宿主机 8080（deploy/kind/cluster.yaml）
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: contexture
+  namespace: envoy-gateway-system
+spec:
+  # 入口追踪：每个请求生成入口 span 并以 traceparent 传给 bff（链路的第一跳，ADR-0001）
+  telemetry:
+    tracing:
+      samplingRate: 100
+      provider:
+        type: OpenTelemetry
+        serviceName: contexture-gateway
+        backendRefs:
+          - name: otel-collector
+            namespace: contexture
+            port: 4317
+      customTags:
+        ctx.tenant.id:
+          type: Literal
+          literal: { value: local }
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyService:
+        type: NodePort
+        # kind 的宿主机端口映射在控制面节点上，Envoy Pod 可能在其他节点
+        externalTrafficPolicy: Cluster
+        patch:
+          type: StrategicMerge
+          value:
+            spec:
+              ports:
+                - name: http-80
+                  port: 80
+                  nodePort: 30080
+      envoyDeployment:
+        container:
+          # 显式按标签引用（Envoy Gateway 默认以 digest 引用，离线导入的单架构镜像 digest 不同）
+          image: docker.io/envoyproxy/envoy:distroless-v1.39.1
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { memory: 256Mi }
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: contexture
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  parametersRef:
+    group: gateway.envoyproxy.io
+    kind: EnvoyProxy
+    name: contexture
+    namespace: envoy-gateway-system
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: contexture
+  namespace: contexture
+spec:
+  gatewayClassName: contexture
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      allowedRoutes:
+        namespaces: { from: Same }

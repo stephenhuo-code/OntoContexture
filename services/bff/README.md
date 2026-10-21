@@ -40,7 +40,9 @@ uv run pytest services/bff -m integration         # 需要 Docker：真实 Keycl
        type_key: str,
        ctx: Annotated[RequestContext, Depends(current_context)],  # 鉴权：401 / 403 由公共库返回
    ) -> ObjectTypeRef:
-       return await services(request).object_types.get(type_key)  # 上游失败抛 UpstreamUnavailable → 502
+       return await services(request).object_types.get(
+           type_key
+       )  # 上游失败抛 UpstreamUnavailable → 502
    ```
 
    需要访问新的外部系统时，先在 `adapters/` 加适配器（定义 Protocol + 实现），在 `main.py` 的 `Services` 中注册。

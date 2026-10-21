@@ -1,0 +1,32 @@
+image:
+  repository: contexture/bff
+  tag: dev
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+# 非敏感配置（CTX_* 环境变量）
+config:
+  tenantId: local
+  publicUrl: http://localhost:8080
+  keycloakUrl: https://sso.127.0.0.1.nip.io
+  keycloakRealm: digital-workforce
+  aiGatewayMcpUrl: ""
+  omUrl: http://openmetadata:8585
+  omGlossary: quality
+  otelEndpoint: ""
+
+# 已有 Secret：键 ctx_client_secret、ctx_database_url、ctx_om_token，挂载为文件（CTX_SECRETS_DIR）
+existingSecret: bff-secrets
+
+# 受信 CA（如本机 Caddy 根证书）：Secret 中键 ca.crt，经 SSL_CERT_FILE 生效；为空时用系统 CA
+trustedCaSecret: ctx-trusted-ca
+
+resources:
+  requests: { cpu: 100m, memory: 192Mi }
+  limits: { memory: 512Mi }
+
+# 入口路由（Gateway API）
+route:
+  enabled: true
+  gateway: contexture

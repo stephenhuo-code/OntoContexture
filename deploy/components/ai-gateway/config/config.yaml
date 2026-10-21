@@ -1,0 +1,80 @@
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+# 织境 AI 网关（agentgateway）：MCP 网关 + 模型网关（ADR-0013）。环境变量由 Chart 注入。
+config:
+  logging:
+    format: json
+  readinessAddr: 0.0.0.0:15021
+
+frontendPolicies:
+  # 审计：每次调用记录人、调用方、工具、参数摘要与 trace（宪法 IV Phase 1：取数入口 MUST 记录每一次调用）
+  accessLog:
+    add:
+      audit.tenant: '"${CTX_TENANT_ID}"'
+      audit.sub: jwt.sub
+      audit.user: jwt.preferred_username
+      audit.azp: jwt.azp
+      audit.mcp.method: mcp.methodName
+      audit.mcp.tool: mcp.tool.name
+      audit.mcp.arguments: mcp.tool.arguments
+      # MCP Toolbox 每行返回一个文本块
+      audit.mcp.rows: "mcp.tool.result.content.size()"
+      audit.llm.model: llm.requestModel
+  tracing:
+    host: ${OTEL_COLLECTOR_GRPC}
+    randomSampling: true
+    # 关联属性（contracts/otel/attributes.md）
+    attributes:
+      ctx.tenant.id: '"${CTX_TENANT_ID}"'
+      ctx.user.id: jwt.sub
+      ctx.agent.id: jwt.azp
+
+binds:
+  - port: 8080
+    listeners:
+      - routes:
+          # ---------- MCP：数据库与上下文工具 ----------
+          - name: mcp
+            matches:
+              - path: { pathPrefix: /mcp }
+            policies:
+              jwtAuth:
+                mode: strict
+                issuer: ${KEYCLOAK_ISSUER}
+                audiences: [contexture-ai-gateway]
+                jwks:
+                  url: ${KEYCLOAK_ISSUER}/protocol/openid-connect/certs
+              # 按角色授权工具（三个默认角色均可调用只读取数工具）
+              mcpAuthorization:
+                rules:
+                  - >-
+                    mcp.tool.name == "list_objects" &&
+                    jwt.realm_access.roles.exists(r, r in ["admin", "ai-engineer", "business-user"])
+            backends:
+              - mcp:
+                  targets:
+                    - name: toolbox
+                      mcp:
+                        host: ${TOOLBOX_MCP_URL}
+          # ---------- 模型网关：OpenAI 兼容入口（服务商地址与 key 只在这里配置） ----------
+          - name: llm
+            matches:
+              - path: { pathPrefix: /v1 }
+            policies:
+              jwtAuth:
+                mode: strict
+                issuer: ${KEYCLOAK_ISSUER}
+                audiences: [contexture-ai-gateway]
+                jwks:
+                  url: ${KEYCLOAK_ISSUER}/protocol/openid-connect/certs
+            backends:
+              - ai:
+                  name: default
+                  hostOverride: ${MODEL_HOST}
+                  provider:
+                    openAI:
+                      model: ${MODEL_NAME}
+                  policies:
+                    # 模型服务商均为 HTTPS（MODEL_HOST 如 api.deepseek.com:443）
+                    backendTLS: {}
+                    backendAuth:
+                      key: ${MODEL_API_KEY}

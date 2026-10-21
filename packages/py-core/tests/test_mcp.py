@@ -39,6 +39,11 @@ def build_server() -> MCPServer:
         """模拟 Toolbox：以 JSON 文本返回对象数组。"""
         return '[{"code": "CNC-01", "model": "Mazak"}, {"code": "CNC-02", "model": "DMG"}]'
 
+    @server.tool(structured_output=False)
+    def list_rows(type_key: str) -> list[str]:
+        """模拟 MCP Toolbox 1.x：每行一个文本块。"""
+        return ['{"code": "CNC-01", "model": "Mazak"}', '{"code": "CNC-02", "model": "DMG"}']
+
     @server.tool()
     def broken(type_key: str) -> str:
         raise RuntimeError("tool failed")
@@ -189,6 +194,14 @@ async def test_text_json_rows_are_converted(mcp_server: tuple[str, HeaderRecorde
     assert result.columns == ["code", "model"]
     assert result.rows == [["CNC-01", "Mazak"], ["CNC-02", "DMG"]]
     assert result.truncated is False
+
+
+async def test_one_text_block_per_row(mcp_server: tuple[str, HeaderRecorder]) -> None:
+    url, _ = mcp_server
+    client = McpClient(url=url, exchanger=make_exchanger(FakeKeycloak()), audience="aud")
+    result = await client.call_rows(ctx(), "list_rows", {"type_key": "equipment"})
+    assert result.columns == ["code", "model"]
+    assert result.rows == [["CNC-01", "Mazak"], ["CNC-02", "DMG"]]
 
 
 @pytest.mark.parametrize("limit", [0, 101])

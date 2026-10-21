@@ -1,0 +1,11 @@
+name: airflow
+version: 3.3.2
+image:
+  source: official
+  refs:
+    - apache/airflow:3.3.2
+license: Apache-2.0
+customization: config
+upstream: https://github.com/apache/airflow
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

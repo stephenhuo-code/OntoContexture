@@ -1,0 +1,4 @@
+apiVersion: v2
+name: doris-config
+description: 本体实例库初始化：database、只读账号 ctx_reader、workload group
+version: 0.1.0

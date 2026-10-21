@@ -1,0 +1,95 @@
+# 网关模式：各服务以 OTLP 发送到 otel-collector:4317 / 4318，汇聚后导出到 Langfuse（ADR-0001）
+mode: statefulset
+fullnameOverride: otel-collector
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: "0.163.1"
+command:
+  name: otelcol-contrib
+extraEnvs:
+  # 部署常量：Phase 1 单租户（ADR-0007）
+  - { name: CTX_TENANT_ID, value: local }
+  # Langfuse 项目密钥的 Basic 认证串（tools/up.sh 从 langfuse-init 生成）
+  - name: LANGFUSE_AUTH
+    valueFrom: { secretKeyRef: { name: otel-langfuse, key: auth } }
+statefulset:
+  # 发送队列持久化：Langfuse 暂不可用时数据不丢
+  volumeClaimTemplates:
+    - metadata: { name: queue }
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: { requests: { storage: 2Gi } }
+extraVolumeMounts:
+  - { name: queue, mountPath: /var/lib/otelcol }
+podSecurityContext:
+  fsGroup: 10001
+config:
+  extensions:
+    health_check:
+      endpoint: ${env:MY_POD_IP}:13133
+    file_storage/queue:
+      directory: /var/lib/otelcol
+      create_directory: true
+  receivers:
+    otlp:
+      protocols:
+        grpc: { endpoint: "${env:MY_POD_IP}:4317" }
+        http: { endpoint: "${env:MY_POD_IP}:4318" }
+    jaeger: null
+    zipkin: null
+    prometheus: null
+  processors:
+    memory_limiter:
+      check_interval: 5s
+      limit_percentage: 80
+      spike_limit_percentage: 25
+    batch: {}
+    # 关联属性（contracts/otel/attributes.md）：第三方组件的 span 补租户常量；映射到 Langfuse 的用户与会话
+    transform/ctx:
+      error_mode: ignore
+      trace_statements:
+        - context: span
+          statements:
+            - set(attributes["ctx.tenant.id"], "${env:CTX_TENANT_ID}") where attributes["ctx.tenant.id"] == nil
+            - set(attributes["user.id"], attributes["ctx.user.id"]) where attributes["ctx.user.id"] != nil
+            - set(attributes["session.id"], attributes["ctx.session.id"]) where attributes["ctx.session.id"] != nil
+  exporters:
+    otlp_http/langfuse:
+      endpoint: http://langfuse-web:3000/api/public/otel
+      headers:
+        Authorization: "Basic ${env:LANGFUSE_AUTH}"
+      sending_queue:
+        enabled: true
+        storage: file_storage/queue
+      retry_on_failure:
+        enabled: true
+    # 可观测后端：追踪另送 Jaeger，指标以 Prometheus 格式暴露供抓取（D10 ③）
+    otlp_grpc/jaeger:
+      endpoint: jaeger:4317
+      tls: { insecure: true }
+    prometheus:
+      endpoint: ${env:MY_POD_IP}:8889
+    debug:
+      verbosity: basic
+  service:
+    extensions: [health_check, file_storage/queue]
+    pipelines:
+      traces:
+        receivers: [otlp]
+        processors: [memory_limiter, transform/ctx, batch]
+        exporters: [otlp_http/langfuse, otlp_grpc/jaeger]
+      metrics:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [prometheus]
+      logs: null
+ports:
+  metrics-export:
+    { enabled: true, containerPort: 8889, servicePort: 8889, protocol: TCP }
+  jaeger-compact: { enabled: false }
+  jaeger-thrift: { enabled: false }
+  jaeger-grpc: { enabled: false }
+  zipkin: { enabled: false }
+resources:
+  requests: { cpu: 50m, memory: 128Mi }
+  limits: { memory: 384Mi }

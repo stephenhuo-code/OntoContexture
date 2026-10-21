@@ -1,0 +1,256 @@
+# 织境本地 / 测试环境的部署编排（helmfile）。
+# 每个开源组件的 Chart 引用与参数在 deploy/components/<组件>/，自建服务的 Chart 在 deploy/charts/。
+# 用法：helmfile -f deploy/helmfile.yaml.gotmpl -e local sync（由 tools/up.sh 调用）
+environments:
+  local:
+    values:
+      - env: local
+  lite:
+    values:
+      - env: lite
+---
+{{- /* 离线安装：CTX_OFFLINE_CHARTS 指向离线包的 charts/（按 Chart 名组织），远程 Chart 改用本地目录，且不添加仓库 */}}
+{{- $offline := env "CTX_OFFLINE_CHARTS" }}
+{{- if not $offline }}
+repositories:
+  - name: cnpg
+    url: https://cloudnative-pg.github.io/charts
+  - name: opensearch
+    url: https://opensearch-project.github.io/helm-charts
+  - name: doris
+    url: https://charts.selectdb.com
+  - name: langfuse
+    url: https://langfuse.github.io/langfuse-k8s
+  - name: open-metadata
+    url: https://helm.open-metadata.org
+  - name: open-telemetry
+    url: https://open-telemetry.github.io/opentelemetry-helm-charts
+  - name: apache-airflow
+    url: https://airflow.apache.org
+
+{{- end }}
+
+helmDefaults:
+  wait: true
+  # 首次安装需拉取镜像，网络慢时 Langfuse、Airflow 等较大的镜像超过 15 分钟
+  timeout: 1800
+  createNamespace: true
+
+releases:
+  # ---------- Operators（提供 CRD） ----------
+  - name: envoy-gateway
+    namespace: envoy-gateway-system
+    chart: {{ if $offline }}{{ $offline }}/gateway-helm{{ else }}oci://docker.io/envoyproxy/gateway-helm{{ end }}
+    version: v1.9.2
+    labels: { component: envoy-gateway, phase: operators }
+    values: [components/envoy-gateway/values/base.yaml]
+
+  - name: cnpg
+    namespace: cnpg-system
+    chart: {{ if $offline }}{{ $offline }}/cloudnative-pg{{ else }}cnpg/cloudnative-pg{{ end }}
+    version: 0.29.1
+    labels: { component: postgresql, phase: operators }
+    values: [components/postgresql/values/base.yaml]
+
+  - name: doris-operator
+    namespace: doris-system
+    chart: {{ if $offline }}{{ $offline }}/doris-operator{{ else }}doris/doris-operator{{ end }}
+    version: 25.8.0
+    labels: { component: doris, phase: operators }
+    values: [components/doris/values/operator.yaml]
+
+  # ---------- 平台组件 ----------
+  - name: gateway
+    namespace: contexture
+    chart: components/envoy-gateway/config
+    labels: { component: envoy-gateway }
+    needs: [envoy-gateway-system/envoy-gateway]
+
+  - name: postgresql
+    namespace: contexture
+    chart: components/postgresql/config
+    labels: { component: postgresql }
+    needs: [cnpg-system/cnpg]
+    values:
+      - components/postgresql/values/{{ .Environment.Name }}.yaml
+
+  - name: keycloak
+    namespace: contexture
+    chart: components/keycloak/chart
+    labels: { component: keycloak }
+    needs: [contexture/postgresql]
+    values:
+      - components/keycloak/values/base.yaml
+      - components/keycloak/values/{{ .Environment.Name }}.yaml
+      - components/keycloak/values/import-env.yaml.gotmpl
+    set:
+      - name: import.files.contexture
+        file: components/keycloak/config/contexture.yaml
+      - name: import.files.testUsers
+        file: components/keycloak/config/test-users.yaml
+
+  - name: opensearch
+    namespace: contexture
+    chart: {{ if $offline }}{{ $offline }}/opensearch{{ else }}opensearch/opensearch{{ end }}
+    version: 3.4.0
+    labels: { component: opensearch }
+    values:
+      - components/opensearch/values/base.yaml
+      - components/opensearch/values/{{ .Environment.Name }}.yaml
+
+  - name: fuseki
+    namespace: contexture
+    chart: components/fuseki/chart
+    labels: { component: fuseki }
+    values:
+      - components/fuseki/values/base.yaml
+      - components/fuseki/values/{{ .Environment.Name }}.yaml
+
+  - name: doris
+    namespace: contexture
+    chart: {{ if $offline }}{{ $offline }}/doris{{ else }}doris/doris{{ end }}
+    version: 25.8.0
+    labels: { component: doris }
+    needs: [doris-system/doris-operator]
+    # DorisCluster 由 operator 异步拉起，就绪由初始化任务与冒烟测试等待
+    wait: false
+    # 上游 Chart 未暴露 skipDefaultSystemInit（见 components/doris/values/base.yaml），安装后补上
+    hooks:
+      - events: [postsync]
+        showlogs: true
+        command: kubectl
+        args: [-n, contexture, patch, dorisclusters.doris.selectdb.com, doris, --type, merge,
+               -p, '{"spec":{"beSpec":{"skipDefaultSystemInit":true}}}']
+    values:
+      - components/doris/values/base.yaml
+      - components/doris/values/{{ .Environment.Name }}.yaml
+
+  - name: doris-config
+    namespace: contexture
+    chart: components/doris/config
+    labels: { component: doris }
+    needs: [contexture/doris]
+    wait: false
+
+  - name: mcp-toolbox
+    namespace: contexture
+    chart: components/mcp-toolbox/chart
+    labels: { component: mcp-toolbox }
+    needs: [contexture/doris-config]
+    values:
+      - components/mcp-toolbox/values/base.yaml
+      - components/mcp-toolbox/values/{{ .Environment.Name }}.yaml
+    set:
+      - name: tools
+        file: components/mcp-toolbox/config/tools.yaml
+
+  - name: clickhouse
+    namespace: contexture
+    chart: components/langfuse/clickhouse
+    labels: { component: langfuse }
+
+  - name: langfuse
+    namespace: contexture
+    chart: {{ if $offline }}{{ $offline }}/langfuse{{ else }}langfuse/langfuse{{ end }}
+    version: 2.1.5
+    labels: { component: langfuse }
+    needs: [contexture/postgresql, contexture/clickhouse]
+    values:
+      - components/langfuse/values/base.yaml
+      - components/langfuse/values/{{ .Environment.Name }}.yaml
+
+  - name: openmetadata
+    namespace: contexture
+    chart: {{ if $offline }}{{ $offline }}/openmetadata{{ else }}open-metadata/openmetadata{{ end }}
+    version: 2.0.3
+    labels: { component: openmetadata }
+    needs: [contexture/postgresql, contexture/opensearch, contexture/fuseki, contexture/keycloak]
+    values:
+      - components/openmetadata/values/base.yaml
+      - components/openmetadata/values/{{ .Environment.Name }}.yaml
+      # OM Chart 的配置变化不会重启 Pod：以参数文件的哈希作为 Pod 注解
+      - podAnnotations:
+          contexture/values-sha: {{ print (readFile "components/openmetadata/values/base.yaml") (readFile (printf "components/openmetadata/values/%s.yaml" .Environment.Name)) | sha256sum | trunc 16 | quote }}
+
+  - name: otel-collector
+    namespace: contexture
+    chart: {{ if $offline }}{{ $offline }}/opentelemetry-collector{{ else }}open-telemetry/opentelemetry-collector{{ end }}
+    version: 0.176.0
+    labels: { component: otel-collector }
+    values:
+      - components/otel-collector/values/base.yaml
+      - components/otel-collector/values/{{ .Environment.Name }}.yaml
+
+  - name: airflow
+    namespace: contexture
+    chart: {{ if $offline }}{{ $offline }}/airflow{{ else }}apache-airflow/airflow{{ end }}
+    version: 1.22.0
+    labels: { component: airflow }
+    needs: [contexture/postgresql]
+    values:
+      - components/airflow/values/base.yaml
+      - components/airflow/values/{{ .Environment.Name }}.yaml
+
+  - name: ai-gateway
+    namespace: contexture
+    chart: components/ai-gateway/chart
+    labels: { component: ai-gateway }
+    needs: [contexture/mcp-toolbox, contexture/gateway]
+    values:
+      - components/ai-gateway/values/base.yaml
+      - components/ai-gateway/values/{{ .Environment.Name }}.yaml
+    set:
+      - name: config
+        file: components/ai-gateway/config/config.yaml
+
+  # ---------- 可观测后端（D10 ③） ----------
+  - name: jaeger
+    namespace: contexture
+    chart: components/jaeger/chart
+    labels: { component: jaeger }
+    values:
+      - components/jaeger/values/base.yaml
+      - components/jaeger/values/{{ .Environment.Name }}.yaml
+
+  - name: prometheus
+    namespace: contexture
+    chart: components/prometheus/chart
+    labels: { component: prometheus }
+    values:
+      - components/prometheus/values/base.yaml
+      - components/prometheus/values/{{ .Environment.Name }}.yaml
+
+  - name: otel-collector-agent
+    namespace: contexture
+    chart: {{ if $offline }}{{ $offline }}/opentelemetry-collector{{ else }}open-telemetry/opentelemetry-collector{{ end }}
+    version: 0.176.0
+    labels: { component: otel-collector }
+    needs: [contexture/opensearch]
+    values: [components/otel-collector/values/agent.yaml]
+
+  - name: opensearch-dashboards
+    namespace: contexture
+    chart: {{ if $offline }}{{ $offline }}/opensearch-dashboards{{ else }}opensearch/opensearch-dashboards{{ end }}
+    version: 3.4.0
+    labels: { component: opensearch-dashboards }
+    needs: [contexture/opensearch]
+    values:
+      - components/opensearch-dashboards/values/base.yaml
+      - components/opensearch-dashboards/values/{{ .Environment.Name }}.yaml
+
+  # ---------- 自建服务 ----------
+  - name: contexture
+    namespace: contexture
+    chart: charts/bff
+    labels: { component: bff }
+    needs: [contexture/postgresql, contexture/keycloak, contexture/gateway, contexture/ai-gateway]
+    values:
+      - config:
+          otelEndpoint: http://otel-collector:4318
+          aiGatewayMcpUrl: http://ai-gateway:8080/mcp
+
+  - name: web
+    namespace: contexture
+    chart: charts/web
+    labels: { component: web }
+    needs: [contexture/gateway]

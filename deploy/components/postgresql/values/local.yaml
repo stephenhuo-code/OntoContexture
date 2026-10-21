@@ -1,0 +1,4 @@
+# 本地：单实例
+instances: 1
+storage: 5Gi
+memory: 512Mi

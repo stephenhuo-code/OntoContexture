@@ -51,7 +51,7 @@
 | D3 | `bff` 最小版本 | 两个接口：`GET /bff/v1/me`（当前用户）、`GET /bff/v1/object-types/{typeKey}/objects`（对象定义 + 实例列表）；只用公共库，不自写令牌验证、追踪、错误处理 | `services/bff/` | 单元、契约、集成测试通过 |
 | D4 | 织境 Web 最小外壳 | Keycloak 登录 / 退出；一个示例页面：显示“设备”对象的属性定义和设备列表；打包为 nginx 静态镜像 | `apps/web/` | 浏览器能登录并看到示例页面 |
 | D5 | 组件部署目录 | 每个组件一个标准目录（清单、Chart、参数、配置、冒烟测试）：Keycloak（开关 `keycloak.enabled` 默认关闭，关闭时接入外部 Keycloak，两种模式都用增量导入写入织境配置）、OpenMetadata（自建镜像，开启 RDF）、Fuseki、PostgreSQL、OpenSearch、Doris、AI 网关、MCP Toolbox、OTel Collector、Langfuse、Airflow、nginx（web） | `deploy/components/<组件>/` | 每个组件冒烟测试通过；CI 清单检查通过；Keycloak 两种模式各部署验证一次 |
-| D6 | 一键部署（本地） | 一条命令在本地 kind 部署全部组件与 `bff`、`web` | `deploy/helm/`、`Makefile` | `make up` 后所有组件就绪 |
+| D6 | 一键部署（本地） | 一条命令在本地 kind 部署全部组件与 `bff`、`web` | `deploy/helmfile.yaml.gotmpl`、`Makefile` | `make up` 后所有组件就绪 |
 | D8 | CI 门禁 | 每次提交：构建、单元 / 契约 / 集成测试、覆盖率 ≥ 80%、静态检查、SBOM、许可与漏洞扫描、组件清单检查 | `.github/workflows/` | 故意引入 AGPL 依赖或删掉组件版本号，CI 失败 |
 | D9 | 离线安装包 | 打包镜像与 Chart（x86_64），可在断网环境安装 | `deploy/offline/` | 在断网的 kind 集群安装成功 |
 | D10 | 三项选型结论 | ① AI 网关：agentgateway 还是 Agent Router（ADR-0013 的 4 项验证）；② MCP Toolbox 能否直接连 Doris；③ 系统可观测后端（服务指标与日志） | 更新 ADR-0013 与架构文档 | 每项有结论与验证记录 |
@@ -142,7 +142,7 @@ AI 网关、Toolbox 连 Doris、可观测后端三项在 001 期间验证并定�
 - **FR-004**: 取数 MUST 经 AI 网关与 MCP Toolbox，使用数据库只读账号，设置超时与返回行数上限；`bff` 不持有数据库账号。
 - **FR-005**: AI 网关 MUST 记录每次调用的审计（人、调用方、工具、查询摘要、返回行数、`trace_id`）。
 - **FR-006**: 每个开源组件 MUST 有标准目录与清单，CI MUST 检查版本锁定、许可白名单、离线镜像清单与冒烟测试。
-- **FR-007**: 本地环境 MUST 用一套伞形 Chart 部署，并可直接用于后续的阿里云测试环境；Keycloak MUST 支持两种模式（接入外部 Keycloak、随织境部署），默认接入外部；001 本机接入负责人现有的 Keycloak。
+- **FR-007**: 本地环境 MUST 用一套部署编排（helmfile）部署，并可直接用于后续的阿里云测试环境；Keycloak MUST 支持两种模式（接入外部 Keycloak、随织境部署），默认接入外部；001 本机接入负责人现有的 Keycloak。
 - **FR-008**: 单租户部署，审计、追踪与日志写入部署常量 `tenant_id`。
 - **FR-009**: 三项选型结论（D10）MUST 写入 ADR-0013 与架构文档。
 

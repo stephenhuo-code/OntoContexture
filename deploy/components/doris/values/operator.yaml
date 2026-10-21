@@ -1,0 +1,8 @@
+dorisOperator:
+  image:
+    repository: apache/doris
+    tag: operator-25.8.0
+    imagePullPolicy: IfNotPresent
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 512Mi }

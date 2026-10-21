@@ -125,6 +125,8 @@ def import_config(env: KeycloakEnv, public_url: str) -> None:
         .with_env("IMPORT_FILES_LOCATIONS", "/config/*.yaml")
         .with_env("CONTEXTURE_BFF_CLIENT_SECRET", BFF_SECRET)
         .with_env("CTX_PUBLIC_URL", public_url)
+        .with_env("CONTEXTURE_OM_CLIENT_SECRET", "test-om-secret")
+        .with_env("CTX_OM_URL", "http://localhost:8585")
     )
     for key, value in import_env().items():
         cli = cli.with_env(key, value)

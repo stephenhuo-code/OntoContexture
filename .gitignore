@@ -25,3 +25,7 @@ node_modules/
 # kind / Helm
 *.kubeconfig
 deploy/helm/**/charts/*.tgz
+
+# Playwright 测试产物
+test-results/
+playwright-report/

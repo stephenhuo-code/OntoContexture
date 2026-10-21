@@ -1,0 +1,5 @@
+apiVersion: v2
+name: clickhouse
+description: Langfuse 的单节点 ClickHouse（本地 / 测试环境）
+version: 0.1.0
+appVersion: "26.9"

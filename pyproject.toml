@@ -29,6 +29,7 @@ dev = [
   "uvicorn>=0.34",
   "cryptography>=44",
   "schemathesis>=4.0",
+  "pymysql>=1.1",
 ]
 
 [tool.ruff]
@@ -48,7 +49,8 @@ ignore = [
 known-first-party = ["contexture_core", "contexture_bff", "tools"]
 
 [tool.ruff.lint.per-file-ignores]
-"**/tests/**" = ["S101", "S105", "S106", "S107"]
+"**/tests/**" = ["S101", "S105", "S106", "S107", "S603", "S607"]
+"tests/**" = ["S101", "S105", "S106", "S107", "S603", "S607"]
 
 [tool.pyright]
 pythonVersion = "3.12"
@@ -66,8 +68,11 @@ exclude = ["**/node_modules", "**/.venv", "third_party"]
 [tool.pytest.ini_options]
 testpaths = ["packages/py-core/tests", "services/bff/tests", "tools/tests", "deploy/components"]
 asyncio_mode = "auto"
-markers = ["integration: 需要 Docker 的集成测试"]
-addopts = "--import-mode=importlib"
+markers = [
+  "integration: 需要 Docker 的集成测试",
+  "cluster: 需要本地集群（make up、make seed）的端到端测试，由 make e2e 运行",
+]
+addopts = "--import-mode=importlib -m 'not cluster'"
 # 共享测试支持代码：tests/support（import support.keycloak）
 pythonpath = ["tests", "services/bff/tests"]
 

@@ -51,3 +51,18 @@ clients:
     directAccessGrantsEnabled: false
     implicitFlowEnabled: false
     serviceAccountsEnabled: false
+  - clientId: contexture-openmetadata
+    name: 织境 OpenMetadata（内部界面与 API）
+    protocol: openid-connect
+    publicClient: false
+    secret: $(env:CONTEXTURE_OM_CLIENT_SECRET)
+    standardFlowEnabled: true
+    directAccessGrantsEnabled: false
+    implicitFlowEnabled: false
+    serviceAccountsEnabled: false
+    redirectUris:
+      - $(env:CTX_OM_URL)/callback
+    webOrigins:
+      - $(env:CTX_OM_URL)
+    attributes:
+      post.logout.redirect.uris: $(env:CTX_OM_URL)/*

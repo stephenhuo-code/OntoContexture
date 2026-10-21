@@ -1,4 +1,3 @@
-# Chart 与 values 在 T043 补齐。
 name: keycloak
 version: 26.8.0
 image:
@@ -10,4 +9,4 @@ license: Apache-2.0
 customization: config
 upstream: https://github.com/keycloak/keycloak
 owner: "@stephenhuo-code"
-smoke_test: tests/test_realm.py
+smoke_test: tests/smoke.sh

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: web
+description: 织境 Web（React 单页应用，nginx 提供静态资源）
+version: 0.1.0
+appVersion: "0.1.0"

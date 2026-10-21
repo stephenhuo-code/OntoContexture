@@ -1,0 +1,21 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "metadata": { "component": { "type": "application", "name": "agpl-example" } },
+  "components": [
+    {
+      "type": "library",
+      "name": "fastapi",
+      "version": "0.115.0",
+      "purl": "pkg:pypi/fastapi@0.115.0",
+      "licenses": [{ "license": { "id": "MIT" } }]
+    },
+    {
+      "type": "library",
+      "name": "some-agpl-lib",
+      "version": "1.0.0",
+      "purl": "pkg:pypi/some-agpl-lib@1.0.0",
+      "licenses": [{ "license": { "id": "AGPL-3.0-only" } }]
+    }
+  ]
+}

@@ -58,7 +58,13 @@ paths:
       operationId: bffGetObjectType
       summary: 对象类型定义（OM 中已审批的对象及其属性）
       parameters:
-        - { name: typeKey, in: path, required: true, schema: { type: string }, example: equipment }
+        - {
+            name: typeKey,
+            in: path,
+            required: true,
+            schema: { type: string },
+            example: equipment,
+          }
       responses:
         "200":
           description: OK
@@ -71,8 +77,18 @@ paths:
       operationId: bffListObjects
       summary: 示例查询：对象类型定义 + 该类型的对象实例
       parameters:
-        - { name: typeKey, in: path, required: true, schema: { type: string }, example: equipment }
-        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+        - {
+            name: typeKey,
+            in: path,
+            required: true,
+            schema: { type: string },
+            example: equipment,
+          }
+        - {
+            name: limit,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 100, default: 20 },
+          }
       responses:
         "200":
           description: OK
@@ -122,7 +138,8 @@ components:
       type: object
       required: [object_uri, type_uri, attributes]
       properties:
-        object_uri: { type: string, example: "urn:ctx:obj:local:Equipment:CNC-07" }
+        object_uri:
+          { type: string, example: "urn:ctx:obj:local:Equipment:CNC-07" }
         type_uri: { type: string }
         attributes: { type: object, additionalProperties: true }
         source: { type: string }
@@ -131,5 +148,9 @@ components:
       required: [object_type, items]
       properties:
         object_type: { $ref: "#/components/schemas/ObjectTypeRef" }
-        items: { type: array, items: { $ref: "#/components/schemas/ObjectInstance" } }
+        items:
+          {
+            type: array,
+            items: { $ref: "#/components/schemas/ObjectInstance" },
+          }
         trace_id: { type: string, description: 用于查询本次取数的审计记录 }

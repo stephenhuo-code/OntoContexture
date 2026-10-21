@@ -1,0 +1,6 @@
+# 本地：接入负责人现有的 Keycloak（与 Paperclip 共用 realm），导入测试用户
+import:
+  url: https://sso.127.0.0.1.nip.io
+  realm: digital-workforce
+  publicUrl: http://localhost:8080
+  withTestUsers: true

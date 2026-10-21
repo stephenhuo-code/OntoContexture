@@ -4,9 +4,22 @@
   "title": "织境开源组件清单（component.yaml）",
   "type": "object",
   "additionalProperties": false,
-  "required": ["name", "version", "image", "license", "customization", "upstream", "owner", "smoke_test"],
+  "required": [
+    "name",
+    "version",
+    "image",
+    "license",
+    "customization",
+    "upstream",
+    "owner",
+    "smoke_test"
+  ],
   "properties": {
-    "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "组件名，与目录名一致" },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "组件名，与目录名一致"
+    },
     "version": {
       "type": "string",
       "description": "确切版本，不得为 latest 或范围",
@@ -27,9 +40,16 @@
       }
     },
     "license": { "type": "string", "description": "SPDX 许可标识" },
-    "customization": { "enum": ["config", "extension", "patch"], "description": "定制级别（宪法 VI）" },
+    "customization": {
+      "enum": ["config", "extension", "patch"],
+      "description": "定制级别（宪法 VI）"
+    },
     "upstream": { "type": "string", "format": "uri" },
     "owner": { "type": "string", "minLength": 1 },
-    "smoke_test": { "type": "string", "minLength": 1, "description": "冒烟测试路径，相对组件目录" }
+    "smoke_test": {
+      "type": "string",
+      "minLength": 1,
+      "description": "冒烟测试路径，相对组件目录"
+    }
   }
 }

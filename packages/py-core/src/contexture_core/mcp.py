@@ -92,15 +92,19 @@ class Rows(BaseModel):
 
 
 def _rows_from_result(result: CallToolResult) -> Rows:
+    data: Any
     if result.structured_content is not None:
-        data: Any = result.structured_content
+        data = result.structured_content
         if isinstance(data, dict) and "result" in data and len(data) == 1:
             data = data["result"]
     else:
-        text = "".join(c.text for c in result.content if isinstance(c, TextContent))
-        data = text if text.strip() else "[]"
-    if isinstance(data, str):  # 如 Toolbox：以 JSON 文本返回对象数组
+        texts = [c.text for c in result.content if isinstance(c, TextContent) and c.text.strip()]
+        # MCP Toolbox：每行一个文本块（JSON 对象）；也兼容单个文本块中的 JSON 数组
+        data = texts[0] if len(texts) == 1 else [json.loads(t) for t in texts]
+    if isinstance(data, str):
         data = json.loads(data)
+    if isinstance(data, dict) and "columns" not in data:
+        data = [data]
     if isinstance(data, dict):
         return Rows.model_validate(data)
     if isinstance(data, list):

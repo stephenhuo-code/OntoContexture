@@ -1,0 +1,4 @@
+apiVersion: v2
+name: envoy-gateway-config
+description: 织境入口 Gateway（EnvoyProxy、GatewayClass、Gateway）
+version: 0.1.0

@@ -1,0 +1,12 @@
+name: envoy-gateway
+version: v1.9.2
+image:
+  source: official
+  refs:
+    - docker.io/envoyproxy/gateway:v1.9.2
+    - docker.io/envoyproxy/envoy:distroless-v1.39.1
+license: Apache-2.0
+customization: config
+upstream: https://github.com/envoyproxy/gateway
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

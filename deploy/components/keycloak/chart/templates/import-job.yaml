@@ -1,0 +1,91 @@
+{{- $url := .Values.import.url -}}
+{{- if .Values.keycloak.enabled }}{{ $url = printf "http://%s-keycloak:8080" .Release.Name }}{{ end -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-import
+data:
+  contexture.yaml: {{ required "import.files.contexture 未注入" .Values.import.files.contexture | quote }}
+  {{- if .Values.import.withTestUsers }}
+  test-users.yaml: {{ required "import.files.testUsers 未注入" .Values.import.files.testUsers | quote }}
+  {{- end }}
+---
+# 每次安装与升级都执行一次增量导入（只增不删，不影响 realm 中的其他客户端）
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-import-{{ .Values.import.files | toJson | sha256sum | trunc 8 }}
+  labels: { app.kubernetes.io/name: keycloak-import, app.kubernetes.io/part-of: contexture }
+spec:
+  backoffLimit: 6
+  ttlSecondsAfterFinished: 86400
+  template:
+    spec:
+      restartPolicy: OnFailure
+      automountServiceAccountToken: false
+      {{- if .Values.import.trustedCaSecret }}
+      initContainers:
+        # 把 PEM 证书转为 JVM truststore
+        - name: truststore
+          image: {{ .Values.keycloak.image }}
+          command: [keytool, -importcert, -noprompt, -alias, ctx-ca, -file, /ca/ca.crt,
+                    -keystore, /truststore/truststore.p12, -storetype, PKCS12, -storepass, changeit]
+          volumeMounts:
+            - { name: ca, mountPath: /ca, readOnly: true }
+            - { name: truststore, mountPath: /truststore }
+      {{- end }}
+      containers:
+        - name: import
+          image: {{ .Values.import.image }}
+          env:
+            - { name: KEYCLOAK_URL, value: {{ $url | quote }} }
+            - { name: IMPORT_FILES_LOCATIONS, value: "/config/*.yaml" }
+            - { name: CTX_PUBLIC_URL, value: {{ .Values.import.publicUrl | quote }} }
+            - name: CONTEXTURE_BFF_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: {{ .Values.import.bffSecret }}, key: client-secret } }
+            - { name: CTX_OM_URL, value: {{ .Values.import.omUrl | quote }} }
+            - name: CONTEXTURE_OM_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: {{ .Values.import.omSecret }}, key: client-secret } }
+            {{- if .Values.keycloak.enabled }}
+            - { name: KEYCLOAK_AVAILABILITYCHECK_ENABLED, value: "true" }
+            - { name: KEYCLOAK_AVAILABILITYCHECK_TIMEOUT, value: "300s" }
+            - name: KEYCLOAK_USER
+              valueFrom: { secretKeyRef: { name: {{ .Release.Name }}-keycloak-admin, key: username } }
+            - name: KEYCLOAK_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ .Release.Name }}-keycloak-admin, key: password } }
+            {{- else }}
+            - { name: KEYCLOAK_LOGINREALM, value: {{ .Values.import.realm | quote }} }
+            - { name: KEYCLOAK_GRANTTYPE, value: client_credentials }
+            - name: KEYCLOAK_CLIENTID
+              valueFrom: { secretKeyRef: { name: {{ .Values.import.credentialsSecret }}, key: client-id } }
+            - name: KEYCLOAK_CLIENTSECRET
+              valueFrom: { secretKeyRef: { name: {{ .Values.import.credentialsSecret }}, key: client-secret } }
+            {{- end }}
+            {{- if .Values.import.trustedCaSecret }}
+            - name: JAVA_TOOL_OPTIONS
+              value: "-Djavax.net.ssl.trustStore=/truststore/truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=PKCS12"
+            {{- end }}
+            {{- range $k, $v := .Values.import.env }}
+            - { name: {{ $k }}, value: {{ $v | quote }} }
+            {{- end }}
+          volumeMounts:
+            - { name: config, mountPath: /config, readOnly: true }
+            {{- if .Values.import.trustedCaSecret }}
+            - { name: truststore, mountPath: /truststore, readOnly: true }
+            {{- end }}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 50m, memory: 256Mi }
+            limits: { memory: 512Mi }
+      volumes:
+        - name: config
+          configMap: { name: {{ .Release.Name }}-import }
+        {{- if .Values.import.trustedCaSecret }}
+        - name: ca
+          secret: { secretName: {{ .Values.import.trustedCaSecret }} }
+        - name: truststore
+          emptyDir: {}
+        {{- end }}

@@ -1,0 +1,29 @@
+# MCP Toolbox 的数据源与工具定义（ADR-0013）。对外工具契约见 contracts/mcp/。
+# 数据源使用 Doris 只读账号 ctx_reader；Phase 1 不做数据层授权。
+kind: source
+name: ctx-doris
+type: mysql
+host: ${DORIS_HOST}
+port: 9030
+database: ${DORIS_DATABASE}
+user: ${DORIS_USER}
+password: ${DORIS_PASSWORD}
+queryTimeout: 30s
+---
+kind: tool
+name: list_objects
+type: mysql-sql
+source: ctx-doris
+description: 列出指定对象类型的实例（第一列为业务主键），最多 limit 行。
+templateParameters:
+  # 表名与行数以模板参数传入（Doris 不支持 LIMIT 使用预编译占位符）；以枚举与取值范围约束，避免注入
+  - name: type_key
+    type: string
+    description: 对象类型键，如 equipment
+    allowedValues: [equipment]
+  - name: limit
+    type: integer
+    description: 最多返回的行数（1–100）
+    minValue: 1
+    maxValue: 100
+statement: SELECT * FROM {{.type_key}} ORDER BY 1 LIMIT {{.limit}}

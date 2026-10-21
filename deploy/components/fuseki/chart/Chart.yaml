@@ -1,0 +1,5 @@
+apiVersion: v2
+name: fuseki
+description: OpenMetadata 的 RDF 存储（Jena Fuseki + OM 扩展）
+version: 0.1.0
+appVersion: "6.2.0"

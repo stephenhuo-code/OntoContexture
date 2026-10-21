@@ -52,7 +52,9 @@ def _data_level(term: dict[str, Any]) -> int | None:
 
 
 def _extension(term: dict[str, Any]) -> dict[str, Any]:
-    return term.get("extension") or {}
+    """术语的自定义属性；枚举型在 OM 中以数组存值，取第一个值。"""
+    ext: dict[str, Any] = term.get("extension") or {}
+    return {k: (v[0] if isinstance(v, list) and v else v) for k, v in ext.items()}
 
 
 class OntologyClient:

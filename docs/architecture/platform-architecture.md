@@ -38,7 +38,7 @@
   OpenMetadata  本体（术语库）、元数据与血缘、治理工作流与任务、上下文中心、资产 AI 上下文（OKF v0.2，
                 织境补丁）、内置 MCP；RDF 同步到 Fuseki
   Keycloak      身份、角色（一个 realm）；Agent 为客户端，标准令牌交换（sub = 人，azp = Agent）
-  AI 网关       agentgateway 或 Agent Router（spike 选定）：MCP 与模型流量的统一入口
+  AI 网关       agentgateway（2026-10-19 spike 选定）：MCP 与模型流量的统一入口
   MCP Toolbox   数据库 MCP 服务：参数化查询工具与只读 SQL
   Langfuse      决策轨迹、人工修订、样本数据集
   Airflow       管线编排 ──► pipelines 任务镜像：OM 元数据采集、源系统接入与物化（直连 Doris 写入）、飞书同步
@@ -72,26 +72,29 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | OpenMetadata | 2.0.3（自建镜像 `2.0.3-ctx.N`） | 服务端 Apache 2.0；采集框架与内置 MCP 为 CCL（已批准例外，私有化交付可用）；界面仅内部使用 | 本体、元数据、血缘、审批、上下文 | `openmetadata-server`、迁移任务；采集任务由 Airflow 拉起 | 从织境维护的 OM 仓库构建；Phase 1 补丁仅 OKF v0.2（ADR-0011、0012） | DataHub |
 | Keycloak | 26.8.0（外部实例须 ≥ 26.2） | Apache 2.0 | 身份、角色、标准令牌交换 | 默认接入客户已有 Keycloak（本机与 Paperclip 共用）；开关 `keycloak.enabled` 打开时随织境部署 | keycloak-config-cli 增量导入织境的客户端与角色；客户 IdP 可接入自带 Keycloak | Zitadel、Authentik |
-| AI 网关 | agentgateway 1.6.0 或 Agent Router 1.2.0（spike 选定） | Apache 2.0 | MCP 网关 + 模型网关、审计 | `ai-gateway` | 配置（路由、令牌校验、CEL 授权、审计） | 自建薄网关（ADR-0013 后备） |
+| AI 网关 | agentgateway v1.6.0（spike 选定；Agent Router 1.2.0 为备选） | Apache 2.0 | MCP 网关 + 模型网关、审计 | `ai-gateway` | 配置（路由、令牌校验、CEL 授权、审计） | 自建薄网关（ADR-0013 后备） |
 | MCP Toolbox | 1.14.0 | Apache 2.0 | 数据库 MCP 服务 | `toolbox`（一个实例） | 配置（数据源与工具定义） | Apache Doris MCP Server |
-| Langfuse | 4.63.0 | MIT（不启用 `ee` 功能） | 决策轨迹 | `langfuse-web`、`langfuse-worker`；依赖 ClickHouse 26.9、Valkey 9.1、对象存储 | 配置 | 自建 |
+| Langfuse | 4.63.0 | MIT（不启用 `ee` 功能） | 决策轨迹 | `langfuse-web`、`langfuse-worker`；依赖 ClickHouse 26.9（本地 / 测试为单节点）、Valkey 8.0、SeaweedFS 4.23（测试环境用 OSS） | 配置 | 自建 |
 | OTel Collector | 0.163.1 | Apache 2.0 | 追踪汇聚 | 网关模式，开启持久化队列 | 配置 | 各组件直连后端 |
-| Doris | 4.1.5（Operator 26.0.1） | Apache 2.0 | 本体实例库 | FE、BE | 配置 | StarRocks |
+| Doris | 4.1.5（Operator 25.8.0） | Apache 2.0 | 本体实例库 | FE、BE | 配置 | StarRocks |
 | Apache Airflow | 3.3.2 | Apache 2.0 | 管线编排 | scheduler、api-server、dag-processor、triggerer；任务 Pod | 配置 + DAG | Argo Workflows |
 | Omnigent | v0.18.0（`ctx/v0.18.0`） | Apache 2.0 | 内部 Agent 运行时 | `omnigent-server`、runner、host（普通 Pod，只开放 MCP 工具） | 从织境维护的仓库构建；补丁 + 扩展（ADR-0002） | Pydantic AI（需自建会话与界面） |
 | Paperclip | 使用方部署的版本 | MIT | 数字员工平台（最终用户） | 使用方部署，织境经 MCP 接入 | 配置 + 织境插件（ADR-0010） | 其他支持远程 MCP 的平台 |
 | Envoy Gateway | 1.9.2 | Apache 2.0 | 边缘网关 | 控制器 + Envoy 代理 | 配置（页面 → `web`，`/bff/*` → `bff`，MCP 与模型 → AI 网关） | Kubernetes Gateway API 的其他实现 |
 | nginx | 1.31.7 | BSD-2-Clause | `web` 静态资源 | `web` 镜像内 | 配置 | Caddy |
-| PostgreSQL | 17（CloudNativePG 1.30.1） | PostgreSQL License / Apache 2.0 | 各组件数据库 | 高可用集群 | 每个组件一个独立 database | MySQL（OM 支持） |
-| OpenSearch | 3.9.0（按 OM 兼容矩阵锁定） | Apache 2.0 | OM 索引、服务日志 | 集群 | 配置 | — |
-| Jena Fuseki | 6.x（按 OM 要求锁定） | Apache 2.0 | OM 的 RDF 存储 | 服务器 | 配置 | 不启用 OM 的 RDF |
-| 对象存储 | 测试环境 OSS；离线 SeaweedFS 4.48 | Apache 2.0 | 文件与 Langfuse 存储 | — | S3 兼容接口 | MinIO（AGPL，不选） |
-| 可观测后端（待定） | 候选 Prometheus 3.15.0、Jaeger 2.22.0、OpenSearch Dashboards 3.9.0 | Apache 2.0 | 服务指标、追踪、日志查看 | 001 的 D10 选定 | 配置 | Grafana 系（AGPL，不选） |
+| PostgreSQL | 17.6（CloudNativePG 1.30.1） | PostgreSQL License / Apache 2.0 | 各组件数据库 | 高可用集群 | 每个组件一个独立 database | MySQL（OM 支持） |
+| OpenSearch | 3.4.0（与 OM 2.0.3 上游开发环境一致） | Apache 2.0 | OM 索引、服务日志 | 集群 | 配置 | — |
+| Jena Fuseki | 6.2.0（从 OM 子仓库 `docker/rdf-store` 构建） | Apache 2.0 | OM 的 RDF 存储 | 服务器 | 配置 | 不启用 OM 的 RDF |
+| 对象存储 | 测试环境 OSS；本地与离线 SeaweedFS 4.23（Langfuse Chart 自带） | Apache 2.0 | 文件与 Langfuse 存储 | — | S3 兼容接口 | MinIO（AGPL，不选） |
+| 可观测后端 | Prometheus v3.15.0、Jaeger 2.22.0（内存存储）、OpenSearch Dashboards 3.4.0；日志由 OTel Collector 节点代理采集写入 OpenSearch（索引 `ctx-logs`） | Apache 2.0 | 服务指标、追踪、日志查看 | 组件 `prometheus`、`jaeger`、`opensearch-dashboards`、`otel-collector`（节点代理） | 配置 | Grafana 系（AGPL，不选） |
 | JupyterHub（P2） | 在 025 中锁定 | BSD | Notebook 工作台 | hub、proxy；用户 Pod | 配置 + 扩展 | — |
 
 **统一管理**：每个组件在 `deploy/components/<组件>/` 有标准目录：清单 `component.yaml`（版本、镜像来源、许可、
 定制级别、负责人）、Chart、各环境参数、配置即代码与测试；CI 检查清单完整、版本锁定、许可合规、镜像进入离线包
 （ADR-0009）。
+
+部署编排：helmfile 1.8.2（MIT，开发与交付工具，不进集群）汇总上表组件的 Chart 与参数（`deploy/helmfile.yaml.gotmpl`）；
+各组件的版本、镜像与许可以 `deploy/components/*/component.yaml` 为准，`make components-check` 校验，二者须与本表一致。
 
 ## 5. 数据归属
 
@@ -135,12 +138,17 @@
 
 ## 8. 待决事项
 
+已决（001，2026-10-19）：
+- **AI 网关**：agentgateway v1.6.0（spike 记录 `docs/research/ai-gateway-spike/README.md`，ADR-0013）。
+- **系统可观测后端**：追踪 Jaeger（另送 Langfuse 作决策轨迹）；指标 Prometheus（抓取 OTel Collector 汇总的 OTLP 指标与
+  AI 网关自带指标）；日志由 OTel Collector 节点代理采集各 Pod 标准输出写入 OpenSearch，用 OpenSearch Dashboards 查看。
+  本地已验证：一次请求的 bff、AI 网关、Toolbox 追踪在 Jaeger 可查；Prometheus 抓取目标均为 up；日志按 trace_id 可检索。
+  测试环境的持久化（Jaeger 存储后端、Prometheus 保留期）在 004 之后的阿里云测试环境中确定。
+
 | # | 事项 | 说明 |
 | --- | --- | --- |
-| 1 | 系统可观测后端 | 服务指标、日志与基础设施追踪的存储与查看未定；Grafana / Loki / Tempo 为 AGPL-3.0 不可用；候选 Prometheus + Jaeger + OpenSearch Dashboards |
 | 2 | OKF v0.2 补丁是否提交上游 | 待定（ADR-0012） |
 | 3 | Doris 表结构迁移的评审方式 | 管线按本体生成的迁移以 PR 评审还是以 OM 任务审批 |
-| 4 | AI 网关选型 | agentgateway 或 Agent Router，spike 选定（ADR-0013） |
-| 5 | 需验证 | ADR-0013 的 spike（单租户后为 4 项）；OM MCP 能否接受交换后的令牌；资产 AI 上下文是否包含未审批内容 |
+| 5 | 需验证 | OM MCP 能否接受交换后的令牌（009）；Omnigent 以委托令牌作网关凭证并续期（014）；资产 AI 上下文是否包含未审批内容 |
 | 6 | 二期 | 数据层授权方向；BI 与 Notebook 的原生 SQL 通道 |
 | 7 | 是否多租户 | Phase 1 单租户；是否支持多客户共享实例另行评估，不预设在二期（ADR-0007） |

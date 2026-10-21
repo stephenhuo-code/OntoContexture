@@ -96,7 +96,7 @@ description: "Task list for 001 工程基座"
 - [x] T035 [P] [US1] 在 `services/bff/src/contexture_bff/api/me.py` 实现 `GET /bff/v1/me`（`tenant_id`、`user_id`、`display_name`、`roles`）
 - [x] T036 [P] [US1] 在 `services/bff/src/contexture_bff/adapters/om.py` 与 `adapters/data.py` 分别封装对象定义读取（公共库 `ontology`）与 `list_objects` 调用（公共库 `mcp`）
 - [x] T037 [US1] 在 `services/bff/src/contexture_bff/api/objects.py` 实现 `GET /bff/v1/object-types/{typeKey}/objects`（T023、T024）
-- [x] T038 [P] [US1] 编写 `services/bff/Dockerfile`（非 root、只读文件系统）与 `deploy/helm/contexture/charts/bff/` 子 Chart（挂载 Secret `ctx-trusted-ca`，经 `SSL_CERT_FILE` 信任外部 Keycloak 证书）
+- [x] T038 [P] [US1] 编写 `services/bff/Dockerfile`（非 root、只读文件系统）与 `deploy/charts/bff/` Chart（挂载 Secret `ctx-trusted-ca`，经 `SSL_CERT_FILE` 信任外部 Keycloak 证书）
 - [x] T039 [US1] 在 `services/bff/README.md` 编写“新增一个接口”的步骤（契约 → 测试 → 实现），并按此实际演练一次、记录用时（SC-001）
 
 **Checkpoint**: 公共库与 `bff` 的单元、契约、集成测试全部通过；覆盖率 ≥ 80%
@@ -111,30 +111,30 @@ description: "Task list for 001 工程基座"
 
 ### Tests for User Story 2（先写并确认失败）⚠️
 
-- [ ] T040 [P] [US2] 在 `tests/e2e/test_up.sh` 编写部署验收脚本：`make up` 后所有组件的 Helm test 通过，Pod 均就绪
-- [ ] T041 [P] [US2] 在 `tools/tests/fixtures/` 准备 CI 故意失败用例：一个引入 AGPL 依赖的示例包、一个删除了 `version` 的 `component.yaml`，并在 `tools/tests/test_ci_gates.py` 断言许可检查与组件检查对其失败
-- [ ] T042 [P] [US2] 在 `tests/e2e/test_offline_install.sh` 编写离线安装验收：在禁止外网访问的 kind 集群中用离线包安装，全部组件就绪
+- [x] T040 [P] [US2] 在 `tests/e2e/test_up.sh` 编写部署验收脚本：`make up` 后所有组件的 Helm test 通过，Pod 均就绪
+- [x] T041 [P] [US2] 在 `tools/tests/fixtures/` 准备 CI 故意失败用例：一个引入 AGPL 依赖的示例包、一个删除了 `version` 的 `component.yaml`，并在 `tools/tests/test_ci_gates.py` 断言许可检查与组件检查对其失败
+- [x] T042 [P] [US2] 在 `tests/e2e/test_offline_install.sh` 编写离线安装验收：在禁止外网访问的 kind 集群中用离线包安装，全部组件就绪
 
 ### Implementation for User Story 2（每个组件：`component.yaml` + Chart 或上游 Chart 引用 + `values/base.yaml` + `values/local.yaml` + `tests/` 冒烟测试）
 
-- [ ] T043 [P] [US2] 组件 Keycloak：`deploy/components/keycloak/`（导入任务信任 Secret `ctx-trusted-ca`；开关 `keycloak.enabled` 默认 `false`：关闭时只运行一次 keycloak-config-cli 任务，把 T016 的配置增量导入外部 Keycloak；打开时部署官方镜像 26.8.0 并导入同一配置；`values/local.yaml` 指向负责人现有 Keycloak；两种模式各写一个冒烟测试）
-- [ ] T044 [P] [US2] 组件 PostgreSQL：`deploy/components/postgresql/`（CloudNativePG，为 openmetadata、langfuse、airflow、keycloak、bff 各建一个 database 与独立账号）
-- [ ] T045 [P] [US2] OM 镜像构建：`third_party/openmetadata/build/`（Dockerfile 与构建脚本，从子仓库 `third_party/openmetadata/src/` 构建 `openmetadata-server` 与 `openmetadata-ingestion`，镜像版本 `2.0.3-ctx.0`）
-- [ ] T046 [US2] 组件 OpenMetadata：`deploy/components/openmetadata/`（自建镜像，开启 RDF 指向 Fuseki，身份接 Keycloak（自定义 OIDC，地址取自伞形 Chart 的统一配置；把 Secret `ctx-trusted-ca` 导入 OM 的 Java truststore），`config/` 中初始化共用字段与 `hasProperty` 关系类型）
-- [ ] T047 [P] [US2] 组件 Jena Fuseki：`deploy/components/fuseki/`
-- [ ] T048 [P] [US2] 组件 OpenSearch：`deploy/components/opensearch/`
-- [ ] T049 [P] [US2] 组件 Doris：`deploy/components/doris/`（Doris Operator；`config/` 中建本体实例库 database 与只读账号 `ctx_reader`，按负载类型划分 workload group）
-- [ ] T050 [P] [US2] 组件 MCP Toolbox：`deploy/components/mcp-toolbox/`（官方镜像，织境自写 Chart；数据源指向 Doris，凭证来自 K8s Secret）
-- [ ] T051 [P] [US2] 组件 OTel Collector：`deploy/components/otel-collector/`（网关模式，开启持久化队列，导出到 Langfuse 与可观测后端）
-- [ ] T052 [P] [US2] 组件 Langfuse：`deploy/components/langfuse/`（官方 Chart，ClickHouse、Valkey、对象存储用 SeaweedFS）
-- [ ] T053 [P] [US2] 组件 Airflow：`deploy/components/airflow/`（官方 Chart，KubernetesExecutor；001 只验证就绪）
-- [ ] T054 [P] [US2] 组件 Envoy Gateway：`deploy/components/envoy-gateway/`（Gateway API 路由：页面 → `web`，`/bff/*` → `bff`，MCP 与模型 → AI 网关）
-- [ ] T055 [US2] 伞形 Chart：`deploy/helm/contexture/Chart.yaml` 与 `values-local.yaml` 汇总全部组件与 `bff`、`web`，并提供精简配置 `values-lite.yaml`（降低副本与资源）
-- [ ] T056 [US2] 在 `tools/up.sh` 实现 `make up` / `make down`：创建 kind 集群、安装伞形 Chart、等待就绪并运行冒烟测试（T040）
-- [ ] T057 [US2] 补齐 `.github/workflows/ci.yml`：覆盖率门禁 ≥ 80%、oasdiff（对比主分支 `contracts/openapi/`）、Syft 生成 SBOM、Grype 与 Trivy 漏洞扫描、按 `tools/license-allowlist.yaml` 的许可检查（T041）
-- [ ] T058 [US2] 在 `tools/offline_package.py` 实现离线打包：从全部 `component.yaml` 汇总镜像清单、导出镜像与 Chart 到 `deploy/offline/dist/`，并编写 `deploy/offline/install.sh`（T042）
-- [ ] T059 [P] [US2] 在 `tools/tests/test_patches_check.py` 编写失败测试：对 `third_party/openmetadata/` 与 `third_party/omnigent/`，发布分支（`UPSTREAM.yaml` 的 `release_branch`）相对上游标签（`upstream.tag` / `upstream.commit`）的每个提交都必须在 `PATCHES.md` 登记；出现未登记的提交、或登记了不存在的提交，检查失败；两者一致（含暂无补丁）时通过
-- [ ] T060 [US2] 在 `tools/patches_check.py` 实现补丁一致性检查（读取 `UPSTREAM.yaml`，在子仓库中补取上游标签提交后比对 `PATCHES.md`），接入 `make patches-check` 与 `.github/workflows/ci.yml`（宪法 VI）
+- [x] T043 [P] [US2] 组件 Keycloak：`deploy/components/keycloak/`（导入任务信任 Secret `ctx-trusted-ca`；开关 `keycloak.enabled` 默认 `false`：关闭时只运行一次 keycloak-config-cli 任务，把 T016 的配置增量导入外部 Keycloak；打开时部署官方镜像 26.8.0 并导入同一配置；`values/local.yaml` 指向负责人现有 Keycloak；两种模式各写一个冒烟测试）
+- [x] T044 [P] [US2] 组件 PostgreSQL：`deploy/components/postgresql/`（CloudNativePG，为 openmetadata、langfuse、airflow、keycloak、bff 各建一个 database 与独立账号）
+- [x] T045 [P] [US2] OM 镜像构建：`third_party/openmetadata/build/`（Dockerfile 与构建脚本，从子仓库 `third_party/openmetadata/src/` 构建 `openmetadata-server` 与 `openmetadata-ingestion`，镜像版本 `2.0.3-ctx.0`）
+- [x] T046 [US2] 组件 OpenMetadata：`deploy/components/openmetadata/`（自建镜像，开启 RDF 指向 Fuseki，身份接 Keycloak（自定义 OIDC，地址取自组件的环境参数；把 Secret `ctx-trusted-ca` 导入 OM 的 Java truststore），`config/` 中初始化共用字段与 `hasProperty` 关系类型）
+- [x] T047 [P] [US2] 组件 Jena Fuseki：`deploy/components/fuseki/`
+- [x] T048 [P] [US2] 组件 OpenSearch：`deploy/components/opensearch/`
+- [x] T049 [P] [US2] 组件 Doris：`deploy/components/doris/`（Doris Operator；`config/` 中建本体实例库 database 与只读账号 `ctx_reader`，按负载类型划分 workload group）
+- [x] T050 [P] [US2] 组件 MCP Toolbox：`deploy/components/mcp-toolbox/`（官方镜像，织境自写 Chart；数据源指向 Doris，凭证来自 K8s Secret）
+- [x] T051 [P] [US2] 组件 OTel Collector：`deploy/components/otel-collector/`（网关模式，开启持久化队列，导出到 Langfuse 与可观测后端）
+- [x] T052 [P] [US2] 组件 Langfuse：`deploy/components/langfuse/`（官方 Chart，ClickHouse、Valkey、对象存储用 SeaweedFS）
+- [x] T053 [P] [US2] 组件 Airflow：`deploy/components/airflow/`（官方 Chart，KubernetesExecutor；001 只验证就绪）
+- [x] T054 [P] [US2] 组件 Envoy Gateway：`deploy/components/envoy-gateway/`（Gateway API 路由：页面 → `web`，`/bff/*` → `bff`，MCP 与模型 → AI 网关）
+- [x] T055 [US2] 部署编排：`deploy/helmfile.yaml.gotmpl`（helmfile，2026-10-17 经负责人确认替代伞形 Chart：Operator 的 CRD 须先于其资源安装，伞形 Chart 无法一次完成）汇总全部组件与 `bff`、`web`，环境 `local` 与精简的 `lite`（各组件 `values/lite.yaml` 降低资源）
+- [x] T056 [US2] 在 `tools/up.sh` 实现 `make up` / `make down`：创建 kind 集群、生成 Secret、构建并导入自建镜像、执行 helmfile、运行各组件冒烟测试（T040）
+- [x] T057 [US2] 补齐 `.github/workflows/ci.yml`：覆盖率门禁 ≥ 80%、oasdiff（对比主分支 `contracts/openapi/`）、Syft 生成 SBOM、Grype 与 Trivy 漏洞扫描、按 `tools/license-allowlist.yaml` 的许可检查（T041）
+- [x] T058 [US2] 在 `tools/offline_package.py` 实现离线打包：从全部 `component.yaml` 汇总镜像清单、导出镜像与 Chart 到 `deploy/offline/dist/`，并编写 `deploy/offline/install.sh`（T042）
+- [x] T059 [P] [US2] 在 `tools/tests/test_patches_check.py` 编写失败测试：对 `third_party/openmetadata/` 与 `third_party/omnigent/`，发布分支（`UPSTREAM.yaml` 的 `release_branch`）相对上游标签（`upstream.tag` / `upstream.commit`）的每个提交都必须在 `PATCHES.md` 登记；出现未登记的提交、或登记了不存在的提交，检查失败；两者一致（含暂无补丁）时通过
+- [x] T060 [US2] 在 `tools/patches_check.py` 实现补丁一致性检查（读取 `UPSTREAM.yaml`，在子仓库中补取上游标签提交后比对 `PATCHES.md`），接入 `make patches-check` 与 `.github/workflows/ci.yml`（宪法 VI）
 
 **Checkpoint**: `make up` 在本地就绪；CI 门禁完整（含补丁一致性检查）；离线包可在断网 kind 中安装
 
@@ -150,21 +150,21 @@ description: "Task list for 001 工程基座"
 
 ### Tests for User Story 3（先写并确认失败）⚠️
 
-- [ ] T061 [P] [US3] 在 `deploy/components/mcp-toolbox/tests/test_list_objects.py` 编写测试（Testcontainers 启动 Doris）：`list_objects(type_key="equipment", limit=20)` 只返回本体实例库中 `equipment` 表的行；`limit` 超过 100 被拒绝；使用只读账号执行写语句失败
-- [ ] T062 [P] [US3] 在 `deploy/components/ai-gateway/tests/test_policies.py` 编写网关策略测试：无令牌或受众不是 `contexture-ai-gateway` 的请求被拒绝；合法令牌可调用 `list_objects`；审计记录含 `sub`、`azp`、工具名、查询摘要、`trace_id`
-- [ ] T063 [P] [US3] 在 `apps/web/src/__tests__/objects-page.test.tsx` 编写 Vitest 组件测试：示例页面渲染对象定义表与设备列表，接口错误时显示统一错误信息
-- [ ] T064 [P] [US3] 在 `tests/e2e/demo.spec.ts` 编写 Playwright 端到端测试，覆盖最终演示第 1–2 步（登录、看到“设备”定义与列表）与第 5 步（无令牌或受众不符直接调 `bff` 返回 401 / 403）
-- [ ] T065 [P] [US3] 在 `tests/e2e/test_trace_and_audit.py` 编写测试，覆盖最终演示第 3–4 步：按本次 `trace_id` 查到 web → bff → AI 网关 → MCP Toolbox → Doris 与 bff → OM 的全部 span，每个 span 的 `ctx.tenant.id` 相同；AI 网关审计含人（`sub`）、调用方（`azp` = `contexture-bff`）、工具名、查询摘要、返回行数
+- [x] T061 [P] [US3] 在 `deploy/components/mcp-toolbox/tests/test_list_objects.py` 编写测试（针对本地集群的 Doris；Doris 的 FE + BE 用 Testcontainers 过重）：`list_objects(type_key="equipment", limit=20)` 只返回本体实例库中 `equipment` 表的行；`limit` 超过 100 被拒绝；使用只读账号执行写语句失败
+- [x] T062 [P] [US3] 在 `deploy/components/ai-gateway/tests/test_policies.py` 编写网关策略测试：无令牌或受众不是 `contexture-ai-gateway` 的请求被拒绝；合法令牌可调用 `list_objects`；审计记录含 `sub`、`azp`、工具名、查询摘要、`trace_id`
+- [x] T063 [P] [US3] 在 `apps/web/src/__tests__/objects-page.test.tsx` 编写 Vitest 组件测试：示例页面渲染对象定义表与设备列表，接口错误时显示统一错误信息
+- [x] T064 [P] [US3] 在 `tests/e2e/demo.spec.ts` 编写 Playwright 端到端测试，覆盖最终演示第 1–2 步（登录、看到“设备”定义与列表）与第 5 步（无令牌或受众不符直接调 `bff` 返回 401 / 403）
+- [x] T065 [P] [US3] 在 `tests/e2e/test_trace_and_audit.py` 编写测试，覆盖最终演示第 3–4 步：按本次 `trace_id` 查到 web → bff → AI 网关 → MCP Toolbox → Doris 与 bff → OM 的全部 span，每个 span 的 `ctx.tenant.id` 相同；AI 网关审计含人（`sub`）、调用方（`azp` = `contexture-bff`）、工具名、查询摘要、返回行数
 
 ### Implementation for User Story 3
 
-- [ ] T066 [US3] 在 `deploy/components/mcp-toolbox/config/tools.yaml` 定义 `list_objects` 参数化查询工具，与 `contracts/mcp/list_objects.yaml` 一致（T061）
-- [ ] T067 [US3] 在 `deploy/components/ai-gateway/config/` 编写路由、令牌校验（Keycloak JWKS，受众 `contexture-ai-gateway`）、按角色的工具授权规则（`admin`、`ai-engineer`、`business-user` 均可调用 `list_objects`）与审计输出配置（T062）
-- [ ] T068 [US3] 在 `tools/seed.py` 实现 `make seed`：在 OM 创建并审批“设备”对象（术语）及其属性，在 Doris 本体实例库建 `equipment` 表并写入 10 行示例数据（`object_uri` 形如 `urn:ctx:obj:local:Equipment:<编号>`）
-- [ ] T069 [P] [US3] 在 `packages/ts-api/` 由 `contracts/openapi/bff.yaml` 生成前端 API 客户端，并加入构建脚本
-- [ ] T070 [US3] 在 `apps/web/` 搭建 React + Vite 工程：登录跳转（调用 `/bff/v1/auth/login`）、退出、示例页面 `/objects/equipment`（T063）
-- [ ] T071 [P] [US3] 编写 `apps/web/Dockerfile`（构建产物交由 nginx 提供）与 `deploy/components/web/`（`component.yaml`、Chart、冒烟测试）
-- [ ] T072 [US3] 在 `Makefile` 实现 `make e2e`，运行 T064、T065；在本地执行 quickstart 第 3 节 6 步并记录结果
+- [x] T066 [US3] 在 `deploy/components/mcp-toolbox/config/tools.yaml` 定义 `list_objects` 参数化查询工具，与 `contracts/mcp/list_objects.yaml` 一致（T061）
+- [x] T067 [US3] 在 `deploy/components/ai-gateway/config/` 编写路由、令牌校验（Keycloak JWKS，受众 `contexture-ai-gateway`）、按角色的工具授权规则（`admin`、`ai-engineer`、`business-user` 均可调用 `list_objects`）与审计输出配置（T062）
+- [x] T068 [US3] 在 `tools/seed.py` 实现 `make seed`：在 OM 创建并审批“设备”对象（术语）及其属性，在 Doris 本体实例库建 `equipment` 表并写入 10 行示例数据（`object_uri` 形如 `urn:ctx:obj:local:Equipment:<编号>`）
+- [x] T069 [P] [US3] 在 `packages/ts-api/` 由 `contracts/openapi/bff.yaml` 生成前端 API 客户端，并加入构建脚本
+- [x] T070 [US3] 在 `apps/web/` 搭建 React + Vite 工程：登录跳转（调用 `/bff/v1/auth/login`）、退出、示例页面 `/objects/equipment`（T063）
+- [x] T071 [P] [US3] 编写 `apps/web/Dockerfile`（构建产物交由 nginx 提供）与 `deploy/charts/web/`（Chart、冒烟测试；自建服务与 bff 一致放在 `deploy/charts/`）
+- [x] T072 [US3] 在 `Makefile` 实现 `make e2e`，运行 T064、T065；在本地执行 quickstart 第 3 节 6 步并记录结果
 
 **Checkpoint**: 最终演示 6 步在本地全部通过
 
@@ -178,14 +178,14 @@ description: "Task list for 001 工程基座"
 
 **Note**: T073–T078 应在第 1 周执行（US3 依赖其结论）
 
-- [ ] T073 [P] [US4] 在 `docs/research/ai-gateway-spike/agentgateway/` 部署 agentgateway 候选配置（本地 kind），接入 Keycloak 令牌校验、MCP Toolbox 与一个模型服务（key 由负责人配置，OpenAI 兼容地址）
-- [ ] T074 [P] [US4] 在 `docs/research/ai-gateway-spike/agent-router/` 部署 Agent Router 候选配置，接入同样的令牌校验、MCP Toolbox 与模型服务
-- [ ] T075 [US4] 按 ADR-0013 的 4 项验证两个候选：① 经网关调用 Toolbox；② 审计能否记录 `sub`、`azp`、工具与查询内容；③ 作为模型网关供 OpenAI 兼容客户端调用；④ 令牌受众校验；并核实开源版是否具备按令牌声明的 token 配额、按模型授权与虚拟 key。结果记入 `docs/research/ai-gateway-spike/README.md`
-- [ ] T076 [US4] 用 Toolbox 的 mysql 数据源连接 Doris 执行 `list_objects`，记录结论（可用，或改用 Apache Doris MCP Server）到 `docs/research/ai-gateway-spike/README.md`
-- [ ] T077 [US4] 根据 T075、T076 的结论更新 `docs/adr/0013-数据访问与AI网关.md`（选定的网关、Toolbox 的 Doris 数据源方式，删去已完成的 spike 项）
-- [ ] T078 [US4] 为选定的网关创建 `deploy/components/ai-gateway/`（`component.yaml`、Chart、`values/`、冒烟测试），并删除 `docs/research/ai-gateway-spike/` 中未选中的配置
-- [ ] T079 [P] [US4] 创建可观测后端组件：`deploy/components/prometheus/`、`deploy/components/jaeger/`、`deploy/components/opensearch-dashboards/`（候选方案），OTel Collector 导出指标与追踪，服务日志进入 OpenSearch
-- [ ] T080 [US4] 验证服务指标、日志与追踪可查后，在 `docs/architecture/platform-architecture.md` 第 8 节写入可观测后端结论，并从待决事项中移除
+- [x] T073 [P] [US4] 在 `docs/research/ai-gateway-spike/agentgateway/` 部署 agentgateway 候选配置（本地 kind），接入 Keycloak 令牌校验、MCP Toolbox 与一个模型服务（key 由负责人配置，OpenAI 兼容地址）
+- [x] T074 [P] [US4] Agent Router 候选：经源码与文档评估（v1.2.0），未实际部署（需改动已部署的 Envoy Gateway），结论见 `docs/research/ai-gateway-spike/README.md`
+- [x] T075 [US4] 按 ADR-0013 的 4 项验证两个候选：① 经网关调用 Toolbox；② 审计能否记录 `sub`、`azp`、工具与查询内容；③ 作为模型网关供 OpenAI 兼容客户端调用；④ 令牌受众校验；并核实开源版是否具备按令牌声明的 token 配额、按模型授权与虚拟 key。结果记入 `docs/research/ai-gateway-spike/README.md`
+- [x] T076 [US4] 用 Toolbox 的 mysql 数据源连接 Doris 执行 `list_objects`，记录结论（可用，或改用 Apache Doris MCP Server）到 `docs/research/ai-gateway-spike/README.md`
+- [x] T077 [US4] 根据 T075、T076 的结论更新 `docs/adr/0013-数据访问与AI网关.md`（选定的网关、Toolbox 的 Doris 数据源方式，删去已完成的 spike 项）
+- [x] T078 [US4] 为选定的网关创建 `deploy/components/ai-gateway/`（`component.yaml`、Chart、`values/`、冒烟测试），并删除 `docs/research/ai-gateway-spike/` 中未选中的配置
+- [x] T079 [P] [US4] 创建可观测后端组件：`deploy/components/prometheus/`、`deploy/components/jaeger/`、`deploy/components/opensearch-dashboards/`（候选方案），OTel Collector 导出指标与追踪，服务日志进入 OpenSearch
+- [x] T080 [US4] 验证服务指标、日志与追踪可查后，在 `docs/architecture/platform-architecture.md` 第 8 节写入可观测后端结论，并从待决事项中移除
 
 **Checkpoint**: 三项选型均有结论并写入文档
 
@@ -193,11 +193,11 @@ description: "Task list for 001 工程基座"
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T081 [P] 在根 `README.md` 编写快速开始：环境要求（建议 16 核 / 64 GB，或使用 `values-lite.yaml`）、`make up`、`make seed`、`make e2e`
-- [ ] T082 [P] 按 quickstart 第 1、2、4 节逐项验收，并在 `specs/001-engineering-foundation/quickstart.md` 中修正与实际不符的命令
-- [ ] T083 记录 D1–D11 各交付物的实际用时，汇总后更新 `docs/Phase1-特性列表与开发计划.md` 第 3 节的估算（D11）
-- [ ] T084 复核宪法检查：组件许可清单（`deploy/components/*/component.yaml`）与架构文档第 4 节的第三方组件表一致；更新 `docs/architecture/platform-architecture.md` 中与实际部署不符之处
-- [ ] T085 按宪法 v1.6.0 编写 `specs/001-engineering-foundation/acceptance.md`：以 spec 的“最终演示”6 步与 quickstart 为基础，写明前置条件与数据准备（`make up`、`make seed`、测试账号）、逐步操作、每步预期结果（含截图位置或要看到的字段）、与 US1–US4 和 SC-001–SC-006 的对应、验收记录表；交产品负责人手动验收，问题修复后复验
+- [x] T081 [P] 在根 `README.md` 编写快速开始：环境要求（建议 16 核 / 64 GB，或使用 `values-lite.yaml`）、`make up`、`make seed`、`make e2e`
+- [x] T082 [P] 按 quickstart 第 1、2、4 节逐项验收，并在 `specs/001-engineering-foundation/quickstart.md` 中修正与实际不符的命令
+- [x] T083 记录 D1–D11 各交付物的实际用时，汇总后更新 `docs/Phase1-特性列表与开发计划.md` 第 3 节的估算（D11）
+- [x] T084 复核宪法检查：组件许可清单（`deploy/components/*/component.yaml`）与架构文档第 4 节的第三方组件表一致；更新 `docs/architecture/platform-architecture.md` 中与实际部署不符之处
+- [x] T085 按宪法 v1.6.0 编写 `specs/001-engineering-foundation/acceptance.md`：以 spec 的“最终演示”6 步与 quickstart 为基础，写明前置条件与数据准备（`make up`、`make seed`、测试账号）、逐步操作、每步预期结果（含截图位置或要看到的字段）、与 US1–US4 和 SC-001–SC-006 的对应、验收记录表；交产品负责人手动验收，问题修复后复验
 
 ---
 
@@ -222,7 +222,7 @@ description: "Task list for 001 工程基座"
 ### Within Each User Story
 
 - 测试先写、先提交、确认失败，再实现（宪法 I）
-- 公共库模块先于 `bff`；组件目录先于伞形 Chart；网关选定先于网关配置
+- 公共库模块先于 `bff`；组件目录先于 helmfile；网关选定先于网关配置
 
 ### Parallel Opportunities
 
@@ -258,12 +258,12 @@ Task: "组件 Langfuse：deploy/components/langfuse/"
 ### Incremental Delivery（对应 plan 的两周安排）
 
 - **第 1 周**：Setup → Foundational → US1 公共库；US2 的 Keycloak 配置导入、PostgreSQL、OM、Doris、Toolbox；US4 的网关与 Toolbox 验证
-- **第 2 周**：US1 `bff`；US2 其余组件、伞形 Chart、CI 门禁、离线包；US3 最小链路与最终演示；US4 可观测后端；Polish
+- **第 2 周**：US1 `bff`；US2 其余组件、helmfile、CI 门禁、离线包；US3 最小链路与最终演示；US4 可观测后端；Polish
 
 ### Parallel Team Strategy（2–3 人）
 
 - 开发者 A：US1（公共库、`bff`）→ US3 的 `web`
-- 开发者 B：US2（组件目录、伞形 Chart、离线包）→ US3 的 Toolbox、网关配置与示例数据
+- 开发者 B：US2（组件目录、helmfile、离线包）→ US3 的 Toolbox、网关配置与示例数据
 - 开发者 C（或 B 兼任）：US4（网关与 Toolbox 验证、可观测后端）→ CI 门禁
 
 ---

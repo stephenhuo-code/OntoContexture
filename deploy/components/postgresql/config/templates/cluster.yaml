@@ -1,0 +1,38 @@
+# 平台共享的 PostgreSQL 集群：每个组件一个 database 与独立账号（密码 Secret 由 tools/up.sh 生成）
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: pg
+  namespace: contexture
+spec:
+  instances: {{ .Values.instances }}
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.6-standard-bookworm
+  storage:
+    size: {{ .Values.storage }}
+  resources:
+    requests: { cpu: 100m, memory: {{ .Values.memory }} }
+    limits: { memory: {{ .Values.memory }} }
+  postgresql:
+    parameters:
+      shared_buffers: 128MB
+      max_connections: "200"
+  managed:
+    roles:
+{{- range .Values.databases }}
+      - name: {{ . }}
+        ensure: present
+        login: true
+        passwordSecret: { name: pg-{{ . }} }
+{{- end }}
+{{- range .Values.databases }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: {{ . }}
+  namespace: contexture
+spec:
+  cluster: { name: pg }
+  name: {{ . }}
+  owner: {{ . }}
+{{- end }}

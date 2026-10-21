@@ -120,6 +120,18 @@ async def test_unapproved_object_is_not_returned() -> None:
     assert exc.value.code == "ontology.not_found"
 
 
+async def test_enum_values_stored_as_arrays() -> None:
+    """OM 的枚举型自定义属性以数组存值。"""
+    obj = term("t-x", "Batch", "object", related=["t-p"])
+    obj["extension"]["ctx_kind"] = ["object"]
+    prop = term("t-p", "lot", "property", data_type="string", required="是")
+    prop["extension"].update(
+        {"ctx_kind": ["property"], "ctx_data_type": ["string"], "ctx_required": ["是"]}
+    )
+    ref = await make_client(FakeOM([obj, prop])).get_object_type("batch")
+    assert ref.attributes == [AttributeRef(name="lot", data_type="string", required=True)]
+
+
 async def test_uri_defaults_from_glossary_and_name() -> None:
     terms = [term("t-x", "Batch", "object")]
     ref = await make_client(FakeOM(terms)).get_object_type("batch")

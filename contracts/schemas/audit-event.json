@@ -25,16 +25,10 @@
       "type": "string"
     },
     "user_id": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     },
     "agent_id": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": ["string", "null"],
       "description": "令牌 azp：Agent 或调用服务的 Keycloak 客户端"
     },
     "token_id": {
@@ -42,20 +36,11 @@
     },
     "action": {
       "type": "string",
-      "enum": [
-        "read",
-        "write",
-        "authz_deny",
-        "login",
-        "admin"
-      ]
+      "enum": ["read", "write", "authz_deny", "login", "admin"]
     },
     "resource": {
       "type": "object",
-      "required": [
-        "kind",
-        "ref"
-      ],
+      "required": ["kind", "ref"],
       "properties": {
         "kind": {
           "type": "string",
@@ -91,10 +76,7 @@
     },
     "decision": {
       "type": "string",
-      "enum": [
-        "allow",
-        "deny"
-      ],
+      "enum": ["allow", "deny"],
       "description": "授权结果（二期）；Phase 1 可省略"
     },
     "policy_refs": {

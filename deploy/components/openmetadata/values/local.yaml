@@ -1,0 +1,13 @@
+# 本地：Keycloak 为负责人现有实例；OM 界面经端口转发访问 http://localhost:8585
+openmetadata:
+  config:
+    authentication:
+      authority: https://sso.127.0.0.1.nip.io/realms/digital-workforce
+      publicKeys:
+        - http://openmetadata:8585/api/v1/system/config/jwks
+        - https://sso.127.0.0.1.nip.io/realms/digital-workforce/protocol/openid-connect/certs
+      callbackUrl: http://localhost:8585/callback
+      oidcConfiguration:
+        discoveryUri: https://sso.127.0.0.1.nip.io/realms/digital-workforce/.well-known/openid-configuration
+        callbackUrl: http://localhost:8585/callback
+        serverUrl: http://localhost:8585
