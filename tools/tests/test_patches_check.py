@@ -96,3 +96,35 @@ def test_wrong_branch_fails(component: tuple[Path, Path, str]) -> None:
     commit(src, "wip.txt")
     errors = check_component(comp, src)
     assert any("ctx/1.0" in e for e in errors)
+
+
+def test_fetches_release_branch_when_missing(tmp_path: Path) -> None:
+    """CI 中子仓库以 detached HEAD 浅检出，没有发布分支的引用：检查时从远程补取。"""
+    upstream = tmp_path / "mirror"
+    upstream.mkdir()
+    git(upstream, "init", "-q", "-b", "main")
+    base = commit(upstream, "upstream.txt")
+    git(upstream, "checkout", "-qb", "ctx/1.0")
+    patch = commit(upstream, "p1.txt")
+
+    comp = tmp_path / "comp"
+    src = comp / "src"
+    subprocess.run(["git", "clone", "-q", "--no-checkout", str(upstream), str(src)], check=True)
+    git(src, "checkout", "-q", "--detach", patch)
+    for ref in git(
+        src, "for-each-ref", "--format=%(refname)", "refs/remotes", "refs/heads"
+    ).split():
+        git(src, "update-ref", "-d", ref)
+    assert git(src, "for-each-ref", "refs/heads", "refs/remotes") == ""
+    (comp / "UPSTREAM.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "component": "comp",
+                "upstream": {"tag": "1.0", "commit": base},
+                "mirror": {"release_branch": "ctx/1.0"},
+                "submodule_path": "comp/src",
+            }
+        )
+    )
+    write_patches(comp, [patch])
+    assert check_component(comp, src) == []

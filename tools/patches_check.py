@@ -53,7 +53,12 @@ def _release_ref(repo: Path, branch: str) -> str | None:
     for ref in (branch, f"origin/{branch}"):
         if _git(repo, "rev-parse", "--verify", "-q", ref, check=False).returncode == 0:
             return ref
-    return None
+    # CI 以 detached HEAD 浅检出子仓库，没有分支引用：从远程补取发布分支
+    remote_ref = f"refs/remotes/origin/{branch}"
+    fetched = _git(
+        repo, "fetch", "-q", "--depth=50", "origin", f"+{branch}:{remote_ref}", check=False
+    )
+    return f"origin/{branch}" if fetched.returncode == 0 else None
 
 
 def registered_commits(patches_md: Path) -> list[str]:
