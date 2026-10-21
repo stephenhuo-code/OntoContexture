@@ -1,0 +1,4 @@
+apiVersion: v2
+name: postgresql-config
+description: 平台共享的 PostgreSQL 集群（CloudNativePG）与各组件 database
+version: 0.1.0

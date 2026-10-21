@@ -1,0 +1,10 @@
+# CI 故意失败用例：缺少 version（T041）
+name: broken
+image:
+  source: official
+  refs: [example/broken:1.0.0]
+license: Apache-2.0
+customization: config
+upstream: https://example.com/broken
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

@@ -1,0 +1,43 @@
+# 从子仓库源码构建 openmetadata-server（宪法 VI：补丁组件使用自建镜像）。
+# 构建上下文：third_party/openmetadata（含 src/ 子仓库）。由 build.sh 调用。
+FROM maven:3.9-eclipse-temurin-21 AS build
+# 子仓库的 .git 不在构建上下文中，提交号由 build.sh 传入，供 buildnumber 插件写入版本信息
+ARG SOURCE_COMMIT=unknown
+# 界面依赖的安装脚本需要 git；关闭 husky（git hooks）
+# 界面的 preinstall 脚本直接调用 yarn，需在 PATH 中提供与 pom 一致的 node 与 yarn
+ARG NODE_VERSION=22.17.0
+RUN apt-get update -qq && apt-get install -y -qq --no-install-recommends git python3 make g++ xz-utils \
+ && rm -rf /var/lib/apt/lists/* \
+ && ARCH=$(dpkg --print-architecture | sed 's/amd64/x64/') \
+ && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${ARCH}.tar.xz" \
+    | tar -xJ -C /usr/local --strip-components=1 \
+ && npm install -g yarn@1.22.18
+ENV HUSKY=0 CI=true
+WORKDIR /src
+COPY src/ /src/
+# 界面构建需要 ANTLR 命令行：按上游 Makefile 安装固定版本（校验 SHA256）
+RUN make -C /src install_antlr_cli
+# 界面由 frontend-maven-plugin 构建（自动安装 node 与 yarn）；跳过测试
+RUN --mount=type=cache,target=/root/.m2 \
+    --mount=type=cache,target=/src/openmetadata-ui/src/main/resources/ui/node_modules \
+    mvn -B -ntp -DskipTests -Dmaven.test.skip=true \
+      -Dmaven.buildNumber.revisionOnScmFailure=${SOURCE_COMMIT} \
+      -pl openmetadata-dist -am package
+
+FROM alpine:3 AS unpack
+COPY --from=build /src/openmetadata-dist/target/openmetadata-*.tar.gz /
+RUN mkdir -p /opt/openmetadata \
+ && tar zxf /openmetadata-*.tar.gz -C /opt/openmetadata --strip-components 1
+
+# 与上游 docker/development/Dockerfile 的运行阶段一致
+FROM alpine:3
+EXPOSE 8585
+RUN adduser -D -u 10001 openmetadata \
+ && apk upgrade --no-cache \
+ && apk add --no-cache bash openjdk21-jre
+COPY --chown=openmetadata:openmetadata --from=unpack /opt/openmetadata /opt/openmetadata
+COPY --chmod=755 src/docker/openmetadata-start.sh /
+USER openmetadata
+WORKDIR /opt/openmetadata
+ENTRYPOINT ["/bin/bash"]
+CMD ["/openmetadata-start.sh"]

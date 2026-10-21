@@ -1,0 +1,4 @@
+jvmArgs: "-Xms256m -Xmx384m"
+resources:
+  requests: { cpu: 50m, memory: 512Mi }
+  limits: { memory: 640Mi }

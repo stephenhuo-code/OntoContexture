@@ -1,0 +1,6 @@
+image: clickhouse/clickhouse-server:26.9
+secret: langfuse-clickhouse # 键 password（用户 default）
+storage: 10Gi
+resources:
+  requests: { cpu: 200m, memory: 768Mi }
+  limits: { memory: 1536Mi }

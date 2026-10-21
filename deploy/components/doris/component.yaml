@@ -1,0 +1,15 @@
+name: doris
+version: 4.1.5
+image:
+  source: official
+  refs:
+    - apache/doris:operator-25.8.0
+    - apache/doris:fe-4.1.5
+    - apache/doris:be-4.1.5
+    - alpine:3.22
+    - mysql:8.4
+license: Apache-2.0
+customization: config
+upstream: https://github.com/apache/doris
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

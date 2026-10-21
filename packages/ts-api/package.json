@@ -1,0 +1,19 @@
+{
+  "name": "@contexture/ts-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "织境前端 API 客户端：由 contracts/openapi/bff.yaml 生成类型，不手工编辑 src/bff.d.ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "generate": "openapi-typescript ../../contracts/openapi/bff.yaml -o src/bff.d.ts",
+    "check": "pnpm generate && git diff --exit-code src/bff.d.ts"
+  },
+  "dependencies": {
+    "openapi-fetch": "0.17.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0"
+  }
+}

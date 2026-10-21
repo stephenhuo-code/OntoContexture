@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 30s
+    scrape_configs:
+    {{- range .Values.targets }}
+      - job_name: {{ .job }}
+        static_configs:
+          - targets: [{{ .address | quote }}]
+    {{- end }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: prometheus
+  labels: { app.kubernetes.io/name: prometheus, app.kubernetes.io/part-of: contexture }
+spec:
+  serviceName: prometheus
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: prometheus }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: prometheus, app.kubernetes.io/part-of: contexture }
+      annotations: { checksum/config: {{ .Values.targets | toJson | sha256sum }} }
+    spec:
+      automountServiceAccountToken: false
+      securityContext: { fsGroup: 65534, runAsUser: 65534, runAsNonRoot: true }
+      containers:
+        - name: prometheus
+          image: {{ .Values.image }}
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time={{ .Values.retention }}
+          ports:
+            - { name: http, containerPort: 9090 }
+          readinessProbe:
+            httpGet: { path: /-/ready, port: http }
+            periodSeconds: 5
+          volumeMounts:
+            - { name: config, mountPath: /etc/prometheus }
+            - { name: data, mountPath: /prometheus }
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: [ALL] } }
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap: { name: prometheus }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: { requests: { storage: {{ .Values.storage }} } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+spec:
+  selector: { app.kubernetes.io/name: prometheus }
+  ports:
+    - { name: http, port: 9090, targetPort: http }

@@ -1,0 +1,5 @@
+fe: doris-fe-service # FE 查询端口 9030
+tenantId: local # 每个租户一个 database：ctx_<tenantId>
+rootSecret: doris-root # 键 password
+readerSecret: doris-reader # 键 password：只读账号 ctx_reader（MCP Toolbox 使用）
+image: mysql:8.4

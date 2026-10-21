@@ -1,0 +1,5 @@
+apiVersion: v2
+name: mcp-toolbox
+description: MCP Toolbox（数据库 MCP 服务），数据源为 Doris 本体实例库
+version: 0.1.0
+appVersion: "1.14.0"

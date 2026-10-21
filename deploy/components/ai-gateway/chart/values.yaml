@@ -1,0 +1,17 @@
+image: ghcr.io/agentgateway/agentgateway:v1.6.0
+tenantId: local
+keycloakIssuer: https://sso.127.0.0.1.nip.io/realms/digital-workforce
+toolboxMcpUrl: http://mcp-toolbox:5000/mcp
+otelCollectorGrpc: otel-collector:4317
+# 受信 CA（Keycloak 证书），Secret 键 ca.crt；为空时用系统 CA
+trustedCaSecret: ctx-trusted-ca
+# 模型服务：键 host（如 api.deepseek.com:443）、model、api-key；由负责人配置，Secret 不存在时模型路由不可用
+modelSecret: ai-gateway-model
+# 由 helmfile 以文件注入（deploy/components/ai-gateway/config/config.yaml）
+config: ""
+route:
+  enabled: true
+  gateway: contexture
+resources:
+  requests: { cpu: 50m, memory: 64Mi }
+  limits: { memory: 256Mi }

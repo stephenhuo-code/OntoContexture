@@ -1,0 +1,15 @@
+# 织境维护的 Omnigent 仓库（宪法 VI 上游镜像仓库方式，ADR-0002）
+component: omnigent
+upstream:
+  repo: https://github.com/omnigent-ai/omnigent
+  tag: v0.18.0
+  commit: a8676d23e88df7918f4f8ef1c7c4e3186e710354
+mirror:
+  repo: https://github.com/stephenhuo-code/contexture-omnigent   # 独立仓库（非 fork），手动同步上游
+  release_branch: ctx/v0.18.0        # 上游版本标签 + 织境补丁；构建从此分支产出
+  main_branch: main                  # 只同步上游，不提交织境改动
+submodule_path: third_party/omnigent/src
+image_version: v0.18.0-ctx.0
+scope: 只维护后端运行时补丁（014：持久化、令牌交换、OTel）；前端复制到 apps/web/ 作为织境代码修改（ADR-0003）
+license: Apache-2.0
+upstream_pr: 本仓库不是 fork；向上游提 PR 时临时 fork 上游后提交

@@ -1,0 +1,85 @@
+[project]
+name = "contexture"
+version = "0.0.0"
+description = "织境 OntoContexture monorepo（uv workspace 根）"
+requires-python = ">=3.12,<3.13"
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/py-core", "services/bff", "tools"]
+
+[tool.uv.sources]
+contexture-core = { workspace = true }
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "pytest-cov>=6.0",
+  "pytest-asyncio>=0.25",
+  "ruff>=0.9",
+  "pyright>=1.1.390",
+  "pre-commit>=4.0",
+  "types-jsonschema>=4.26.0.20261006",
+  "types-pyyaml>=6.0.12.20260906",
+  "testcontainers>=4.9",
+  "httpx>=0.28",
+  "types-cachetools>=7.0.0.20260713",
+  "uvicorn>=0.34",
+  "cryptography>=44",
+  "schemathesis>=4.0",
+  "pymysql>=1.1",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["third_party"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "N", "SIM", "RUF"]
+# 注释与文档使用中文全角标点
+ignore = [
+  "RUF001", "RUF002", "RUF003",
+  "N818",  # 异常按领域命名（InvalidToken 等），不加 Error 后缀
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["contexture_core", "contexture_bff", "tools"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "S105", "S106", "S107", "S603", "S607"]
+"tests/**" = ["S101", "S105", "S106", "S107", "S603", "S607"]
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+# 外部 JSON 负载（令牌声明、OM 响应）为 Any，这三项降为警告，其余保持 strict
+reportUnknownMemberType = "warning"
+reportUnknownVariableType = "warning"
+reportUnknownArgumentType = "warning"
+# 当前 typeshed 把 contextlib 的装饰器标为弃用（误报），降为警告
+reportDeprecated = "warning"
+include = ["packages", "services", "tools", "deploy/components", "tests"]
+extraPaths = ["tests", "services/bff/tests"]
+exclude = ["**/node_modules", "**/.venv", "third_party"]
+
+[tool.pytest.ini_options]
+testpaths = ["packages/py-core/tests", "services/bff/tests", "tools/tests", "deploy/components"]
+asyncio_mode = "auto"
+markers = [
+  "integration: 需要 Docker 的集成测试",
+  "cluster: 需要本地集群（make up、make seed）的端到端测试，由 make e2e 运行",
+]
+addopts = "--import-mode=importlib -m 'not cluster'"
+# 共享测试支持代码：tests/support（import support.keycloak）
+pythonpath = ["tests", "services/bff/tests"]
+
+[tool.coverage.run]
+source = ["packages/py-core/src", "services/bff/src", "tools"]
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true

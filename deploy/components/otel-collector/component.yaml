@@ -1,0 +1,11 @@
+name: otel-collector
+version: 0.163.1
+image:
+  source: official
+  refs:
+    - otel/opentelemetry-collector-contrib:0.163.1
+license: Apache-2.0
+customization: config
+upstream: https://github.com/open-telemetry/opentelemetry-collector-contrib
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

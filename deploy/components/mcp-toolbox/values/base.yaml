@@ -1,0 +1,2 @@
+# Toolbox 的 --telemetry-otlp 只接受 主机:端口（明文由 OTEL_EXPORTER_OTLP_INSECURE 指定）
+otlpEndpoint: otel-collector:4318

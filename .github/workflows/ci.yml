@@ -1,0 +1,108 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  SYFT_IMAGE: anchore/syft:v1.54.1
+  GRYPE_IMAGE: anchore/grype:v0.120.1
+  TRIVY_IMAGE: aquasec/trivy:0.76.0
+  OASDIFF_IMAGE: tufin/oasdiff:v1.33.0
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install 3.12
+      - run: uv sync --all-packages --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pyright
+      # 单元、契约、集成测试（集成测试用 Testcontainers）；覆盖率 < 80% 时失败
+      - run: make test
+      - run: make components-check
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      # 前端 API 客户端须与 contracts/openapi/bff.yaml 一致
+      - run: pnpm --filter @contexture/ts-api check
+      - run: pnpm --filter @contexture/web test
+      - run: pnpm --filter @contexture/web build
+
+  # 补丁一致性（宪法 VI）：third_party 发布分支相对上游的提交须与 PATCHES.md 一一对应
+  patches:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --package contexture-tools --frozen
+      - run: make patches-check
+
+  # 契约破坏性变更：与主分支的 contracts/openapi/ 比较
+  contracts:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: oasdiff breaking
+        run: |
+          mkdir -p /tmp/base
+          for spec in contracts/openapi/*.yaml; do
+            if git show "origin/${{ github.base_ref }}:$spec" > "/tmp/base/$(basename "$spec")" 2>/dev/null; then
+              docker run --rm -v "$PWD:/head" -v /tmp/base:/base "$OASDIFF_IMAGE" \
+                breaking "/base/$(basename "$spec")" "/head/$spec" --fail-on ERR
+            else
+              echo "新增契约：$spec"
+            fi
+          done
+
+  # 交付镜像：SBOM、许可检查、漏洞扫描
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --package contexture-tools --frozen
+      - name: build bff、web
+        run: |
+          docker build -f services/bff/Dockerfile -t contexture/bff:ci .
+          docker build -f apps/web/Dockerfile -t contexture/web:ci .
+      - name: SBOM（Syft，CycloneDX）
+        run: |
+          mkdir -p sbom
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/sbom:/out" \
+            "$SYFT_IMAGE" contexture/bff:ci -o cyclonedx-json=/out/bff.cdx.json
+      - name: 许可检查（tools/license-allowlist.yaml）
+        run: uv run python -m tools.license_check sbom/bff.cdx.json
+      - name: 漏洞扫描（Grype）
+        run: |
+          docker run --rm -v "$PWD/sbom:/sbom" "$GRYPE_IMAGE" sbom:/sbom/bff.cdx.json \
+            --only-fixed --fail-on critical
+      - name: 漏洞扫描（Trivy）
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE" \
+            image --severity CRITICAL --ignore-unfixed --exit-code 1 contexture/bff:ci
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom/

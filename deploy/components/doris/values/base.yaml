@@ -1,0 +1,41 @@
+# 本体实例库（ADR-0004）：FE 与 BE 各 1 个（本地 / 测试）
+dorisCluster:
+  name: doris
+  # 键 username、password：operator 与初始化任务使用的 root 账号（tools/up.sh 生成）
+  authSecretName: doris-root
+feSpec:
+  replicas: 1
+  electionNumber: 1
+  image: { repository: apache/doris, tag: fe-4.1.5 }
+  configMap:
+    fe.conf: |
+      JAVA_OPTS="-Xmx1024m -XX:+UseG1GC"
+      JAVA_OPTS_FOR_JDK_17="-Xmx1024m -XX:+UseG1GC"
+      sys_log_level = INFO
+      enable_fqdn_mode = true
+  resource:
+    requests: { cpu: 200m, memory: 1536Mi }
+    limits: { memory: 2Gi }
+  persistentVolumeClaim:
+    metaPersistentVolume: { storage: 5Gi }
+    logsPersistentVolume: { storage: 2Gi }
+beSpec:
+  replicas: 1
+  image: { repository: apache/doris, tag: be-4.1.5 }
+  configMap:
+    # Doris 4 的 BE 空闲即占约 2.2 GB，容器不足 4 GiB 时导入会因内存上限失败
+    be.conf: |
+      mem_limit = 80%
+      sys_log_level = INFO
+  resource:
+    requests: { cpu: 200m, memory: 3Gi }
+    limits: { memory: 4Gi }
+  persistentVolumeClaim:
+    dataPersistentVolume: { storage: 10Gi }
+    logsPersistentVolume: { storage: 2Gi }
+  # BE 要求 vm.max_map_count ≥ 2000000。operator 默认的初始化还会执行 swapoff -a，在 kind 节点中会失败，
+  # 故跳过默认初始化（helmfile 中的 jsonPatches 设置 skipDefaultSystemInit），只设置内核参数。
+  # 上游 Chart 直接输出 command 字段，须写成 YAML 列表字面量的字符串
+  systemInitialization:
+    initImage: alpine:3.22
+    command: '["/sbin/sysctl", "-w", "vm.max_map_count=2000000"]'

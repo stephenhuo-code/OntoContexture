@@ -1,0 +1,7 @@
+# 示例：客户没有 Keycloak 时随织境部署（PostgreSQL 的 databases 中需加入 keycloak）
+keycloak:
+  enabled: true
+  hostname: https://sso.example.com
+import:
+  trustedCaSecret: ""
+  withTestUsers: true

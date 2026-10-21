@@ -1,0 +1,13 @@
+# 版本按 OpenMetadata 2.0.3 上游开发环境（docker/development/docker-compose-postgres.yml）锁定
+name: opensearch
+version: 3.4.0
+image:
+  source: official
+  refs:
+    - opensearchproject/opensearch:3.4.0
+    - busybox:1.37.0
+license: Apache-2.0
+customization: config
+upstream: https://github.com/opensearch-project/OpenSearch
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

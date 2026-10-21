@@ -1,0 +1,10 @@
+# 把 ../import.env（部署与测试共用的导入参数）转为 import.env
+import:
+  env:
+{{- range (readFile "../import.env" | splitList "\n") }}
+{{- $line := trim . }}
+{{- if and $line (not (hasPrefix "#" $line)) }}
+{{- $kv := splitn "=" 2 $line }}
+    {{ $kv._0 }}: {{ $kv._1 | quote }}
+{{- end }}
+{{- end }}

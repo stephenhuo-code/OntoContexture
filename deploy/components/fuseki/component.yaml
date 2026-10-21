@@ -1,0 +1,12 @@
+# 镜像从 OM 子仓库的 docker/rdf-store 构建（third_party/openmetadata/build/build.sh fuseki）
+name: fuseki
+version: 6.2.0
+image:
+  source: self-built
+  refs:
+    - contexture/openmetadata-fuseki:6.2.0-ctx.0
+license: Apache-2.0
+customization: config
+upstream: https://github.com/apache/jena
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

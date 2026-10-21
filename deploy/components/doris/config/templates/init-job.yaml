@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  # 名称随脚本与参数变化，修改后重新执行
+  name: doris-init-{{ print (include "doris.initScript" .) (toJson .Values) | sha256sum | trunc 8 }}
+  labels: { app.kubernetes.io/name: doris-init, app.kubernetes.io/part-of: contexture }
+spec:
+  backoffLimit: 20
+  ttlSecondsAfterFinished: 86400
+  template:
+    spec:
+      restartPolicy: OnFailure
+      automountServiceAccountToken: false
+      containers:
+        - name: init
+          image: {{ .Values.image }}
+          env:
+            - name: ROOT_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ .Values.rootSecret }}, key: password } }
+            - name: READER_PASSWORD
+              valueFrom: { secretKeyRef: { name: {{ .Values.readerSecret }}, key: password } }
+          command: [bash, -ec]
+          args:
+            - |
+              {{- include "doris.initScript" . | nindent 14 }}
+          resources:
+            requests: { cpu: 20m, memory: 64Mi }
+            limits: { memory: 256Mi }

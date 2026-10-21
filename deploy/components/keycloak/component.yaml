@@ -1,0 +1,12 @@
+name: keycloak
+version: 26.8.0
+image:
+  source: official
+  refs:
+    - quay.io/keycloak/keycloak:26.8.0
+    - adorsys/keycloak-config-cli:6.5.1-26.5.5
+license: Apache-2.0
+customization: config
+upstream: https://github.com/keycloak/keycloak
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

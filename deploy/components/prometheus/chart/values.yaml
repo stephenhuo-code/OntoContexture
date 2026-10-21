@@ -1,0 +1,10 @@
+image: prom/prometheus:v3.15.0
+retention: 3d
+storage: 5Gi
+# 抓取目标：OTel Collector 汇总的服务指标（OTLP → Prometheus 格式）与 AI 网关自带指标
+targets:
+  - { job: otel-collector, address: "otel-collector:8889" }
+  - { job: ai-gateway, address: "ai-gateway-metrics:15020" }
+resources:
+  requests: { cpu: 50m, memory: 256Mi }
+  limits: { memory: 768Mi }

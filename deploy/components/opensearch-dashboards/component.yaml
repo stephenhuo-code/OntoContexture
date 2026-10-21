@@ -1,0 +1,12 @@
+# 可观测后端：服务日志查看（D10 ③）；日志由 otel-collector-agent 采集写入 OpenSearch
+name: opensearch-dashboards
+version: 3.4.0
+image:
+  source: official
+  refs:
+    - opensearchproject/opensearch-dashboards:3.4.0
+license: Apache-2.0
+customization: config
+upstream: https://github.com/opensearch-project/OpenSearch-Dashboards
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

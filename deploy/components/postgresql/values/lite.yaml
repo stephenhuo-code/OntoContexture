@@ -1,0 +1,4 @@
+# 精简：单实例、较小内存
+instances: 1
+storage: 2Gi
+memory: 256Mi

@@ -1,0 +1,29 @@
+keycloak:
+  # 客户已有 Keycloak 时关闭（默认），只把织境配置增量导入其实例；没有时打开，随织境部署
+  enabled: false
+  image: quay.io/keycloak/keycloak:26.8.0
+  # 自带模式的对外地址（hostname），如 https://sso.example.com
+  hostname: ""
+  database: keycloak # PostgreSQL 中的 database，账号密码 Secret：pg-keycloak
+  resources:
+    requests: { cpu: 100m, memory: 512Mi }
+    limits: { memory: 1Gi }
+
+import:
+  image: adorsys/keycloak-config-cli:6.5.1-26.5.5
+  # 外部 Keycloak 地址与 realm；自带模式下自动指向集群内服务
+  url: https://sso.127.0.0.1.nip.io
+  realm: digital-workforce
+  # 导入用服务账号（Secret 键 client-id、client-secret）；自带模式用管理员账号（键 username、password）
+  credentialsSecret: keycloak-provisioner
+  # 受信 CA（Secret 键 ca.crt），为空时用 JVM 默认 CA
+  trustedCaSecret: ctx-trusted-ca
+  publicUrl: http://localhost:8080
+  bffSecret: bff-oidc # 键 client-secret：contexture-bff 的客户端密钥
+  omUrl: http://localhost:8585 # OpenMetadata 的对外地址（登录回调）
+  omSecret: om-oidc # 键 client-secret：contexture-openmetadata 的客户端密钥
+  withTestUsers: false
+  # 由 helmfile 以文件注入（deploy/components/keycloak/config/*.yaml）
+  files: {}
+  # 导入参数（deploy/components/keycloak/import.env）
+  env: {}

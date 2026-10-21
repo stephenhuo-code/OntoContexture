@@ -1,0 +1,51 @@
+# 平台自带的管线编排（ADR-0006）。001 只验证就绪；DAG 由后续特性提供
+airflowVersion: "3.3.2"
+defaultAirflowTag: "3.3.2"
+executor: KubernetesExecutor
+
+# 平台共享的 PostgreSQL（database airflow）；连接串 Secret 由 tools/up.sh 生成（键 connection）
+postgresql:
+  enabled: false
+redis:
+  enabled: false
+pgbouncer:
+  enabled: false
+statsd:
+  enabled: false
+data:
+  metadataSecretName: airflow-metadata
+
+# 密钥由 tools/up.sh 生成，避免每次升级重新随机
+fernetKeySecretName: airflow-secrets
+apiSecretKeySecretName: airflow-secrets
+jwtSecretName: airflow-secrets
+
+createUserJob:
+  useHelmHooks: false
+  applyCustomEnv: false
+migrateDatabaseJob:
+  useHelmHooks: false
+  applyCustomEnv: false
+
+apiServer:
+  resources:
+    requests: { cpu: 100m, memory: 512Mi }
+    limits: { memory: 1Gi }
+scheduler:
+  resources:
+    requests: { cpu: 100m, memory: 384Mi }
+    limits: { memory: 768Mi }
+dagProcessor:
+  resources:
+    requests: { cpu: 50m, memory: 256Mi }
+    limits: { memory: 512Mi }
+triggerer:
+  # 384 MiB 会被 OOM 杀掉
+  resources:
+    requests: { cpu: 50m, memory: 384Mi }
+    limits: { memory: 768Mi }
+  persistence:
+    size: 1Gi
+logs:
+  persistence:
+    enabled: false

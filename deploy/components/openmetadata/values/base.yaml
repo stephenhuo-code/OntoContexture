@@ -1,0 +1,96 @@
+image:
+  repository: contexture/openmetadata-server
+  tag: 2.0.3-ctx.0
+  pullPolicy: IfNotPresent
+
+openmetadata:
+  config:
+    clusterName: contexture
+    # 平台共享的 PostgreSQL（database openmetadata，Secret pg-openmetadata）
+    database:
+      host: pg-rw
+      port: 5432
+      driverClass: org.postgresql.Driver
+      dbScheme: postgresql
+      databaseName: openmetadata
+      dbParams: "sslmode=disable"
+      auth:
+        username: openmetadata
+        password: { secretRef: pg-openmetadata, secretKey: password }
+      maxSize: 20
+      minSize: 2
+      initialSize: 2
+    elasticsearch:
+      host: opensearch-cluster-master
+      searchType: opensearch
+      port: 9200
+      scheme: http
+    # 001 不接 Airflow 编排（ADR-0006 在后续特性中接入）
+    pipelineServiceClientConfig:
+      enabled: false
+      # 关闭时 Chart 仍引用该 Secret，指向 OM 自己的 Secret
+      airflow:
+        auth:
+          password: { secretRef: om-secrets, secretKey: airflow-password }
+    deployPipelinesConfig:
+      enabled: false
+    fernetkey:
+      secretRef: om-secrets
+      secretKey: fernet-key
+    # RDF：同步到 Fuseki（ADR-0008，Phase 1 只用于内部验证与探索）
+    rdf:
+      enabled: true
+      remoteEndpoint: http://fuseki:3030/openmetadata
+      username: admin
+      password: { secretRef: fuseki-auth, secretKey: admin-password }
+      dataset: openmetadata
+    # 身份：Keycloak（OM 的自定义 OIDC，机密客户端 contexture-openmetadata）
+    authorizer:
+      # admin1：测试管理员；service-account-contexture-provisioner：导入服务账号，用于初始化本体配置（tools/om_config.py）
+      initialAdmins: [admin1, service-account-contexture-provisioner]
+      principalDomain: contexture.local
+      allowedEmailRegistrationDomains: [all]
+    authentication:
+      provider: custom-oidc
+      clientType: confidential
+      jwtPrincipalClaims: [preferred_username, email, sub]
+      enableSelfSignup: true
+      oidcConfiguration:
+        enabled: true
+        oidcType: Keycloak
+        clientId: { secretRef: om-oidc, secretKey: client-id }
+        clientSecret: { secretRef: om-oidc, secretKey: client-secret }
+        scope: "openid email profile"
+        promptType: login
+        disablePkce: false
+
+# OM 访问 Keycloak（https）需信任其 CA：初始化容器把 Secret ctx-trusted-ca 加入 JDK truststore 的副本
+extraInitContainers:
+  - name: truststore
+    image: contexture/openmetadata-server:2.0.3-ctx.0
+    command: [sh, -ec]
+    args:
+      - |
+        cp "$(dirname "$(dirname "$(readlink -f "$(command -v java)")")")/lib/security/cacerts" /truststore/cacerts
+        chmod 644 /truststore/cacerts
+        keytool -importcert -noprompt -alias ctx-ca -file /ca/ca.crt -keystore /truststore/cacerts -storepass changeit
+    volumeMounts:
+      - { name: trusted-ca, mountPath: /ca, readOnly: true }
+      - { name: truststore, mountPath: /truststore }
+extraVolumes:
+  - name: trusted-ca
+    secret: { secretName: ctx-trusted-ca }
+  - name: truststore
+    emptyDir: {}
+extraVolumeMounts:
+  - { name: truststore, mountPath: /truststore, readOnly: true }
+extraEnvs:
+  - { name: OPENMETADATA_HEAP_OPTS, value: "-Xmx1G -Xms1G" }
+  - {
+      name: OPENMETADATA_OPTS,
+      value: "-Djavax.net.ssl.trustStore=/truststore/cacerts -Djavax.net.ssl.trustStorePassword=changeit",
+    }
+
+resources:
+  requests: { cpu: 300m, memory: 1536Mi }
+  limits: { memory: 2Gi }

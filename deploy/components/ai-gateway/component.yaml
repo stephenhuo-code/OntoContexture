@@ -1,0 +1,12 @@
+# AI 网关（ADR-0013 spike 选定 agentgateway，见 docs/research/ai-gateway-spike/README.md）
+name: ai-gateway
+version: v1.6.0
+image:
+  source: official
+  refs:
+    - ghcr.io/agentgateway/agentgateway:v1.6.0
+license: Apache-2.0
+customization: config
+upstream: https://github.com/agentgateway/agentgateway
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

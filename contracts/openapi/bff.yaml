@@ -1,0 +1,156 @@
+openapi: 3.1.0
+info:
+  title: 织境 bff 接口
+  version: 0.1.0
+  description: |
+    织境 Web 的后端（BFF 模式，ADR-0003）。
+    取数不经自建 REST 服务：bff 经 AI 网关以 MCP 调用 MCP Toolbox 的工具（ADR-0013），契约在 contracts/mcp/。
+    鉴权二选一：浏览器使用会话 Cookie（令牌只在 bff）；直接调用使用 Bearer 令牌（受众须含 contexture-bff）。
+    错误统一使用 contracts/schemas/error.json。
+servers:
+  - url: /
+security:
+  - session: []
+  - bearer: []
+paths:
+  # ---------- bff（浏览器唯一入口，ADR-0003） ----------
+  /bff/v1/auth/login:
+    get:
+      operationId: bffLogin
+      summary: 跳转 Keycloak 登录（BFF 模式：令牌只在 bff，浏览器只持有会话 Cookie）
+      security: []
+      parameters:
+        - { name: return_to, in: query, schema: { type: string } }
+      responses:
+        "302": { description: 重定向到 Keycloak 授权端点 }
+        default: { $ref: "#/components/responses/Error" }
+  /bff/v1/auth/callback:
+    get:
+      operationId: bffLoginCallback
+      summary: Keycloak 回调；换取令牌、建立会话后跳回页面
+      security: []
+      parameters:
+        - { name: code, in: query, required: true, schema: { type: string } }
+        - { name: state, in: query, required: true, schema: { type: string } }
+      responses:
+        "302": { description: 跳回 return_to }
+        default: { $ref: "#/components/responses/Error" }
+  /bff/v1/auth/logout:
+    post:
+      operationId: bffLogout
+      summary: 清除会话并在 Keycloak 登出（无会话时同样返回 204）
+      security: []
+      responses:
+        "204": { description: 已登出 }
+  /bff/v1/me:
+    get:
+      operationId: bffGetMe
+      summary: 当前用户（含部署常量 tenant_id）
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Me" }
+        default: { $ref: "#/components/responses/Error" }
+  /bff/v1/object-types/{typeKey}:
+    get:
+      operationId: bffGetObjectType
+      summary: 对象类型定义（OM 中已审批的对象及其属性）
+      parameters:
+        - {
+            name: typeKey,
+            in: path,
+            required: true,
+            schema: { type: string },
+            example: equipment,
+          }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ObjectTypeRef" }
+        default: { $ref: "#/components/responses/Error" }
+  /bff/v1/object-types/{typeKey}/objects:
+    get:
+      operationId: bffListObjects
+      summary: 示例查询：对象类型定义 + 该类型的对象实例
+      parameters:
+        - {
+            name: typeKey,
+            in: path,
+            required: true,
+            schema: { type: string },
+            example: equipment,
+          }
+        - {
+            name: limit,
+            in: query,
+            schema: { type: integer, minimum: 1, maximum: 100, default: 20 },
+          }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ObjectListView" }
+        default: { $ref: "#/components/responses/Error" }
+
+components:
+  securitySchemes:
+    session: { type: apiKey, in: cookie, name: ctx_session }
+    bearer: { type: http, scheme: bearer, bearerFormat: JWT }
+  responses:
+    Error:
+      description: 统一错误格式
+      content:
+        application/json:
+          schema: { $ref: "../schemas/error.json" }
+  schemas:
+    Me:
+      type: object
+      required: [tenant_id, user_id]
+      properties:
+        tenant_id: { type: string }
+        user_id: { type: string }
+        display_name: { type: string }
+        roles: { type: array, items: { type: string } }
+    ObjectTypeRef:
+      type: object
+      required: [type_uri, name, version, attributes]
+      properties:
+        type_uri: { type: string, example: "urn:ctx:object:quality:Equipment" }
+        name: { type: string }
+        display_name: { type: string }
+        version: { type: string }
+        attributes:
+          type: array
+          items:
+            type: object
+            required: [name, data_type]
+            properties:
+              name: { type: string }
+              data_type: { type: string }
+              required: { type: boolean }
+              data_level: { type: integer }
+    ObjectInstance:
+      type: object
+      required: [object_uri, type_uri, attributes]
+      properties:
+        object_uri:
+          { type: string, example: "urn:ctx:obj:local:Equipment:CNC-07" }
+        type_uri: { type: string }
+        attributes: { type: object, additionalProperties: true }
+        source: { type: string }
+    ObjectListView:
+      type: object
+      required: [object_type, items]
+      properties:
+        object_type: { $ref: "#/components/schemas/ObjectTypeRef" }
+        items:
+          {
+            type: array,
+            items: { $ref: "#/components/schemas/ObjectInstance" },
+          }
+        trace_id: { type: string, description: 用于查询本次取数的审计记录 }

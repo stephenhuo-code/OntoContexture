@@ -1,0 +1,20 @@
+third_party/
+specs/
+docs/
+.specify/
+.claude/
+.venv/
+pnpm-lock.yaml
+**/*.md
+# Helm 模板（Go 模板语法）与 helmfile
+deploy/**/templates/
+deploy/helmfile.yaml.gotmpl
+# 生成的文件与测试夹具
+packages/ts-api/src/bff.d.ts
+tools/tests/fixtures/
+**/dist/
+deploy/offline/dist/
+uv.lock
+# Playwright 测试产物
+test-results/
+playwright-report/

@@ -1,0 +1,26 @@
+singleNode: true
+replicas: 1
+image:
+  tag: 3.4.0
+# 集群内访问，不启用安全插件（Phase 1 本地与测试环境）
+extraEnvs:
+  - { name: DISABLE_SECURITY_PLUGIN, value: "true" }
+  - { name: DISABLE_INSTALL_DEMO_CONFIG, value: "true" }
+config:
+  opensearch.yml: |
+    cluster.name: contexture
+    network.host: 0.0.0.0
+    plugins.security.disabled: true
+    node.store.allow_mmap: false
+protocol: http
+opensearchJavaOpts: "-Xms512m -Xmx512m"
+resources:
+  requests: { cpu: 200m, memory: 1Gi }
+  limits: { memory: 1536Mi }
+persistence:
+  size: 5Gi
+  # 初始化容器的镜像锁定版本（上游默认 busybox:latest）
+  image: busybox
+  imageTag: "1.37.0"
+sysctlInit:
+  enabled: false

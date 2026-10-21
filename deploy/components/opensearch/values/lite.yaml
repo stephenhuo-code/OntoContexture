@@ -1,0 +1,4 @@
+opensearchJavaOpts: "-Xms384m -Xmx384m"
+resources:
+  requests: { cpu: 100m, memory: 768Mi }
+  limits: { memory: 1Gi }

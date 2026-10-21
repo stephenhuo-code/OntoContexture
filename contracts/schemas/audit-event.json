@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ctx:schema:audit-event:v1",
+  "title": "AuditEvent",
+  "type": "object",
+  "required": [
+    "event_id",
+    "occurred_at",
+    "tenant_id",
+    "token_id",
+    "action",
+    "resource",
+    "trace_id",
+    "source_service"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": ["string", "null"]
+    },
+    "agent_id": {
+      "type": ["string", "null"],
+      "description": "令牌 azp：Agent 或调用服务的 Keycloak 客户端"
+    },
+    "token_id": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string",
+      "enum": ["read", "write", "authz_deny", "login", "admin"]
+    },
+    "resource": {
+      "type": "object",
+      "required": ["kind", "ref"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "object_type",
+            "object",
+            "table",
+            "columns",
+            "api",
+            "document",
+            "mcp_tool"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "description": "URI 或表名"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "tool": {
+      "type": "string",
+      "description": "被调用的 MCP 工具（如 toolbox-tenant-a.list_objects）"
+    },
+    "query_summary": {
+      "type": "string",
+      "description": "查询摘要（规范化后的 SQL，敏感字面量脱敏）"
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["allow", "deny"],
+      "description": "授权结果（二期）；Phase 1 可省略"
+    },
+    "policy_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "result_summary": {
+      "type": "object",
+      "properties": {
+        "row_count": {
+          "type": "integer"
+        },
+        "truncated": {
+          "type": "boolean"
+        }
+      }
+    },
+    "trace_id": {
+      "type": "string"
+    },
+    "source_service": {
+      "type": "string",
+      "description": "写入方，Phase 1 取数审计为 ai-gateway"
+    }
+  },
+  "additionalProperties": false
+}

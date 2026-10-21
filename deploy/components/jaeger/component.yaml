@@ -1,0 +1,12 @@
+# 可观测后端：服务追踪查看（D10 ③）。本地 / 测试为内存存储
+name: jaeger
+version: 2.22.0
+image:
+  source: official
+  refs:
+    - jaegertracing/jaeger:2.22.0
+license: Apache-2.0
+customization: config
+upstream: https://github.com/jaegertracing/jaeger
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

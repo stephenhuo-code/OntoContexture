@@ -1,0 +1,68 @@
+# 织境的 Keycloak 配置（keycloak-config-cli 增量导入，参数见 ../import.env）。
+# 与 Paperclip 共用 realm：只声明织境自己的角色与客户端，不改 realm 级设置。
+realm: digital-workforce
+roles:
+  realm:
+    - name: admin
+      description: 织境管理员：全部配置与工具
+    - name: ai-engineer
+      description: 织境 AI 工程师：构建与测试数字员工、查看轨迹、全部只读工具
+    - name: business-user
+      description: 织境业务用户：在 Paperclip 中使用数字员工，只读的取数与上下文工具
+clients:
+  - clientId: contexture-bff
+    name: 织境 Web 后端
+    protocol: openid-connect
+    publicClient: false
+    secret: $(env:CONTEXTURE_BFF_CLIENT_SECRET)
+    standardFlowEnabled: true
+    directAccessGrantsEnabled: false
+    implicitFlowEnabled: false
+    serviceAccountsEnabled: false
+    redirectUris:
+      - $(env:CTX_PUBLIC_URL)/bff/v1/auth/callback
+    webOrigins:
+      - $(env:CTX_PUBLIC_URL)
+    attributes:
+      pkce.code.challenge.method: S256
+      standard.token.exchange.enabled: "true"
+      post.logout.redirect.uris: $(env:CTX_PUBLIC_URL)/*
+    protocolMappers:
+      # 登录令牌的受众：bff 自己（直接调 bff 时据此校验）与 AI 网关（令牌交换时收窄到网关）
+      - name: aud-contexture-bff
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        config:
+          included.client.audience: contexture-bff
+          access.token.claim: "true"
+          id.token.claim: "false"
+      - name: aud-contexture-ai-gateway
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        config:
+          included.client.audience: contexture-ai-gateway
+          access.token.claim: "true"
+          id.token.claim: "false"
+  - clientId: contexture-ai-gateway
+    name: 织境 AI 网关（令牌受众）
+    protocol: openid-connect
+    publicClient: false
+    standardFlowEnabled: false
+    directAccessGrantsEnabled: false
+    implicitFlowEnabled: false
+    serviceAccountsEnabled: false
+  - clientId: contexture-openmetadata
+    name: 织境 OpenMetadata（内部界面与 API）
+    protocol: openid-connect
+    publicClient: false
+    secret: $(env:CONTEXTURE_OM_CLIENT_SECRET)
+    standardFlowEnabled: true
+    directAccessGrantsEnabled: false
+    implicitFlowEnabled: false
+    serviceAccountsEnabled: false
+    redirectUris:
+      - $(env:CTX_OM_URL)/callback
+    webOrigins:
+      - $(env:CTX_OM_URL)
+    attributes:
+      post.logout.redirect.uris: $(env:CTX_OM_URL)/*

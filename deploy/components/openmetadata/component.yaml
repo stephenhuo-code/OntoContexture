@@ -1,0 +1,12 @@
+# 自建镜像（third_party/openmetadata/build/build.sh server），官方服务端 Chart；不使用官方依赖打包 Chart（ADR-0011）
+name: openmetadata
+version: 2.0.3
+image:
+  source: self-built
+  refs:
+    - contexture/openmetadata-server:2.0.3-ctx.0
+license: Apache-2.0
+customization: patch
+upstream: https://github.com/open-metadata/OpenMetadata
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

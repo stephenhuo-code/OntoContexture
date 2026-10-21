@@ -1,0 +1,44 @@
+# OM 中本体的共用字段与关系类型（ADR-0008 §2.2、§2.3），由 tools/om_config.py 幂等写入（只增不改）。
+# 共用字段是术语（glossaryTerm）的全局自定义属性：对象、关系、属性都建为术语，不适用的字段留空。
+customProperties:
+  - name: ctx_kind
+    type: enum
+    values: [object, link, property, interface, logic, action]
+    description: 本体要素：对象 / 关系 / 属性；接口、逻辑、动作为二期预留
+  - name: ctx_uri
+    type: string
+    description: 统一资源标识 urn:ctx:<要素>:<领域包或租户>:<名称>
+  - name: ctx_data_type
+    type: enum
+    values: [string, integer, decimal, boolean, date, datetime, enum, reference]
+    description: 属性的数据类型
+  - name: ctx_required
+    type: enum
+    values: [是, 否]
+    description: 属性是否必填
+  - name: ctx_unit
+    type: string
+    description: 工程或业务单位
+  - name: ctx_key
+    type: enum
+    values: [主键, 显示, 无]
+    description: 属性在对象中的作用
+  - name: ctx_cardinality
+    type: enum
+    values: ["1:1", "1:N", "N:1", "N:M"]
+    description: 关系的基数
+  - name: ctx_link_source
+    type: entityReference
+    entityTypes: [glossaryTerm]
+    description: 关系的起点对象
+  - name: ctx_link_target
+    type: entityReference
+    entityTypes: [glossaryTerm]
+    description: 关系的终点对象
+
+relationTypes:
+  - name: hasProperty
+    displayName: 具有属性
+    description: 对象 → 属性（一个属性可被多个对象共用）
+    category: associative
+    cardinality: MANY_TO_MANY

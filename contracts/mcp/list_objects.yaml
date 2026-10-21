@@ -1,0 +1,35 @@
+# MCP 示例工具契约：列出某个对象类型的实例（001 端到端骨架）。
+# 由 MCP Toolbox 提供，经 AI 网关调用（ADR-0013）。变更须先改本文件并评审。
+name: list_objects
+description: 列出指定对象类型的实例，按行返回；超过 limit 时截断并标记 truncated。
+input:
+  type: object
+  additionalProperties: false
+  required: [type_key]
+  properties:
+    type_key:
+      type: string
+      description: 对象类型键，如 equipment
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 20
+      description: 最多返回的行数
+output:
+  type: object
+  additionalProperties: false
+  required: [columns, rows, truncated]
+  properties:
+    columns:
+      type: array
+      items: { type: string }
+      description: 列名，顺序与每行取值一致；第一列为业务主键（用于生成对象 URI）
+    rows:
+      type: array
+      items:
+        type: array
+      description: 每行的取值
+    truncated:
+      type: boolean
+      description: 实际行数超过 limit 时为 true

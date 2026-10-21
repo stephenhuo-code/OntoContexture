@@ -1,0 +1,5 @@
+instances: 1
+storage: 5Gi
+memory: 512Mi
+# 每个组件一个 database 与同名账号；密码 Secret pg-<名称> 由 tools/up.sh 生成
+databases: [openmetadata, langfuse, airflow, bff]

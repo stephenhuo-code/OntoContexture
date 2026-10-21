@@ -1,0 +1,43 @@
+# 节点代理（DaemonSet）：采集各 Pod 的标准输出日志，写入 OpenSearch（索引 ctx-logs）
+mode: daemonset
+fullnameOverride: otel-collector-agent
+image:
+  repository: otel/opentelemetry-collector-contrib
+  tag: "0.163.1"
+command:
+  name: otelcol-contrib
+presets:
+  logsCollection:
+    enabled: true
+    includeCollectorLogs: false
+  kubernetesAttributes:
+    enabled: true
+config:
+  receivers:
+    jaeger: null
+    zipkin: null
+    prometheus: null
+    otlp: null
+  exporters:
+    opensearch:
+      http:
+        endpoint: http://opensearch-cluster-master:9200
+      logs_index: ctx-logs
+  service:
+    pipelines:
+      logs:
+        receivers: [file_log]
+        processors: [k8s_attributes, memory_limiter, batch]
+        exporters: [opensearch]
+      traces: null
+      metrics: null
+ports:
+  otlp: { enabled: false }
+  otlp-http: { enabled: false }
+  jaeger-compact: { enabled: false }
+  jaeger-thrift: { enabled: false }
+  jaeger-grpc: { enabled: false }
+  zipkin: { enabled: false }
+resources:
+  requests: { cpu: 20m, memory: 96Mi }
+  limits: { memory: 256Mi }

@@ -1,0 +1,12 @@
+# 可观测后端：服务指标（D10 ③）
+name: prometheus
+version: v3.15.0
+image:
+  source: official
+  refs:
+    - prom/prometheus:v3.15.0
+license: Apache-2.0
+customization: config
+upstream: https://github.com/prometheus/prometheus
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

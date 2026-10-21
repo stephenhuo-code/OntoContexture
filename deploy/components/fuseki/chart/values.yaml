@@ -1,0 +1,8 @@
+image: contexture/openmetadata-fuseki:6.2.0-ctx.0
+# 键 admin-password、openmetadata-password（tools/up.sh 生成）
+authSecret: fuseki-auth
+jvmArgs: "-Xms512m -Xmx512m"
+storage: 5Gi
+resources:
+  requests: { cpu: 100m, memory: 768Mi }
+  limits: { memory: 1Gi }

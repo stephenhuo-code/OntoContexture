@@ -1,0 +1,12 @@
+image: us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:1.14.0
+waitImage: busybox:1.37.0
+doris:
+  host: doris-fe-service
+  database: ctx_local
+  secret: doris-reader # 键 username、password
+otlpEndpoint: "" # 主机:端口，如 otel-collector:4318
+# 由 helmfile 以文件注入（deploy/components/mcp-toolbox/config/tools.yaml）
+tools: ""
+resources:
+  requests: { cpu: 20m, memory: 64Mi }
+  limits: { memory: 256Mi }

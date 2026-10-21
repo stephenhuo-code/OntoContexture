@@ -1,0 +1,16 @@
+# Langfuse 官方 Chart；ClickHouse 为自带的单节点（不引入 ClickHouse Operator 与 cert-manager）
+name: langfuse
+version: 4.63.0
+image:
+  source: official
+  refs:
+    - docker.langfuse.com/langfuse/langfuse:4.63.0
+    - docker.langfuse.com/langfuse/langfuse-worker:4.63.0
+    - clickhouse/clickhouse-server:26.9
+    - valkey/valkey:8.0
+    - docker.io/chrislusf/seaweedfs:4.23
+license: MIT
+customization: config
+upstream: https://github.com/langfuse/langfuse
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh
