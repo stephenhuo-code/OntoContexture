@@ -16,6 +16,14 @@
 
 ![织境平台服务架构（Phase 1）](../images/平台服务架构.svg)
 
+各服务的实现状态（绿：已实现，橙：部分实现，灰色虚线：未实现；生成脚本 `docs/images/平台服务架构-实现状态.gen.py`）：
+
+![织境平台服务架构——实现状态](../images/平台服务架构-实现状态.svg)
+
+当前（001 完成后）本地 kind 集群中实际部署的服务与调用关系见下图（生成脚本 `docs/images/本地部署架构.gen.py`）：
+
+![织境本地部署架构（001）](../images/本地部署架构.svg)
+
 文字版：
 
 ```text
@@ -51,18 +59,18 @@
 
 | 组件 | 职责 | 承载特性 | 独占存储 | 对外接口 | 主要依赖 |
 | --- | --- | --- | --- | --- | --- |
-| `web` | 织境 Web 前端（React 单页应用），打包为静态资源镜像，由 nginx 提供；Envoy 把页面请求路由到它（ADR-0003） | 004、008、022 等页面 | — | 静态资源（HTTP） | 浏览器内只调用 `bff` |
-| `bff` | 浏览器唯一入口；本体读写；审批待办；轨迹页面；Omnigent 代理；页面取数（经 AI 网关） | 004、010（轨迹页面）、016（本体读写） | PostgreSQL `bff` database（会话） | REST + SSE（仅浏览器） | OM、Langfuse、Omnigent、AI 网关 |
-| `pipelines`（镜像） | Airflow 任务 | 006、015、016、019、020、018 | 不独占（写入各自目标） | Airflow 任务 | Airflow、OM、Langfuse、Doris |
+| `web` | 织境 Web 前端（React 单页应用），打包为静态资源镜像，由 nginx 提供；Envoy 把页面请求路由到它（ADR-0003） | 004、013、022 等页面 | — | 静态资源（HTTP） | 浏览器内只调用 `bff` |
+| `bff` | 浏览器唯一入口；本体读写；审批待办；轨迹页面；Omnigent 代理；页面取数（经 AI 网关） | 004、006（轨迹页面）、016（本体读写） | PostgreSQL `bff` database（会话） | REST + SSE（仅浏览器） | OM、Langfuse、Omnigent、AI 网关 |
+| `pipelines`（镜像） | Airflow 任务 | 011、010、016、019、020、018 | 不独占（写入各自目标） | Airflow 任务 | Airflow、OM、Langfuse、Doris |
 | 公共库 `contexture-core` | 令牌验证与上下文、令牌交换客户端、可观测关联属性、本体读取（`ontology`）、统一错误格式、配置 | 全部 | — | Python 库 | — |
-| Paperclip 插件与下发 CLI | 轨迹回传 Langfuse；数字员工下发到 Paperclip | 011、012 | — | Paperclip 插件、CLI | Paperclip、Langfuse |
+| Paperclip 插件与下发 CLI | 轨迹回传 Langfuse；数字员工下发到 Paperclip | 007、008 | — | Paperclip 插件、CLI | Paperclip、Langfuse |
 | 组件配置即代码（`deploy/components/<组件>/config/`） | Keycloak realm 与 Agent 客户端、AI 网关路由与策略、MCP Toolbox 工具定义（含追溯查询模板）、OM 初始化；各带测试 | 002、005、016、021 | — | 配置文件 | — |
-| `metric`、`explore`（P2） | 指标生成 SQL；探索与固化 | 007、024、025、026 | 二期确定 | REST / MCP | OM、AI 网关 |
+| `metric`、`explore`（P2） | 指标生成 SQL；探索与固化 | 012、024、025、026 | 二期确定 | REST / MCP | OM、AI 网关 |
 
 **复用框架、不建服务的特性**：002 身份（Keycloak + 配置即代码）；005 数据访问与审计（AI 网关 + MCP Toolbox；数据层授权推迟）；
-014 内部 Agent 运行时（Omnigent）；010 决策轨迹（Langfuse）；006 / 015 / 019 接入（Airflow + OM 采集框架）；016 本体与分级标签
-（OM 术语库与分类标签）；017 质量领域包（本体内容）；021 追溯（Toolbox 参数化查询工具）；018 / 009 上下文（OM 上下文中心、
-资产 AI 上下文、MCP，OKF v0.2 补丁）；023 / 013 参考 Skill。
+009 内部 Agent 运行时（Omnigent）；006 决策轨迹（Langfuse）；011 / 010 / 019 接入（Airflow + OM 采集框架）；016 本体与分级标签
+（OM 术语库与分类标签）；017 质量领域包（本体内容）；021 追溯（Toolbox 参数化查询工具）；018 / 014 上下文（OM 上下文中心、
+资产 AI 上下文、MCP，OKF v0.2 补丁）；023 / 015 参考 Skill。
 
 ## 4. 第三方组件（开源服务清单，宪法 III）
 
@@ -128,7 +136,7 @@
 | 通信 | 浏览器经 `bff`（REST + OpenAPI 3.1）；Agent 取数与取上下文经 MCP；无消息中间件；批处理由 Airflow 编排 |
 | 模型接入 | 模型服务（OpenAI、DeepSeek、私有化模型）只在 AI 网关中配置：服务商地址、模型名、key（K8s Secret / KMS）、路由与配额；按人与 Agent 的模型权限和 token 配额用网关自带能力实现（与 LiteLLM 基本对齐，不额外开发）；用量看 Langfuse；Omnigent 以“OpenAI 兼容网关”方式连接 AI 网关，用委托令牌认证，不持有任何厂商 key（ADR-0013） |
 | 用户与界面 | 最终用户（业务人员）在 Paperclip 中与数字员工对话；数据处理与治理人员使用织境 Web（重做的 OM 界面，对话能力复用并改造 Omnigent 前端）；默认角色：管理员、AI 工程师、业务用户；织境与 Paperclip 共用同一个 Keycloak realm（ADR-0003、0010） |
-| 数字员工平台 | Phase 1 选定 Paperclip（Keycloak 单点登录）：经 MCP 连接 AI 网关；织境以下发 CLI 把数字员工推送到 Paperclip（011）；默认权限按 Keycloak 角色，工具清单写入 Paperclip 工具策略；完整轨迹经 Paperclip 插件回传 Langfuse（012） |
+| 数字员工平台 | Phase 1 选定 Paperclip（Keycloak 单点登录）：经 MCP 连接 AI 网关；织境以下发 CLI 把数字员工推送到 Paperclip（007）；默认权限按 Keycloak 角色，工具清单写入 Paperclip 工具策略；完整轨迹经 Paperclip 插件回传 Langfuse（008） |
 | 外部 Agent 接入 | 不绑定外部框架；客户自建平台经标准 MCP 接入 AI 网关（MCP 授权规范，Keycloak 作授权服务器）；身份分三档：A 每个 Agent 一个客户端、B 平台作为一个客户端（平台内 Agent 为声明属性，注明未验证）、C 服务账号；网关侧必记轨迹，平台侧可选回传（ADR-0010） |
 | 令牌 | Keycloak 登录；Agent 以客户端身份做标准令牌交换（sub = 人，azp = Agent，受众收窄）；无人值守 Agent 用服务账号 |
 | 授权 | Phase 1 只到身份、角色与工具一级（AI 网关 CEL 规则）；数据层授权推迟到二期（宪法 IV 例外） |
@@ -149,6 +157,6 @@
 | --- | --- | --- |
 | 2 | OKF v0.2 补丁是否提交上游 | 待定（ADR-0012） |
 | 3 | Doris 表结构迁移的评审方式 | 管线按本体生成的迁移以 PR 评审还是以 OM 任务审批 |
-| 5 | 需验证 | OM MCP 能否接受交换后的令牌（009）；Omnigent 以委托令牌作网关凭证并续期（014）；资产 AI 上下文是否包含未审批内容 |
+| 5 | 需验证 | OM MCP 能否接受交换后的令牌（014）；Omnigent 以委托令牌作网关凭证并续期（009）；资产 AI 上下文是否包含未审批内容 |
 | 6 | 二期 | 数据层授权方向；BI 与 Notebook 的原生 SQL 通道 |
 | 7 | 是否多租户 | Phase 1 单租户；是否支持多客户共享实例另行评估，不预设在二期（ADR-0007） |

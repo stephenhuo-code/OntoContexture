@@ -3,7 +3,7 @@
 - 状态：已接受
 - 日期：2026-10-03
 - 决策人：@stephenhuo-code
-- 影响特性：001、002、005、014、023、013，二期自演进
+- 影响特性：001、002、005、009、023、015，二期自演进
 - 相关宪法条款：II（服务边界）、III（开源许可、不长期深度分叉）、IV（身份与授权）、V（可观测性）
 - 相关 ADR：ADR-0001（轨迹与运行状态存储）
 
@@ -11,7 +11,7 @@
 
 织境有两类 Agent：
 
-- **客户侧 Agent**：作为织境的客户端，调用 MCP / Context API，验证身份与权限契约（023、013 的参考实现）。
+- **客户侧 Agent**：作为织境的客户端，调用 MCP / Context API，验证身份与权限契约（023、015 的参考实现）。
 - **织境内部 Agent**：织境自身的 Agent 能力。大部分场景需要真正执行 SQL 或数据处理管线
   （探索取数、口径校验、映射验证、数据质量检查、自演进分析），可能是多 Agent 系统，
   需要会话管理、并发、隔离执行与界面。
@@ -87,9 +87,9 @@ Omnigent（Apache 2.0，工程化完整）、OmniAgent（GPL-3.0，排除）、M
 
 ## 后续工作
 
-- **014 内部 Agent 运行时**（排在首个使用 Agent 的 015 之前）：部署 Omnigent，完成改造项 #1、#2、#4、#6，压测 #5。
+- **009 内部 Agent 运行时**（排在首个使用 Agent 的 010 之前）：部署 Omnigent，完成改造项 #1、#2、#4、#6，压测 #5。
 - 数据访问（005，AI 网关 + MCP Toolbox）在 M1：内部 Agent 在 P1 即需要取数；由已审批指标生成 SQL 的能力
-  在 007。
+  在 012。
 - 002 spike：Keycloak 中“Agent 服务身份代表用户换取令牌”的配置方式。
 - 建立 Omnigent 补丁登记表与升级回归流程。
 
@@ -114,6 +114,6 @@ Omnigent（Apache 2.0，工程化完整）、OmniAgent（GPL-3.0，排除）、M
 - **维护仓库**：`https://github.com/stephenhuo-code/contexture-omnigent`（独立仓库，非 fork，与负责人其他项目的 Omnigent fork
   分开）。`main` 同步上游 `omnigent-ai/omnigent`；发布分支 `ctx/v0.18.0` 起点为上游 `v0.18.0`（提交 `a8676d23`）。以子仓库挂在
   `third_party/omnigent/src/`，`UPSTREAM.yaml`、`PATCHES.md`、`build/` 放在子仓库之外。向上游提 PR 时临时 fork 上游后提交。
-- **锁定版本**：v0.18.0（上文评估基于 v0.16.0，014 开工前复核改造项现状）。
-- **补丁范围**：只做后端运行时（014：持久化、令牌交换、OTel），功能实现放 `extensions/omnigent-plugins/`。
+- **锁定版本**：v0.18.0（上文评估基于 v0.16.0，009 开工前复核改造项现状）。
+- **补丁范围**：只做后端运行时（009：持久化、令牌交换、OTel），功能实现放 `extensions/omnigent-plugins/`。
 - **前端**：Omnigent 前端不以补丁维护，按需复制到 `apps/web/` 作为织境代码修改（ADR-0003），保留 Apache 2.0 许可与 NOTICE 署名。

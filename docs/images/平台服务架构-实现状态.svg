@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1000" viewBox="0 0 1440 1000" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, Helvetica, Arial, sans-serif" role="img" aria-label="织境平台服务架构（Phase 1）">
+<defs><marker id="mu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1a73e8"/></marker><marker id="ma" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d93025"/></marker><marker id="mp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1e8e3e"/></marker><marker id="mg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6e7781"/></marker></defs>
+<rect width="1440" height="1000" fill="#ffffff"/>
+<text x="20" y="36" font-size="22" font-weight="600" fill="#1f2328">织境平台服务架构（Phase 1）— 实现状态，截至 001 完成（2026-10-22）</text>
+<text x="20" y="62" font-size="13" fill="#59636e">单租户：一套环境服务一个客户，可有多个用户与 Agent。自建只有 web（前端）、bff、pipelines 与公共库，其余为以独立服务集成的开源组件。依据宪法 v1.5.0、ADR-0001～0013。</text>
+<rect x="20" y="80" width="1400" height="80" rx="10" fill="#fafbfc" stroke="#d0d7de"/>
+<text x="36" y="125.0" font-size="14" font-weight="600" fill="#57606a">访问层</text>
+<rect x="20" y="172" width="1400" height="182" rx="10" fill="#fafbfc" stroke="#d0d7de"/>
+<text x="36" y="268.0" font-size="14" font-weight="600" fill="#57606a">入口层</text>
+<rect x="20" y="420" width="1400" height="142" rx="10" fill="#fafbfc" stroke="#d0d7de"/>
+<text x="36" y="496.0" font-size="14" font-weight="600" fill="#57606a">能力层</text>
+<rect x="20" y="600" width="1400" height="108" rx="10" fill="#fafbfc" stroke="#d0d7de"/>
+<text x="36" y="659.0" font-size="14" font-weight="600" fill="#57606a">存储层</text>
+<rect x="20" y="724" width="1400" height="96" rx="10" fill="#fafbfc" stroke="#d0d7de"/>
+<text x="36" y="777.0" font-size="14" font-weight="600" fill="#57606a">支撑</text>
+<rect x="250" y="92" width="330" height="56" rx="9" fill="#fef7e0" stroke="#e37400" stroke-width="1.6"/>
+<text x="415.0" y="116" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">用户浏览器</text>
+<text x="415.0" y="136" font-size="11.5" fill="#59636e" text-anchor="middle">运行织境 Web 单页应用（React）</text>
+<rect x="800" y="92" width="420" height="56" rx="9" fill="#f6f8fa" stroke="#9aa0a6" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="1010.0" y="116" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">客户侧 Agent / 数字员工平台</text>
+<text x="1010.0" y="136" font-size="11.5" fill="#59636e" text-anchor="middle">Omnigent 等；经 MCP 调用，令牌 sub = 人、azp = Agent</text>
+<rect x="150" y="182" width="1270" height="30" rx="7" fill="#fef7e0" stroke="#e37400" stroke-width="1.4"/>
+<text x="770" y="202" font-size="13" font-weight="600" fill="#1f2328" text-anchor="middle">Envoy Gateway（边缘网关：TLS、路由、限流）</text>
+<rect x="150" y="232" width="180" height="110" rx="9" fill="#fef7e0" stroke="#e37400" stroke-width="1.6" />
+<text x="240.0" y="256" font-size="15" font-weight="600" fill="#1f2328" text-anchor="middle">web（自建）</text>
+<text x="240.0" y="276" font-size="11.5" fill="#59636e" text-anchor="middle">织境 Web 前端</text>
+<text x="240.0" y="293" font-size="11.5" fill="#59636e" text-anchor="middle">静态资源，nginx 提供</text>
+<text x="240.0" y="310" font-size="11.5" fill="#59636e" text-anchor="middle">首页、审批中心、探索资产、</text>
+<text x="240.0" y="327" font-size="11.5" fill="#59636e" text-anchor="middle">数据治理、上下文中心</text>
+<rect x="350" y="232" width="350" height="110" rx="9" fill="#fef7e0" stroke="#e37400" stroke-width="1.6" />
+<text x="525.0" y="256" font-size="15" font-weight="600" fill="#1f2328" text-anchor="middle">bff（自建）</text>
+<text x="525.0" y="276" font-size="11.5" fill="#59636e" text-anchor="middle">浏览器接口的唯一入口</text>
+<text x="525.0" y="293" font-size="11.5" fill="#59636e" text-anchor="middle">本体读写 → OM；审批待办 → OM 任务</text>
+<text x="525.0" y="310" font-size="11.5" fill="#59636e" text-anchor="middle">决策轨迹 → Langfuse；Omnigent 会话代理</text>
+<text x="525.0" y="327" font-size="11.5" fill="#59636e" text-anchor="middle">页面取数 → AI 网关（MCP 客户端）</text>
+<rect x="800" y="232" width="380" height="110" rx="9" fill="#e6f4ea" stroke="#1e8e3e" stroke-width="1.6" />
+<text x="990.0" y="256" font-size="15" font-weight="600" fill="#1f2328" text-anchor="middle">AI 网关</text>
+<text x="990.0" y="276" font-size="11.5" fill="#59636e" text-anchor="middle">MCP 网关 + 模型网关（agentgateway v1.6.0）</text>
+<text x="990.0" y="293" font-size="11.5" fill="#59636e" text-anchor="middle">校验 Keycloak 令牌、按工具授权、记录审计</text>
+<text x="990.0" y="310" font-size="11.5" fill="#59636e" text-anchor="middle">模型服务的 key 只配置在这里（Secret）</text>
+<rect x="1220" y="252" width="190" height="70" rx="9" fill="#f6f8fa" stroke="#9aa0a6" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="1315.0" y="276" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">大模型</text>
+<text x="1315.0" y="296" font-size="11.5" fill="#59636e" text-anchor="middle">OpenAI / DeepSeek / 私有化模型</text>
+<rect x="150" y="432" width="196" height="118" rx="9" fill="#fef7e0" stroke="#e37400" stroke-width="1.6" />
+<text x="248.0" y="456" font-size="15" font-weight="600" fill="#1f2328" text-anchor="middle">Keycloak</text>
+<text x="248.0" y="476" font-size="11.5" fill="#59636e" text-anchor="middle">身份与角色（一个 realm）</text>
+<text x="248.0" y="493" font-size="11.5" fill="#59636e" text-anchor="middle">Agent = 客户端</text>
+<text x="248.0" y="510" font-size="11.5" fill="#59636e" text-anchor="middle">标准令牌交换</text>
+<rect x="360" y="432" width="196" height="118" rx="9" fill="#fef7e0" stroke="#e37400" stroke-width="1.6" />
+<text x="458.0" y="456" font-size="15" font-weight="600" fill="#1f2328" text-anchor="middle">Langfuse</text>
+<text x="458.0" y="476" font-size="11.5" fill="#59636e" text-anchor="middle">决策轨迹（唯一来源）</text>
+<text x="458.0" y="493" font-size="11.5" fill="#59636e" text-anchor="middle">人工修订、样本数据集</text>
+<text x="458.0" y="510" font-size="11.5" fill="#59636e" text-anchor="middle">← 各组件追踪经 OTel</text>
+<rect x="570" y="432" width="196" height="118" rx="9" fill="#fef7e0" stroke="#e37400" stroke-width="1.6" />
+<text x="668.0" y="456" font-size="15" font-weight="600" fill="#1f2328" text-anchor="middle">OpenMetadata</text>
+<text x="668.0" y="476" font-size="11.5" fill="#59636e" text-anchor="middle">本体（术语库）、元数据、血缘</text>
+<text x="668.0" y="493" font-size="11.5" fill="#59636e" text-anchor="middle">审批工作流、上下文中心</text>
+<text x="668.0" y="510" font-size="11.5" fill="#59636e" text-anchor="middle">资产 AI 上下文（OKF v0.2）</text>
+<text x="668.0" y="527" font-size="11.5" fill="#59636e" text-anchor="middle">内置 MCP</text>
+<rect x="780" y="432" width="196" height="118" rx="9" fill="#f6f8fa" stroke="#9aa0a6" stroke-width="1.6"  stroke-dasharray="6 4"/>
+<text x="878.0" y="456" font-size="15" font-weight="600" fill="#1f2328" text-anchor="middle">Omnigent</text>
+<text x="878.0" y="476" font-size="11.5" fill="#59636e" text-anchor="middle">内部 Agent 运行时</text>
+<text x="878.0" y="493" font-size="11.5" fill="#59636e" text-anchor="middle">只开放 MCP 工具（无执行沙箱）</text>
+<text x="878.0" y="510" font-size="11.5" fill="#59636e" text-anchor="middle">rollout 存 PostgreSQL</text>
+<rect x="990" y="432" width="196" height="118" rx="9" fill="#e6f4ea" stroke="#1e8e3e" stroke-width="1.6" />
+<text x="1088.0" y="456" font-size="15" font-weight="600" fill="#1f2328" text-anchor="middle">MCP Toolbox</text>
+<text x="1088.0" y="476" font-size="11.5" fill="#59636e" text-anchor="middle">数据库 MCP 服务</text>
+<text x="1088.0" y="493" font-size="11.5" fill="#59636e" text-anchor="middle">参数化查询工具（含追溯）</text>
+<text x="1088.0" y="510" font-size="11.5" fill="#59636e" text-anchor="middle">只读账号</text>
+<rect x="1200" y="432" width="196" height="118" rx="9" fill="#fef7e0" stroke="#e37400" stroke-width="1.6" />
+<text x="1298.0" y="456" font-size="15" font-weight="600" fill="#1f2328" text-anchor="middle">Airflow</text>
+<text x="1298.0" y="476" font-size="11.5" fill="#59636e" text-anchor="middle">管线编排，运行 pipelines（自建）</text>
+<text x="1298.0" y="493" font-size="11.5" fill="#59636e" text-anchor="middle">采集元数据 → OM</text>
+<text x="1298.0" y="510" font-size="11.5" fill="#59636e" text-anchor="middle">物化实例 → Doris</text>
+<text x="1298.0" y="527" font-size="11.5" fill="#59636e" text-anchor="middle">飞书同步、文档解析、治理</text>
+<rect x="150" y="618" width="166" height="72" rx="9" fill="#e6f4ea" stroke="#1e8e3e" stroke-width="1.6" />
+<text x="233.0" y="642" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">PostgreSQL</text>
+<text x="233.0" y="662" font-size="11.5" fill="#59636e" text-anchor="middle">OM、Keycloak、bff 会话等</text>
+<rect x="332" y="618" width="166" height="72" rx="9" fill="#e6f4ea" stroke="#1e8e3e" stroke-width="1.6" />
+<text x="415.0" y="642" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">OpenSearch</text>
+<text x="415.0" y="662" font-size="11.5" fill="#59636e" text-anchor="middle">OM 搜索索引</text>
+<rect x="514" y="618" width="166" height="72" rx="9" fill="#e6f4ea" stroke="#1e8e3e" stroke-width="1.6" />
+<text x="597.0" y="642" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">Jena Fuseki</text>
+<text x="597.0" y="662" font-size="11.5" fill="#59636e" text-anchor="middle">OM 的 RDF 存储</text>
+<rect x="696" y="618" width="166" height="72" rx="9" fill="#e6f4ea" stroke="#1e8e3e" stroke-width="1.6" />
+<text x="779.0" y="642" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">Valkey</text>
+<text x="779.0" y="662" font-size="11.5" fill="#59636e" text-anchor="middle">Langfuse 缓存</text>
+<rect x="878" y="618" width="166" height="72" rx="9" fill="#e6f4ea" stroke="#1e8e3e" stroke-width="1.6" />
+<text x="961.0" y="642" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">对象存储</text>
+<text x="961.0" y="662" font-size="11.5" fill="#59636e" text-anchor="middle">OSS / SeaweedFS</text>
+<rect x="1060" y="618" width="166" height="72" rx="9" fill="#f6f8fa" stroke="#9aa0a6" stroke-width="1.6" stroke-dasharray="6 4"/>
+<text x="1143.0" y="642" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">客户数据库</text>
+<text x="1143.0" y="662" font-size="11.5" fill="#59636e" text-anchor="middle">MES / QMS / ERP / 数仓</text>
+<rect x="1242" y="618" width="166" height="72" rx="9" fill="#e6f4ea" stroke="#1e8e3e" stroke-width="1.6" />
+<text x="1325.0" y="642" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">Apache Doris</text>
+<text x="1325.0" y="662" font-size="11.5" fill="#59636e" text-anchor="middle">本体实例库</text>
+<rect x="150" y="740" width="300" height="64" rx="9" fill="#e6f4ea" stroke="#1e8e3e" stroke-width="1.6" />
+<text x="300.0" y="764" font-size="14" font-weight="600" fill="#1f2328" text-anchor="middle">OTel Collector</text>
+<text x="300.0" y="784" font-size="11.5" fill="#59636e" text-anchor="middle">汇聚各组件追踪 → Langfuse</text>
+<rect x="470" y="740" width="320" height="64" rx="9" fill="#e6f4ea" stroke="#1e8e3e" stroke-width="1.6" />
+<text x="630.0" y="764" font-size="13" font-weight="600" fill="#1f2328" text-anchor="middle">公共库 contexture-core（自建）</text>
+<text x="630.0" y="784" font-size="11.5" fill="#59636e" text-anchor="middle">令牌验证与交换、追踪属性、本体读取、tenant_id 常量</text>
+<line x1="330" y1="148" x2="240" y2="232" stroke="#1a73e8" stroke-width="2" marker-end="url(#mu)" />
+<rect x="188.0" y="212" width="34" height="18" rx="4" fill="#ffffff" opacity="0.92"/>
+<text x="205" y="226" font-size="11.5" fill="#1a73e8" text-anchor="middle">页面</text>
+<line x1="500" y1="148" x2="525" y2="232" stroke="#1a73e8" stroke-width="2" marker-end="url(#mu)" />
+<rect x="538.0" y="212" width="118" height="18" rx="4" fill="#ffffff" opacity="0.92"/>
+<text x="597" y="226" font-size="11.5" fill="#1a73e8" text-anchor="middle">接口 /bff/*</text>
+<line stroke-dasharray="6 4" x1="1010" y1="148" x2="1010" y2="232" stroke="#9aa0a6" stroke-width="2" marker-end="url(#mg)" />
+<line x1="700" y1="300" x2="800" y2="300" stroke="#1a73e8" stroke-width="2" marker-end="url(#mu)" />
+<rect x="721.0" y="279" width="58" height="18" rx="4" fill="#ffffff" opacity="0.92"/>
+<text x="750" y="293" font-size="11.5" fill="#1a73e8" text-anchor="middle">页面取数</text>
+<line stroke-dasharray="6 4" x1="1180" y1="287" x2="1220" y2="287" stroke="#9aa0a6" stroke-width="2" marker-end="url(#mg)" />
+<line stroke-dasharray="6 4" x1="430" y1="342" x2="455" y2="432" stroke="#9aa0a6" stroke-width="2" marker-end="url(#mg)" />
+<rect x="401.0" y="381" width="58" height="18" rx="4" fill="#ffffff" opacity="0.92"/>
+<text x="430" y="395" font-size="11.5" fill="#9aa0a6" text-anchor="middle">轨迹页面</text>
+<line x1="610" y1="342" x2="650" y2="432" stroke="#6e7781" stroke-width="2" marker-end="url(#mg)" />
+<rect x="580.0" y="381" width="70" height="18" rx="4" fill="#ffffff" opacity="0.92"/>
+<text x="615" y="395" font-size="11.5" fill="#6e7781" text-anchor="middle">本体、审批</text>
+<line stroke-dasharray="6 4" x1="830" y1="342" x2="720" y2="432" stroke="#9aa0a6" stroke-width="2" marker-end="url(#mg)" />
+<rect x="717.0" y="369" width="106" height="18" rx="4" fill="#ffffff" opacity="0.92"/>
+<text x="770" y="383" font-size="11.5" fill="#9aa0a6" text-anchor="middle">上下文（MCP）</text>
+<line stroke-dasharray="6 4" x1="880" y1="432" x2="880" y2="342" stroke="#9aa0a6" stroke-width="2" marker-end="url(#mg)" />
+<rect x="797.0" y="381" width="166" height="18" rx="4" fill="#ffffff" opacity="0.92"/>
+<text x="880" y="395" font-size="11.5" fill="#9aa0a6" text-anchor="middle">取数 / 上下文 / 模型</text>
+<line x1="1090" y1="342" x2="1090" y2="432" stroke="#1a73e8" stroke-width="2" marker-end="url(#mu)" />
+<rect x="1073.0" y="381" width="34" height="18" rx="4" fill="#ffffff" opacity="0.92"/>
+<text x="1090" y="395" font-size="11.5" fill="#1a73e8" text-anchor="middle">取数</text>
+<line stroke-dasharray="6 4" x1="1100" y1="550" x2="1125" y2="618" stroke="#9aa0a6" stroke-width="2" marker-end="url(#mg)" />
+<rect x="1042.0" y="573" width="106" height="18" rx="4" fill="#ffffff" opacity="0.92"/>
+<text x="1095" y="587" font-size="11.5" fill="#9aa0a6" text-anchor="middle">客户库（MCP）</text>
+<line x1="1170" y1="550" x2="1290" y2="618" stroke="#1a73e8" stroke-width="2" marker-end="url(#mu)" />
+<rect x="1186.0" y="573" width="58" height="18" rx="4" fill="#ffffff" opacity="0.92"/>
+<text x="1215" y="587" font-size="11.5" fill="#1a73e8" text-anchor="middle">只读查询</text>
+<line stroke-dasharray="6 4" x1="1325" y1="550" x2="1325" y2="618" stroke="#9aa0a6" stroke-width="2" marker-end="url(#mg)" />
+<rect x="1336.0" y="573" width="58" height="18" rx="4" fill="#ffffff" opacity="0.92"/>
+<text x="1365" y="587" font-size="11.5" fill="#9aa0a6" text-anchor="middle">物化写入</text>
+<rect x="820" y="748" width="22" height="14" rx="3" fill="#e6f4ea" stroke="#1e8e3e" stroke-width="1.5"/><text x="850" y="760" font-size="12" fill="#59636e">已实现</text><rect x="930" y="748" width="22" height="14" rx="3" fill="#fef7e0" stroke="#e37400" stroke-width="1.5"/><text x="960" y="760" font-size="12" fill="#59636e">部分</text><rect x="820" y="774" width="22" height="14" rx="3" fill="#f6f8fa" stroke="#9aa0a6" stroke-width="1.5" stroke-dasharray="6 4"/><text x="850" y="786" font-size="12" fill="#59636e">未实现</text><line x1="930" y1="781" x2="960" y2="781" stroke="#9aa0a6" stroke-width="2" stroke-dasharray="6 4"/><text x="966" y="786" font-size="12" fill="#59636e">未打通</text>
+<line x1="1060" y1="754" x2="1086" y2="754" stroke="#1a73e8" stroke-width="2.5"/>
+<text x="1092" y="758" font-size="11.5" fill="#59636e">用户：浏览器 → web / bff → AI 网关 → Toolbox → Doris</text>
+<line x1="1060" y1="774" x2="1086" y2="774" stroke="#d93025" stroke-width="2.5"/>
+<text x="1092" y="778" font-size="11.5" fill="#59636e">Agent：经 AI 网关取上下文、取数、调模型</text>
+<line x1="1060" y1="794" x2="1086" y2="794" stroke="#1e8e3e" stroke-width="2.5"/>
+<text x="1092" y="798" font-size="11.5" fill="#59636e">数据进来：Airflow 物化到 Doris、采集到 OM</text>
+<text x="20" y="842" font-size="12" fill="#59636e">令牌：用户经 Keycloak 登录；Agent（及 bff）以 Keycloak 客户端身份做标准令牌交换，得到 sub = 人、azp = Agent、受众收窄的委托令牌（ADR-0013）。</text>
+<text x="20" y="864" font-size="12" fill="#59636e">已定：AI 网关 agentgateway（ADR-0013）；可观测后端 Prometheus + Jaeger + OpenSearch Dashboards。待定：是否多租户另行评估（ADR-0007）。详见 docs/architecture/platform-architecture.md。</text>
+<text x="20" y="905" font-size="12" fill="#59636e">部分实现的内容：Envoy Gateway — 路由已配置，TLS 与限流未配置；web — 最小外壳（登录、设备定义与列表），首页、审批中心、探索资产等在 004 及之后；</text><text x="20" y="925" font-size="12" fill="#59636e">bff — 登录与会话、对象定义与列表，本体写入、审批、轨迹页面、Omnigent 代理未做；Keycloak — 织境客户端与角色已导入，Agent 客户端登记在 002；</text><text x="20" y="945" font-size="12" fill="#59636e">Langfuse — 已接收全链路追踪，人工修订与样本数据集在 006；OpenMetadata — 本体共用字段、hasProperty 与示例对象已就绪，审批工作流、上下文中心、</text><text x="20" y="965" font-size="12" fill="#59636e">OKF、内置 MCP 在 014、016、020；Airflow — 已部署就绪，管线（采集、物化、同步）在 011、019 等。另：可观测后端 Jaeger、Prometheus、OpenSearch Dashboards 已部署（图中未画）。</text><rect x="534" y="84" width="36" height="16" rx="8" fill="#e37400"/><text x="552" y="96" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">部分</text><rect x="1163" y="84" width="47" height="16" rx="8" fill="#9aa0a6"/><text x="1186" y="96" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">未实现</text><rect x="1374" y="174" width="36" height="16" rx="8" fill="#e37400"/><text x="1392" y="186" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">部分</text><rect x="284" y="224" width="36" height="16" rx="8" fill="#e37400"/><text x="302" y="236" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">部分</text><rect x="654" y="224" width="36" height="16" rx="8" fill="#e37400"/><text x="672" y="236" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">部分</text><rect x="1123" y="224" width="47" height="16" rx="8" fill="#1e8e3e"/><text x="1146" y="236" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">已实现</text><rect x="1353" y="244" width="47" height="16" rx="8" fill="#9aa0a6"/><text x="1376" y="256" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">未实现</text><rect x="300" y="424" width="36" height="16" rx="8" fill="#e37400"/><text x="318" y="436" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">部分</text><rect x="510" y="424" width="36" height="16" rx="8" fill="#e37400"/><text x="528" y="436" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">部分</text><rect x="720" y="424" width="36" height="16" rx="8" fill="#e37400"/><text x="738" y="436" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">部分</text><rect x="919" y="424" width="47" height="16" rx="8" fill="#9aa0a6"/><text x="942" y="436" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">未实现</text><rect x="1129" y="424" width="47" height="16" rx="8" fill="#1e8e3e"/><text x="1152" y="436" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">已实现</text><rect x="1350" y="424" width="36" height="16" rx="8" fill="#e37400"/><text x="1368" y="436" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">部分</text><rect x="259" y="610" width="47" height="16" rx="8" fill="#1e8e3e"/><text x="282" y="622" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">已实现</text><rect x="441" y="610" width="47" height="16" rx="8" fill="#1e8e3e"/><text x="464" y="622" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">已实现</text><rect x="623" y="610" width="47" height="16" rx="8" fill="#1e8e3e"/><text x="646" y="622" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">已实现</text><rect x="805" y="610" width="47" height="16" rx="8" fill="#1e8e3e"/><text x="828" y="622" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">已实现</text><rect x="987" y="610" width="47" height="16" rx="8" fill="#1e8e3e"/><text x="1010" y="622" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">已实现</text><rect x="1169" y="610" width="47" height="16" rx="8" fill="#9aa0a6"/><text x="1192" y="622" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">未实现</text><rect x="1351" y="610" width="47" height="16" rx="8" fill="#1e8e3e"/><text x="1374" y="622" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">已实现</text><rect x="393" y="732" width="47" height="16" rx="8" fill="#1e8e3e"/><text x="416" y="744" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">已实现</text><rect x="733" y="732" width="47" height="16" rx="8" fill="#1e8e3e"/><text x="756" y="744" font-size="10.5" fill="#ffffff" text-anchor="middle" font-weight="600">已实现</text></svg>

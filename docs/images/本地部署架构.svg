@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, Helvetica, Arial, sans-serif" role="img" aria-label="织境本地部署架构（001）">
+<defs><marker id="mu" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1a73e8"/></marker><marker id="ma" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d93025"/></marker><marker id="mp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1e8e3e"/></marker><marker id="mg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6e7781"/></marker></defs>
+<rect width="1600" height="1080" fill="#ffffff"/>
+<text x="20" y="34" font-size="22" fill="#1f2328" font-weight="600" text-anchor="start">织境本地部署架构（001 完成，2026-10-22）</text>
+<text x="20" y="58" font-size="13" fill="#59636e" font-weight="normal" text-anchor="start">make up 在本地 kind 集群中部署全部服务（helmfile 编排，deploy/helmfile.yaml.gotmpl）。单租户 tenant_id = local。蓝框为自建服务，白框为开源组件，灰框在集群外。</text>
+<rect x="40" y="80" width="250" height="72" rx="6" fill="#f6f8fa" stroke="#6e7781" stroke-width="1.3"/>
+<text x="165.0" y="113.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">浏览器</text>
+<text x="165.0" y="131.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">织境 Web 用户（测试账号 user1 等）</text>
+<rect x="560" y="80" width="400" height="72" rx="6" fill="#f6f8fa" stroke="#6e7781" stroke-width="1.3"/>
+<text x="760.0" y="106.0" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">Keycloak 26.8.0（集群外，Paperclip 自带）</text>
+<text x="760.0" y="124.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">sso.127.0.0.1.nip.io · realm digital-workforce</text>
+<text x="760.0" y="139.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">织境配置由导入任务增量写入</text>
+<rect x="1230" y="80" width="330" height="72" rx="6" fill="#f6f8fa" stroke="#6e7781" stroke-width="1.3" stroke-dasharray="5 4"/>
+<text x="1395.0" y="113.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">模型服务商（OpenAI 兼容）</text>
+<text x="1395.0" y="131.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">DeepSeek / OpenAI 等 · key 待配置</text>
+<text x="300" y="106" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="start">http://localhost:8080</text>
+<text x="300" y="121" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="start">（宿主机 8080 → 节点 30080）</text>
+<rect x="20" y="166" width="1560" height="846" rx="12" fill="none" stroke="#57606a" stroke-width="1.5"/>
+<text x="36" y="190" font-size="14" fill="#57606a" font-weight="600" text-anchor="start">kind 集群 contexture（1 控制面 + 2 工作节点）</text>
+<rect x="40" y="202" width="1520" height="82" rx="8" fill="#fafbfc" stroke="#d0d7de"/>
+<text x="1548" y="222" font-size="12" fill="#57606a" font-weight="600" text-anchor="end">envoy-gateway-system · cnpg-system · doris-system</text>
+<rect x="70" y="230" width="400" height="46" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="270.0" y="250.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">Envoy 代理（入口，Envoy Gateway v1.9.2）</text>
+<text x="270.0" y="268.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">/ → web · /bff/* → bff · /mcp、/v1 → ai-gateway</text>
+<rect x="610" y="234" width="200" height="38" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="710.0" y="258.0" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">envoy-gateway 控制器</text>
+<rect x="890" y="234" width="290" height="38" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="1035.0" y="258.0" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">CloudNativePG 1.30.1</text>
+<rect x="1240" y="234" width="290" height="38" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="1385.0" y="258.0" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">Doris Operator 25.8.0</text>
+<rect x="40" y="296" width="1520" height="700" rx="10" fill="none" stroke="#d0d7de" stroke-width="1.2" stroke-dasharray="6 4"/>
+<text x="56" y="318" font-size="13" fill="#57606a" font-weight="600" text-anchor="start">命名空间 contexture</text>
+<rect x="70" y="332" width="240" height="74" rx="6" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.3"/>
+<text x="190.0" y="359.0" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">web（自建）</text>
+<text x="190.0" y="377.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">nginx 提供 React 单页</text>
+<text x="190.0" y="392.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">页面 /objects/equipment</text>
+<rect x="370" y="332" width="290" height="74" rx="6" fill="#e8f0fe" stroke="#1a73e8" stroke-width="1.3"/>
+<text x="515.0" y="359.0" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">bff（自建）</text>
+<text x="515.0" y="377.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">OIDC 登录与会话（Cookie）</text>
+<text x="515.0" y="392.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">对象定义 + 对象列表接口</text>
+<rect x="740" y="332" width="330" height="74" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="905.0" y="359.0" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">ai-gateway（agentgateway v1.6.0）</text>
+<text x="905.0" y="377.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">令牌校验（受众 contexture-ai-gateway）</text>
+<text x="905.0" y="392.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">按角色授权工具 · 审计 · 模型网关</text>
+<rect x="1150" y="332" width="380" height="74" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="1340.0" y="359.0" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">mcp-toolbox 1.14.0</text>
+<text x="1340.0" y="377.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">MCP 工具 list_objects（参数化只读查询）</text>
+<text x="1340.0" y="392.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">Doris 只读账号 ctx_reader</text>
+<rect x="56" y="432" width="620" height="172" rx="8" fill="#fafbfc" stroke="#d0d7de"/>
+<text x="68" y="452" font-size="13" fill="#57606a" font-weight="600" text-anchor="start">本体与元数据</text>
+<rect x="76" y="460" width="580" height="54" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="366.0" y="484.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">openmetadata 2.0.3（自建镜像，源码构建）</text>
+<text x="366.0" y="502.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">本体：术语库 quality（设备对象与属性，已审批）· 自定义属性 ctx_* · 关系 hasProperty</text>
+<rect x="76" y="526" width="285" height="64" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="218.5" y="555.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">opensearch 3.4.0</text>
+<text x="218.5" y="573.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">OM 搜索索引 · 服务日志 ctx-logs</text>
+<rect x="371" y="526" width="285" height="64" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="513.5" y="555.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">fuseki 6.2.0</text>
+<text x="513.5" y="573.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">OM 的 RDF 存储</text>
+<rect x="696" y="432" width="848" height="172" rx="8" fill="#fafbfc" stroke="#d0d7de"/>
+<text x="708" y="452" font-size="13" fill="#57606a" font-weight="600" text-anchor="start">数据存储</text>
+<rect x="716" y="460" width="250" height="54" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="841.0" y="484.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">doris-fe 4.1.5</text>
+<text x="841.0" y="502.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">查询入口（MySQL 协议 9030）</text>
+<rect x="716" y="522" width="250" height="72" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="841.0" y="548.0" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">doris-be 4.1.5</text>
+<text x="841.0" y="566.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">本体实例库 ctx_local</text>
+<text x="841.0" y="581.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">表 equipment（10 行示例）</text>
+<rect x="990" y="460" width="534" height="134" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="1257.0" y="517.0" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">PostgreSQL 17.6（pg-1）</text>
+<text x="1257.0" y="535.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">每个组件一个独立 database 与账号：</text>
+<text x="1257.0" y="550.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">openmetadata · langfuse · airflow · bff（会话）</text>
+<rect x="56" y="616" width="620" height="150" rx="8" fill="#fafbfc" stroke="#d0d7de"/>
+<text x="68" y="636" font-size="13" fill="#57606a" font-weight="600" text-anchor="start">决策轨迹（Langfuse 4.63.0）</text>
+<rect x="76" y="644" width="185" height="48" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="168.5" y="665.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">langfuse-web</text>
+<text x="168.5" y="683.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">界面与 API · OTLP 入口</text>
+<rect x="271" y="644" width="185" height="48" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="363.5" y="665.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">langfuse-worker</text>
+<text x="363.5" y="683.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">异步处理</text>
+<rect x="466" y="644" width="190" height="48" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="561.0" y="665.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">clickhouse 26.9</text>
+<text x="561.0" y="683.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">轨迹存储（单节点）</text>
+<rect x="76" y="702" width="285" height="48" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="218.5" y="723.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">langfuse-redis（Valkey 8.0）</text>
+<text x="218.5" y="741.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">缓存与队列</text>
+<rect x="371" y="702" width="285" height="48" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="513.5" y="723.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">langfuse-s3（SeaweedFS 4.23）</text>
+<text x="513.5" y="741.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">对象存储</text>
+<rect x="696" y="616" width="848" height="150" rx="8" fill="#fafbfc" stroke="#d0d7de"/>
+<text x="708" y="636" font-size="13" fill="#57606a" font-weight="600" text-anchor="start">管线编排（Airflow 3.3.2，KubernetesExecutor）</text>
+<text x="1532" y="636" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="end">001 只验证就绪，管线在后续特性中加入</text>
+<rect x="716" y="644" width="400" height="48" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="916.0" y="665.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">airflow-api-server</text>
+<text x="916.0" y="683.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">界面与 REST API</text>
+<rect x="1126" y="644" width="398" height="48" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="1325.0" y="673.0" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">airflow-scheduler</text>
+<rect x="716" y="702" width="400" height="48" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="916.0" y="731.0" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">airflow-dag-processor</text>
+<rect x="1126" y="702" width="398" height="48" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="1325.0" y="731.0" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">airflow-triggerer</text>
+<rect x="56" y="784" width="1488" height="196" rx="8" fill="#fafbfc" stroke="#d0d7de"/>
+<text x="68" y="804" font-size="13" fill="#57606a" font-weight="600" text-anchor="start">可观测（D10 选定）</text>
+<rect x="76" y="812" width="360" height="72" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="256.0" y="838.0" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">otel-collector 0.163.1（网关）</text>
+<text x="256.0" y="856.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">接收各服务 OTLP；补租户与用户属性</text>
+<text x="256.0" y="871.0" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">追踪 → Langfuse、Jaeger；指标 → Prometheus</text>
+<rect x="76" y="894" width="360" height="54" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="256.0" y="918.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">otel-collector-agent（每个节点一份）</text>
+<text x="256.0" y="936.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">采集各 Pod 标准输出日志 → OpenSearch</text>
+<rect x="466" y="812" width="290" height="58" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="611.0" y="838.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">jaeger 2.22.0</text>
+<text x="611.0" y="856.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">服务追踪查看（内存存储）</text>
+<rect x="786" y="812" width="290" height="58" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="931.0" y="838.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">prometheus v3.15.0</text>
+<text x="931.0" y="856.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">抓取 otel-collector、ai-gateway 指标</text>
+<rect x="1106" y="812" width="418" height="58" rx="6" fill="#ffffff" stroke="#8c959f" stroke-width="1.3"/>
+<text x="1315.0" y="838.5" font-size="13" fill="#1f2328" font-weight="600" text-anchor="middle">opensearch-dashboards 3.4.0</text>
+<text x="1315.0" y="856.5" font-size="11.5" fill="#59636e" font-weight="normal" text-anchor="middle">查看服务日志（索引 ctx-logs，可按 trace 检索）</text>
+<text x="466" y="902" font-size="12" fill="#59636e" font-weight="normal" text-anchor="start">发送追踪的服务：入口 Envoy、bff、ai-gateway、mcp-toolbox（同一 trace 编号贯穿全链路，见页面底部）</text>
+<text x="466" y="922" font-size="12" fill="#59636e" font-weight="normal" text-anchor="start">本机查看：make ports → Langfuse :3000 · Jaeger :16686 · Prometheus :9090 · Dashboards :5601 · OM :8585 · Airflow :8081</text>
+<text x="466" y="942" font-size="12" fill="#59636e" font-weight="normal" text-anchor="start">一次性任务（Job）：keycloak 配置导入 · doris 初始化（库、只读账号、workload group）· bff 会话库迁移（Alembic）</text>
+<text x="466" y="962" font-size="12" fill="#59636e" font-weight="normal" text-anchor="start">make seed：在 OM 建并审批“设备”对象与属性；在 Doris 写入 10 台设备；为 bff 写入 OM 机器人令牌</text>
+<path d="M 165 152 L 165 228" fill="none" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#mu)"/>
+<path d="M 190 276 L 190 330" fill="none" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#mu)"/>
+<path d="M 400 276 L 460 330" fill="none" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#mu)"/>
+<path d="M 470 262 C 600 270, 740 290, 800 330" fill="none" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#mu)"/>
+<text x="640" y="300" font-size="11.5" fill="#1a73e8" font-weight="normal" text-anchor="start">/mcp、/v1：外部 Agent 平台</text>
+<path d="M 660 369 L 738 369" fill="none" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#mu)"/>
+<text x="699" y="361" font-size="11.5" fill="#1a73e8" font-weight="normal" text-anchor="middle">MCP</text>
+<path d="M 1070 369 L 1148 369" fill="none" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#mu)"/>
+<text x="1109" y="361" font-size="11.5" fill="#1a73e8" font-weight="normal" text-anchor="middle">MCP</text>
+<path d="M 1300 406 C 1260 430, 1020 440, 920 458" fill="none" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#mu)"/>
+<text x="1320" y="428" font-size="11.5" fill="#1a73e8" font-weight="normal" text-anchor="start">SQL（只读账号）</text>
+<path d="M 470 406 L 400 458" fill="none" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#mu)"/>
+<text x="452" y="436" font-size="11.5" fill="#1a73e8" font-weight="normal" text-anchor="start">REST：已审批对象定义</text>
+<path d="M 640 406 C 760 430, 1060 430, 1180 458" fill="none" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#mu)"/>
+<text x="1150" y="447" font-size="11.5" fill="#1a73e8" font-weight="normal" text-anchor="middle">会话</text>
+<path d="M 540 332 L 540 190 C 540 166, 570 156, 600 154" fill="none" stroke="#d93025" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ma)"/>
+<text x="548" y="222" font-size="11.5" fill="#d93025" font-weight="normal" text-anchor="start">登录（授权码 + PKCE）、令牌交换</text>
+<path d="M 850 332 L 850 154" fill="none" stroke="#d93025" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ma)"/>
+<text x="858" y="178" font-size="11.5" fill="#d93025" font-weight="normal" text-anchor="start">JWKS 验签</text>
+<path d="M 1040 332 C 1120 316, 1210 306, 1210 286 L 1210 186 C 1210 166, 1260 156, 1300 154" fill="none" stroke="#1e8e3e" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#mp)"/>
+<text x="1200" y="200" font-size="11.5" fill="#1e8e3e" font-weight="normal" text-anchor="end">模型调用（厂商 key 只在网关）</text>
+<path d="M 436 840 L 464 840" fill="none" stroke="#6e7781" stroke-width="1.6" stroke-dasharray="3 3" marker-end="url(#mg)"/>
+<path d="M 40 1044 L 80 1044" stroke="#1a73e8" stroke-width="1.6" marker-end="url(#mu)"/>
+<text x="88" y="1048" font-size="12" fill="#59636e" font-weight="normal" text-anchor="start">业务请求</text>
+<path d="M 180 1044 L 220 1044" stroke="#d93025" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ma)"/>
+<text x="228" y="1048" font-size="12" fill="#59636e" font-weight="normal" text-anchor="start">身份与令牌（Keycloak）</text>
+<path d="M 420 1044 L 460 1044" stroke="#1e8e3e" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#mp)"/>
+<text x="468" y="1048" font-size="12" fill="#59636e" font-weight="normal" text-anchor="start">模型调用</text>
+<path d="M 560 1044 L 600 1044" stroke="#6e7781" stroke-width="1.6" stroke-dasharray="3 3" marker-end="url(#mg)"/>
+<text x="608" y="1048" font-size="12" fill="#59636e" font-weight="normal" text-anchor="start">遥测（追踪、日志、指标）</text>
+<rect x="800" y="1035" width="22" height="16" rx="3" fill="#e8f0fe" stroke="#1a73e8"/>
+<text x="830" y="1048" font-size="12" fill="#59636e" font-weight="normal" text-anchor="start">自建服务</text>
+<rect x="910" y="1035" width="22" height="16" rx="3" fill="#ffffff" stroke="#8c959f"/>
+<text x="940" y="1048" font-size="12" fill="#59636e" font-weight="normal" text-anchor="start">开源组件（版本锁定，见 deploy/components/*/component.yaml）</text>
+<rect x="1330" y="1035" width="22" height="16" rx="3" fill="#f6f8fa" stroke="#6e7781"/>
+<text x="1360" y="1048" font-size="12" fill="#59636e" font-weight="normal" text-anchor="start">集群外</text>
+</svg>

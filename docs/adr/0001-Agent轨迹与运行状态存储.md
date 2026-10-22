@@ -3,7 +3,7 @@
 - 状态：已接受
 - 日期：2026-10-03
 - 决策人：@stephenhuo-code
-- 影响特性：001、002、014、010、015、009、023，二期自演进
+- 影响特性：001、002、009、006、010、014、023，二期自演进
 - 相关宪法条款：II（状态外置）、III（开源许可）、IV（身份、审计、只用已审批内容）、V（可观测性）
 
 ## 背景
@@ -101,9 +101,9 @@
 
 - 001：在 OTel 规范中定稿关联属性名；Collector 开启持久化队列；Langfuse 纳入 Helm 与离线包。
 - 002：Langfuse project 的初始化（Phase 1 单租户，一个 project）。
-- 010：按本 ADR 实现轨迹采集、人工修订写回、Datasets 导出。
+- 006：按本 ADR 实现轨迹采集、人工修订写回、Datasets 导出。
 - 023：推送到飞书的草稿携带 `trace_id`；spike 验证 Omnigent 的轨迹以 OTLP 进入 Langfuse 的呈现。
-- 014 内部 Agent 运行时（见 ADR-0002）：在 Omnigent 中实现 `agent_run` / `agent_rollout` 与恢复逻辑。
+- 009 内部 Agent 运行时（见 ADR-0002）：在 Omnigent 中实现 `agent_run` / `agent_rollout` 与恢复逻辑。
 
 ## 修订（2026-10-07，见 ADR-0012）
 
