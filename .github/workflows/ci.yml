@@ -65,12 +65,14 @@ jobs:
         with:
           fetch-depth: 0
       - name: oasdiff breaking
+        # 取出目标分支的整个 contracts/：契约以相对路径引用 schemas/，只取单个文件会解析失败
         run: |
           mkdir -p /tmp/base
+          git archive "origin/${{ github.base_ref }}" contracts | tar -x -C /tmp/base
           for spec in contracts/openapi/*.yaml; do
-            if git show "origin/${{ github.base_ref }}:$spec" > "/tmp/base/$(basename "$spec")" 2>/dev/null; then
+            if [[ -f "/tmp/base/$spec" ]]; then
               docker run --rm -v "$PWD:/head" -v /tmp/base:/base "$OASDIFF_IMAGE" \
-                breaking "/base/$(basename "$spec")" "/head/$spec" --fail-on ERR
+                breaking "/base/$spec" "/head/$spec" --fail-on ERR
             else
               echo "新增契约：$spec"
             fi
