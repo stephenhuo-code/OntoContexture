@@ -1,0 +1,82 @@
+"""模拟 QMS（PostgreSQL，database `qms`）。"""
+
+from mockfactory.schema.base import Table, table
+
+S = "qms"
+
+TABLES: list[Table] = [
+    table(
+        S, "customer", "客户", ("customer_code",),
+        ("customer_code", "code", "客户编码"),
+        ("name", "name", "客户名称（合成）"),
+    ),
+    table(
+        S, "defect_code", "缺陷码（两级）", ("code",),
+        ("code", "code", "缺陷码，如 D101"),
+        ("name", "name", "缺陷名称"),
+        ("category", "name", "缺陷类别"),
+        ("parent_code", "code", "上级缺陷码（一级为空）"),
+    ),
+    table(
+        S, "inspection_item", "检验项（含公差）", ("item_code",),
+        ("item_code", "code", "检验项编码"),
+        ("name", "name", "检验项名称"),
+        ("insp_type", "name", "检验类型：来料、过程、终检"),
+        ("op_code", "code", "适用工序编码（来料检验为空）"),
+        ("material_code", "code", "适用物料编码（过程与终检为产品）"),
+        ("target", "dec", "目标值"),
+        ("lower_limit", "dec", "下限"),
+        ("upper_limit", "dec", "上限"),
+        ("unit", "code", "单位"),
+    ),
+    table(
+        S, "inspection_record", "检验单（来料、过程、终检）", ("insp_no",),
+        ("insp_no", "code", "检验单号"),
+        ("insp_type", "name", "检验类型：来料、过程、终检"),
+        ("batch_no", "code", "成品批次号（来料检验为空）"),
+        ("lot_no", "code", "物料批次号（仅来料检验）"),
+        ("op_code", "code", "工序编码（来料检验为空）"),
+        ("equip_code", "code", "加工设备编号（来料检验为空）"),
+        ("inspected_at", "datetime", "检验时间"),
+        ("inspector_no", "code", "检验员工号"),
+        ("sample_qty", "int", "抽样数量"),
+        ("result", "name", "判定：合格、不合格"),
+    ),
+    table(
+        S, "inspection_value", "检验实测值", ("insp_no", "item_code", "sample_seq"),
+        ("insp_no", "code", "检验单号"),
+        ("item_code", "code", "检验项编码"),
+        ("sample_seq", "int", "样本序号"),
+        ("measured_value", "dec", "实测值（探伤类：0 无缺陷，1 有缺陷）"),
+        ("judgement", "name", "单值判定：合格、不合格"),
+    ),
+    table(
+        S, "ncr", "不合格报告（客诉、内部、来料）", ("ncr_no",),
+        ("ncr_no", "code", "NCR 号，如 NCR-2609-0901"),
+        ("source", "name", "来源：客诉、内部、来料"),
+        ("batch_no", "code", "涉及的成品批次号"),
+        ("lot_no", "code", "涉及的物料批次号"),
+        ("product_code", "code", "产品物料编码"),
+        ("defect_code", "code", "缺陷码"),
+        ("qty", "int", "不合格数量"),
+        ("found_at", "datetime", "发现时间"),
+        ("reported_by", "code", "报告人工号"),
+        ("responsible_op", "code", "责任工序编码"),
+        ("customer_code", "code", "客户编码（客诉时填写）"),
+        ("status", "name", "状态：处理中、已关闭"),
+        ("description", "text", "问题描述"),
+    ),
+    table(
+        S, "eight_d", "8D 报告", ("report_no",),
+        ("report_no", "code", "8D 报告号"),
+        ("ncr_no", "code", "对应 NCR 号"),
+        ("leader_no", "code", "8D 组长工号"),
+        ("root_cause_category", "name", "根因类别：人、机、料、法、测、环"),
+        ("root_cause", "text", "根本原因"),
+        ("containment", "text", "围堵措施"),
+        ("corrective_action", "text", "纠正措施"),
+        ("opened_at", "datetime", "开立时间"),
+        ("closed_at", "datetime", "关闭时间（未关闭为空）"),
+        ("status", "name", "状态：进行中、已关闭"),
+    ),
+]  # fmt: skip

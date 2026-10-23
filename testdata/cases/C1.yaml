@@ -1,0 +1,87 @@
+# 标准答案（金标准，人工维护）：生成数据须与之一致，由 verify-cases 与测试核对
+id: C1
+scenario: P1
+title: 设备故障追溯：精车主轴轴承磨损导致外径超差
+story: >-
+  2026-09-22，客户星川汽车（C02）来料检验发现法兰盘外径超差，退回并开出客诉 NCR-2609-0901。
+  追溯发现：2 号线精车设备 L2-CNC-03 的主轴前轴承磨损，09-11 凌晨乙班在这台设备上精车的 3 个批次外径逐批偏大，
+  过程检验记录了超差值却未拦截，终检外径公差又被误设为 ±0.03（图纸为 ±0.02），因此放行。
+  这台设备 09-08 已有振动预警但无人处理，09-12 凌晨主轴异响停机后才更换轴承。
+entry:
+  kind: ncr_no
+  value: NCR-2609-0901
+steps:
+  - description: 从客诉 NCR 入手：涉及批次、缺陷与责任工序
+    system: qms
+    sql: >-
+      SELECT ncr_no, source, batch_no, defect_code, responsible_op, customer_code
+      FROM ncr WHERE ncr_no = 'NCR-2609-0901'
+    expected:
+      columns:
+        [ncr_no, source, batch_no, defect_code, responsible_op, customer_code]
+      rows:
+        - [NCR-2609-0901, 客诉, B260911-L2-03, D101, L2-OP30, C02]
+  - description: 该批次的精车报工：哪台设备、谁、哪个班
+    system: mes
+    sql: >-
+      SELECT equip_code, operator_no, team_code, shift, started_at
+      FROM operation_report WHERE batch_no = 'B260911-L2-03' AND op_code = 'L2-OP30'
+    expected:
+      columns: [equip_code, operator_no, team_code, shift, started_at]
+      rows:
+        - [L2-CNC-03, E0047, L2-B, 夜班, "2026-09-11 04:38:00"]
+  - description: 同一设备在同一班次（09-10 20:00 至 09-11 08:00）精车的全部批次
+    system: mes
+    sql: >-
+      SELECT batch_no, started_at FROM operation_report
+      WHERE equip_code = 'L2-CNC-03' AND op_code = 'L2-OP30'
+        AND started_at >= '2026-09-10 20:00:00' AND started_at < '2026-09-11 08:00:00'
+      ORDER BY started_at
+    expected:
+      columns: [batch_no, started_at]
+      rows:
+        - [B260911-L2-02, "2026-09-11 03:46:00"]
+        - [B260911-L2-03, "2026-09-11 04:38:00"]
+        - [B260911-L2-04, "2026-09-11 05:30:00"]
+  - description: 这 3 个批次精车过程检验中超差（> 80.020）的外径实测值
+    system: qms
+    sql: >-
+      SELECT r.batch_no, v.sample_seq, v.measured_value
+      FROM inspection_record r JOIN inspection_value v ON v.insp_no = r.insp_no
+      WHERE r.batch_no IN ('B260911-L2-02', 'B260911-L2-03', 'B260911-L2-04')
+        AND r.op_code = 'L2-OP30' AND v.item_code = 'I-L2-OD80' AND v.judgement = '不合格'
+      ORDER BY r.batch_no, v.sample_seq
+    expected:
+      columns: [batch_no, sample_seq, measured_value]
+      rows:
+        - [B260911-L2-02, 3, 80.021]
+        - [B260911-L2-02, 5, 80.022]
+        - [B260911-L2-03, 2, 80.023]
+        - [B260911-L2-03, 4, 80.024]
+        - [B260911-L2-03, 5, 80.021]
+        - [B260911-L2-04, 1, 80.022]
+        - [B260911-L2-04, 2, 80.026]
+        - [B260911-L2-04, 3, 80.024]
+        - [B260911-L2-04, 4, 80.027]
+        - [B260911-L2-04, 5, 80.025]
+  - description: 这台设备此前与之后的异常记录（预警无人处理）
+    system: mes
+    sql: >-
+      SELECT event_time, event_type, alarm_code, handled_by FROM equipment_event
+      WHERE equip_code = 'L2-CNC-03' AND event_type IN ('预警', '停机', '维修')
+      ORDER BY event_time
+    expected:
+      columns: [event_time, event_type, alarm_code, handled_by]
+      rows:
+        - ["2026-09-08 10:15:00", 预警, SP-VIB, null]
+        - ["2026-09-12 02:30:00", 停机, SP-STOP, E0072]
+        - ["2026-09-12 09:30:00", 维修, null, E0072]
+  - description: 当班班组长
+    system: mes
+    sql: >-
+      SELECT emp_no, position, team_code FROM employee
+      WHERE team_code = 'L2-B' AND position = '班组长'
+    expected:
+      columns: [emp_no, position, team_code]
+      rows:
+        - [E0046, 班组长, L2-B]

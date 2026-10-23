@@ -1,0 +1,15 @@
+# 模拟 QMS：单实例 PostgreSQL；超级用户凭证来自 Secret mock-qms-superuser（testdata/deploy/secrets.sh 生成）
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: mock-qms
+spec:
+  instances: 1
+  imageName: ghcr.io/cloudnative-pg/postgresql:17.6-standard-bookworm
+  enableSuperuserAccess: true
+  superuserSecret: { name: mock-qms-superuser }
+  storage:
+    size: {{ .Values.storage }}
+  resources:
+    requests: { cpu: 100m, memory: {{ .Values.memory }} }
+    limits: { memory: {{ .Values.memory }} }

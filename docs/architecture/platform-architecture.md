@@ -24,6 +24,9 @@
 
 ![织境本地部署架构（001）](../images/本地部署架构.svg)
 
+003 起，执行 `make mock-data` 后本地环境另有命名空间 `mock-sources`（模拟 MES：MySQL；模拟 QMS：PostgreSQL）与 Doris 中的 `mock_dw` 库（模拟数仓），
+作为模拟的客户系统供开发与测试，不属于平台服务，也不进入交付物（见 `testdata/README.md`）。
+
 文字版：
 
 ```text

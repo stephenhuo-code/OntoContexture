@@ -1,0 +1,43 @@
+# 标准答案（金标准，人工维护）：生成数据须与之一致，由 verify-cases 与测试核对
+id: C3
+scenario: P2
+title: 一次合格率口径分歧：上个月 2 号线一次合格率是多少
+story: >-
+  业务问“2026 年 9 月 2 号线的一次合格率”。帆软现有报表（数据来自数仓 dws_line_monthly_quality）按
+  “（首次合格 + 返工后合格）÷ 投入”计算，得到 99.89%；按严格口径“首次合格 ÷ 投入”只有 98.69%。
+  两个口径都以终检工序（L2-OP60）的报工为准。指标审批要先定下用哪一个。
+entry:
+  kind: metric
+  value: 2 号线 2026-09 一次合格率
+steps:
+  - description: 从 MES 明细汇总 2 号线 9 月终检的投入、首次合格、返工后合格与报废数量
+    system: mes
+    sql: >-
+      SELECT SUM(input_qty) AS input_qty, SUM(good_qty) AS first_pass_qty,
+             SUM(rework_qty) AS rework_ok_qty, SUM(scrap_qty) AS scrap_qty
+      FROM operation_report
+      WHERE op_code = 'L2-OP60' AND started_at >= '2026-09-01' AND started_at < '2026-10-01'
+    expected:
+      columns: [input_qty, first_pass_qty, rework_ok_qty, scrap_qty]
+      rows:
+        - [60000, 59213, 720, 67]
+  - description: 两种口径的一次合格率（由明细计算）
+    system: mes
+    sql: >-
+      SELECT ROUND((SUM(good_qty) + SUM(rework_qty)) / SUM(input_qty), 4) AS fpy_incl_rework,
+             ROUND(SUM(good_qty) / SUM(input_qty), 4) AS fpy_strict
+      FROM operation_report
+      WHERE op_code = 'L2-OP60' AND started_at >= '2026-09-01' AND started_at < '2026-10-01'
+    expected:
+      columns: [fpy_incl_rework, fpy_strict]
+      rows:
+        - [0.9989, 0.9869]
+  - description: 帆软报表的数据源（数仓月汇总）与明细一致
+    system: dw
+    sql: >-
+      SELECT stat_month, input_qty, fpy_incl_rework, fpy_strict FROM dws_line_monthly_quality
+      WHERE line_code = 'L2' AND stat_month = '2026-09'
+    expected:
+      columns: [stat_month, input_qty, fpy_incl_rework, fpy_strict]
+      rows:
+        - ["2026-09", 60000, 0.9989, 0.9869]

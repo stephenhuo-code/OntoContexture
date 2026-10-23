@@ -254,3 +254,19 @@ releases:
     chart: charts/web
     labels: { component: web }
     needs: [contexture/gateway]
+
+  # ---------- 模拟源系统（003）：开发测试设施，不进入交付物；离线模式不安装 ----------
+  # 不随 make up 部署（tools/up.sh 以 -l 'group!=mock-sources' 排除）；由 make mock-data 以 -l group=mock-sources 按需同步，
+  # 凭证由 testdata/deploy/secrets.sh 生成
+  - name: mock-mes
+    namespace: mock-sources
+    chart: ../testdata/deploy/mes
+    labels: { group: mock-sources }
+    installed: {{ not $offline }}
+
+  - name: mock-qms
+    namespace: mock-sources
+    chart: ../testdata/deploy/qms
+    labels: { group: mock-sources }
+    needs: [cnpg-system/cnpg]
+    installed: {{ not $offline }}

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contexture.local/schemas/mockfactory/case-answer.json",
+  "title": "模拟工厂案例标准答案",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "scenario", "title", "story", "entry", "steps"],
+  "properties": {
+    "id": { "type": "string", "pattern": "^C[0-9]+$", "description": "案例编号，如 C1" },
+    "scenario": { "enum": ["P1", "P2"], "description": "对应 POC 场景" },
+    "title": { "type": "string", "minLength": 1 },
+    "story": { "type": "string", "minLength": 1, "description": "故事背景，产品负责人可读" },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "value"],
+      "properties": {
+        "kind": { "enum": ["ncr_no", "batch_no", "lot_no", "metric"] },
+        "value": { "type": "string", "minLength": 1 }
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["description", "system", "sql", "expected"],
+        "properties": {
+          "description": { "type": "string", "minLength": 1 },
+          "system": { "enum": ["mes", "qms", "dw"] },
+          "sql": { "type": "string", "minLength": 1, "description": "只读查询；结果按 expected.order_by 排序后比对" },
+          "expected": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["columns", "rows"],
+            "properties": {
+              "columns": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+              "rows": { "type": "array", "items": { "type": "array" } },
+              "order_by": { "type": "array", "items": { "type": "string" } },
+              "tolerance": { "type": "number", "minimum": 0, "description": "数值列允许的绝对误差，默认 0" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

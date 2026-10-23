@@ -1,0 +1,86 @@
+# 标准答案（金标准，人工维护）：生成数据须与之一致，由 verify-cases 与测试核对
+id: C2
+scenario: P1
+title: 来料不良追溯：毛坯硬度偏低导致热处理裂纹
+story: >-
+  2026-09-15 至 09-17，1 号线终检磁粉探伤连续 4 个批次发现裂纹，09-18 开出内部 NCR-2609-0902。
+  追溯发现：这些批次都使用了供应商 S03 的毛坯批次 ML260902-901，来料检验虽合格，但硬度全部在下限 28 HRC 附近。
+  同一物料批次一共投给了 6 个工单，其中 2 个批次终检时尚未发现问题，也要冻结并全检。
+entry:
+  kind: ncr_no
+  value: NCR-2609-0902
+steps:
+  - description: 从内部 NCR 入手：涉及批次、物料批次与缺陷
+    system: qms
+    sql: >-
+      SELECT ncr_no, source, batch_no, lot_no, defect_code, qty
+      FROM ncr WHERE ncr_no = 'NCR-2609-0902'
+    expected:
+      columns: [ncr_no, source, batch_no, lot_no, defect_code, qty]
+      rows:
+        - [NCR-2609-0902, 内部, B260917-L1-01, ML260902-901, D301, 16]
+  - description: 该批次投入的毛坯物料批次
+    system: mes
+    sql: >-
+      SELECT lot_no, material_code FROM material_consumption
+      WHERE batch_no = 'B260917-L1-01' AND material_code = 'M-FG-110'
+    expected:
+      columns: [lot_no, material_code]
+      rows:
+        - [ML260902-901, M-FG-110]
+  - description: 物料批次的来源：供应商与供应商批次
+    system: mes
+    sql: >-
+      SELECT supplier_code, supplier_lot_no, received_at FROM material_lot
+      WHERE lot_no = 'ML260902-901'
+    expected:
+      columns: [supplier_code, supplier_lot_no, received_at]
+      rows:
+        - [S03, SL-S03-260828, "2026-09-02 10:00:00"]
+  - description: 同一物料批次的全部流向（含尚未发现问题的工单）
+    system: mes
+    sql: >-
+      SELECT wo_no, batch_no FROM material_consumption
+      WHERE lot_no = 'ML260902-901' ORDER BY batch_no
+    expected:
+      columns: [wo_no, batch_no]
+      rows:
+        - [WO2609-0561, B260915-L1-01]
+        - [WO2609-0562, B260915-L1-02]
+        - [WO2609-0601, B260916-L1-01]
+        - [WO2609-0602, B260916-L1-02]
+        - [WO2609-0641, B260917-L1-01]
+        - [WO2609-0642, B260917-L1-02]
+  - description: 这 6 个批次终检磁粉探伤的结果与裂纹件数
+    system: qms
+    sql: >-
+      SELECT r.batch_no, r.result, CAST(SUM(v.measured_value) AS INTEGER) AS cracks
+      FROM inspection_record r JOIN inspection_value v
+        ON v.insp_no = r.insp_no AND v.item_code = 'I-L1-MT'
+      WHERE r.batch_no IN ('B260915-L1-01', 'B260915-L1-02', 'B260916-L1-01',
+                           'B260916-L1-02', 'B260917-L1-01', 'B260917-L1-02')
+      GROUP BY r.batch_no, r.result ORDER BY r.batch_no
+    expected:
+      columns: [batch_no, result, cracks]
+      rows:
+        - [B260915-L1-01, 不合格, 2]
+        - [B260915-L1-02, 不合格, 1]
+        - [B260916-L1-01, 不合格, 2]
+        - [B260916-L1-02, 合格, 0]
+        - [B260917-L1-01, 不合格, 2]
+        - [B260917-L1-02, 合格, 0]
+  - description: 该物料批次的来料检验：硬度全部在下限 28 HRC 附近
+    system: qms
+    sql: >-
+      SELECT v.sample_seq, v.measured_value, v.judgement
+      FROM inspection_record r JOIN inspection_value v ON v.insp_no = r.insp_no
+      WHERE r.lot_no = 'ML260902-901' AND v.item_code = 'I-FG-HRC'
+      ORDER BY v.sample_seq
+    expected:
+      columns: [sample_seq, measured_value, judgement]
+      rows:
+        - [1, 28.4, 合格]
+        - [2, 28.7, 合格]
+        - [3, 28.3, 合格]
+        - [4, 28.9, 合格]
+        - [5, 28.5, 合格]
