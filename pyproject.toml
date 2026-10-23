@@ -8,7 +8,7 @@ requires-python = ">=3.12,<3.13"
 package = false
 
 [tool.uv.workspace]
-members = ["packages/py-core", "services/bff", "tools"]
+members = ["packages/py-core", "services/bff", "tools", "testdata"]
 
 [tool.uv.sources]
 contexture-core = { workspace = true }
@@ -47,11 +47,13 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["contexture_core", "contexture_bff", "tools"]
+known-first-party = ["contexture_core", "contexture_bff", "tools", "mockfactory"]
 
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S101", "S105", "S106", "S107", "S603", "S607"]
 "tests/**" = ["S101", "S105", "S106", "S107", "S603", "S607"]
+# 模拟工厂写入：SQL 中的库名、表名、列名均来自表定义常量，值经驱动参数化
+"testdata/mockfactory/load/*.py" = ["S608"]
 
 [tool.pyright]
 pythonVersion = "3.12"
@@ -62,12 +64,12 @@ reportUnknownVariableType = "warning"
 reportUnknownArgumentType = "warning"
 # 当前 typeshed 把 contextlib 的装饰器标为弃用（误报），降为警告
 reportDeprecated = "warning"
-include = ["packages", "services", "tools", "deploy/components", "tests"]
-extraPaths = ["tests", "services/bff/tests"]
+include = ["packages", "services", "tools", "deploy/components", "tests", "testdata"]
+extraPaths = ["tests", "services/bff/tests", "testdata", "testdata/tests"]
 exclude = ["**/node_modules", "**/.venv", "third_party"]
 
 [tool.pytest.ini_options]
-testpaths = ["packages/py-core/tests", "services/bff/tests", "tools/tests", "deploy/components"]
+testpaths = ["packages/py-core/tests", "services/bff/tests", "tools/tests", "testdata/tests", "deploy/components"]
 asyncio_mode = "auto"
 markers = [
   "integration: 需要 Docker 的集成测试",
@@ -75,10 +77,10 @@ markers = [
 ]
 addopts = "--import-mode=importlib -m 'not cluster'"
 # 共享测试支持代码：tests/support（import support.keycloak）
-pythonpath = ["tests", "services/bff/tests"]
+pythonpath = ["tests", "services/bff/tests", "testdata/tests"]
 
 [tool.coverage.run]
-source = ["packages/py-core/src", "services/bff/src", "tools"]
+source = ["packages/py-core/src", "services/bff/src", "tools", "testdata/mockfactory"]
 omit = ["*/tests/*"]
 
 [tool.coverage.report]
