@@ -4,6 +4,8 @@ config:
   logging:
     format: json
   readinessAddr: 0.0.0.0:15021
+  # 管理界面只监听 Pod 内本机地址，经 make ports 的端口转发访问；只读（UI_READ_ONLY），配置以仓库为准
+  adminAddr: 127.0.0.1:15000
 
 frontendPolicies:
   # 审计：每次调用记录人、调用方、工具、参数摘要与 trace（宪法 IV Phase 1：取数入口 MUST 记录每一次调用）

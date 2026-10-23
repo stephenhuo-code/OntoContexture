@@ -35,7 +35,8 @@ dev = [
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-extend-exclude = ["third_party"]
+# docs/ 下的脚本为文档素材（如架构图生成脚本），不做代码检查
+extend-exclude = ["third_party", "docs"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S", "N", "SIM", "RUF"]

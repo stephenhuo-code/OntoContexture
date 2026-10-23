@@ -30,6 +30,7 @@ spec:
             - { name: KEYCLOAK_ISSUER, value: {{ .Values.keycloakIssuer | quote }} }
             - { name: TOOLBOX_MCP_URL, value: {{ .Values.toolboxMcpUrl | quote }} }
             - { name: OTEL_COLLECTOR_GRPC, value: {{ .Values.otelCollectorGrpc | quote }} }
+            - { name: UI_READ_ONLY, value: "true" }
             - name: MODEL_HOST
               valueFrom: { secretKeyRef: { name: {{ .Values.modelSecret }}, key: host } }
             - name: MODEL_NAME
