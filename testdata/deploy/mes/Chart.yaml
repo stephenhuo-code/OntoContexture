@@ -1,0 +1,6 @@
+apiVersion: v2
+name: mock-mes
+description: 模拟 MES（MySQL 8.4 LTS 官方镜像）；开发测试设施，不进入交付物（specs/003-mock-factory-data/research.md R4）
+type: application
+version: 0.1.0
+appVersion: "8.4.13"

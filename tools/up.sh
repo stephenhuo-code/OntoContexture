@@ -126,10 +126,11 @@ fi
 
 # ---------- 5. 部署 ----------
 log "helmfile sync（环境：$ENV）"
+# 模拟源系统（003）不随 make up 部署，由 make mock-data 按需部署；这里排除而非设为不安装，以免卸载已有的模拟库
 if [[ -n $OFFLINE ]]; then
-  helmfile -f deploy/helmfile.yaml.gotmpl -e "$ENV" sync --skip-deps
+  helmfile -f deploy/helmfile.yaml.gotmpl -e "$ENV" -l 'group!=mock-sources' sync --skip-deps
 else
-  helmfile -f deploy/helmfile.yaml.gotmpl -e "$ENV" sync
+  helmfile -f deploy/helmfile.yaml.gotmpl -e "$ENV" -l 'group!=mock-sources' sync
 fi
 
 # ---------- 6. 组件配置（需服务就绪后经 API 写入） ----------
@@ -137,8 +138,8 @@ log "OpenMetadata：本体共用字段与关系类型"
 kubectl -n "$NS" port-forward svc/openmetadata 8585:8585 >/dev/null 2>&1 &
 PF=$!
 for _ in $(seq 1 30); do curl -sf -o /dev/null http://localhost:8585/api/v1/system/version && break; sleep 2; done
-SSL_CERT_FILE="$CA" uv run python -m tools.om_config --om-url http://localhost:8585 || { kill $PF; exit 1; }
-kill $PF
+SSL_CERT_FILE="$CA" uv run python -m tools.om_config --om-url http://localhost:8585 || { kill $PF 2>/dev/null; exit 1; }
+kill $PF 2>/dev/null || true  # 端口转发可能已自行退出
 
 # ---------- 7. 冒烟测试 ----------
 log "冒烟测试"
