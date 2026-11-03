@@ -1,9 +1,11 @@
 # ADR-0001 Agent 轨迹与运行状态存储
 
+> 特性编号已按 2026-10-31 开发计划迁移表同步；ADR 文档编号不变，已验收规格保留历史编号。
+
 - 状态：已接受
 - 日期：2026-10-03
 - 决策人：@stephenhuo-code
-- 影响特性：001、002、009、006、010、014、023，二期自演进
+- 影响特性：001、002、012、010、014、017、028，二期自演进
 - 相关宪法条款：II（状态外置）、III（开源许可）、IV（身份、审计、只用已审批内容）、V（可观测性）
 
 ## 背景
@@ -86,7 +88,7 @@
 - 轨迹的可靠性取决于采集链路：Collector MUST 开启持久化发送队列与重试，Langfuse 不可用时
   轨迹不丢失。
 - 跨大量轨迹的统计需要通过 API 批量导出后计算，Langfuse 不是分析数据库。
-- Langfuse 企业版功能（SCIM、审计日志、数据保留策略）不使用；织境的取数审计由 AI 网关记录（005，ADR-0013）。
+- Langfuse 企业版功能（SCIM、审计日志、数据保留策略）不使用；织境的取数审计由 AI 网关记录（009，ADR-0013）。
 
 ## 考虑过的其他方案
 
@@ -101,9 +103,9 @@
 
 - 001：在 OTel 规范中定稿关联属性名；Collector 开启持久化队列；Langfuse 纳入 Helm 与离线包。
 - 002：Langfuse project 的初始化（Phase 1 单租户，一个 project）。
-- 006：按本 ADR 实现轨迹采集、人工修订写回、Datasets 导出。
-- 023：推送到飞书的草稿携带 `trace_id`；spike 验证 Omnigent 的轨迹以 OTLP 进入 Langfuse 的呈现。
-- 009 内部 Agent 运行时（见 ADR-0002）：在 Omnigent 中实现 `agent_run` / `agent_rollout` 与恢复逻辑。
+- 010：按本 ADR 实现轨迹采集、人工修订写回、Datasets 导出。
+- 028：推送到飞书的草稿携带 `trace_id`；spike 验证 Omnigent 的轨迹以 OTLP 进入 Langfuse 的呈现。
+- 012 内部 Agent 运行时（见 ADR-0002）：在 Omnigent 中实现 `agent_run` / `agent_rollout` 与恢复逻辑。
 
 ## 修订（2026-10-07，见 ADR-0012）
 
