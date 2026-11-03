@@ -77,7 +77,7 @@ markers = [
 ]
 addopts = "--import-mode=importlib -m 'not cluster'"
 # 共享测试支持代码：tests/support（import support.keycloak）
-pythonpath = ["tests", "services/bff/tests", "testdata/tests"]
+pythonpath = [".", "tests", "services/bff/tests", "testdata/tests"]
 
 [tool.coverage.run]
 source = ["packages/py-core/src", "services/bff/src", "tools", "testdata/mockfactory"]

@@ -81,6 +81,7 @@ releases:
     needs: [contexture/postgresql]
     values:
       - components/keycloak/values/base.yaml
+      - components/keycloak/values/theme.yaml
       - components/keycloak/values/{{ .Environment.Name }}.yaml
       - components/keycloak/values/import-env.yaml.gotmpl
     set:

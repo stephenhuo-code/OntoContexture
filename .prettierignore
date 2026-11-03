@@ -12,10 +12,15 @@ testdata/deploy/**/templates/
 deploy/helmfile.yaml.gotmpl
 # 生成的文件与测试夹具
 packages/ts-api/src/bff.d.ts
+deploy/components/keycloak/values/theme.yaml
 tools/tests/fixtures/
 **/dist/
+**/coverage/
+**/build/
 deploy/offline/dist/
 uv.lock
 # Playwright 测试产物
 test-results/
+coverage.json
+sbom/
 playwright-report/

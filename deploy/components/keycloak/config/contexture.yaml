@@ -24,6 +24,7 @@ clients:
     webOrigins:
       - $(env:CTX_PUBLIC_URL)
     attributes:
+      login_theme: contexture
       pkce.code.challenge.method: S256
       standard.token.exchange.enabled: "true"
       post.logout.redirect.uris: $(env:CTX_PUBLIC_URL)/*

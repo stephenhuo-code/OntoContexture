@@ -1,0 +1,182 @@
+/* 保留 Keycloak 原生表单、错误消息、密码显隐、其他认证方式与会话检查脚本。 */
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: white;
+}
+body {
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+/* 渐进增强失败时，原生表单仍可显示和提交。 */
+body > .login-pf-page {
+  max-width: 420px;
+  margin: 12vh auto;
+  padding: 24px;
+}
+.oc-identity--auth .card-pf {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  width: auto;
+}
+.oc-identity--auth #kc-page-title {
+  display: none;
+}
+.oc-auth-heading {
+  color: #748cac;
+  font-size: 10px;
+  margin-bottom: 7px;
+}
+.oc-identity--auth .oc-title {
+  font-size: 22px;
+}
+.oc-identity--auth .oc-card-description {
+  margin-bottom: 20px;
+}
+.oc-kc-field {
+  margin: 0 0 15px;
+}
+.oc-kc-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+.oc-kc-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 41px;
+  padding: 0 12px;
+  border: 1px solid #d7e3f3;
+  border-radius: 4px;
+  font:
+    12px/1.7 "PingFang SC",
+    "Microsoft YaHei",
+    system-ui,
+    sans-serif;
+  background: white;
+  color: #101c30;
+}
+.oc-kc-input:focus-visible {
+  outline: 0;
+  border-color: #0753e5;
+  box-shadow: 0 0 0 3px #0753e512;
+}
+.oc-kc-input-group {
+  position: relative;
+}
+.oc-kc-input-group input {
+  padding-right: 42px;
+}
+.oc-kc-password-toggle {
+  position: absolute;
+  right: 6px;
+  top: 5px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.oc-kc-password-toggle i {
+  display: block;
+  width: 16px;
+  height: 16px;
+  background: url("../identity/eye.svg") center/contain no-repeat;
+}
+.oc-kc-password-toggle i.oc-eye-hide {
+  background-image: url("../identity/eye-hide.svg");
+}
+.oc-kc-settings {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+.oc-kc-settings:empty {
+  display: none;
+}
+#kc-form-options:empty {
+  display: none;
+}
+#kc-login {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 43px;
+  padding: 10px 14px;
+  background: #0753e5;
+  border: 1px solid #0753e5;
+  border-radius: 4px;
+  color: white;
+  font:
+    550 12px/1.7 "PingFang SC",
+    "Microsoft YaHei",
+    system-ui,
+    sans-serif;
+  cursor: pointer;
+}
+#kc-login:hover:not(:disabled) {
+  background: #0044c4;
+}
+#kc-login:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+.oc-kc-error,
+.alert-error {
+  display: block;
+  color: #b34a42;
+  font-size: 11px;
+  line-height: 1.8;
+  border: 1px solid #f0d9d4;
+  background: #fff6f3;
+  border-radius: 4px;
+  padding: 8px 10px;
+  margin: 9px 0 14px;
+}
+.alert-warning,
+.alert-info,
+.alert-success {
+  color: #426489;
+  background: #edf5ff;
+  font-size: 11px;
+  padding: 9px 12px;
+  border-radius: 4px;
+  margin: 10px 0 16px;
+}
+#kc-username {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  margin-bottom: 16px;
+  overflow-wrap: anywhere;
+}
+#reset-login::after {
+  content: "切换账号";
+  font-size: 10px;
+}
+#reset-login .kc-tooltip-text {
+  display: none;
+}
+#kc-info,
+#kc-social-providers,
+#try-another-way {
+  font-size: 11px;
+}
+.oc-identity a {
+  color: #2262c2;
+}
+.oc-help-dialog {
+  margin: 0;
+}
+.oc-help-dialog::backdrop {
+  background: #2b589533;
+  backdrop-filter: blur(4px);
+}

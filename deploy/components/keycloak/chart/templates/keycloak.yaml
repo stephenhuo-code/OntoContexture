@@ -23,12 +23,18 @@ spec:
   template:
     metadata:
       labels: { app.kubernetes.io/name: keycloak, app.kubernetes.io/part-of: contexture }
+      annotations:
+        checksum/login-theme: {{ .Values.theme.files | toJson | sha256sum }}
     spec:
       automountServiceAccountToken: false
       containers:
         - name: keycloak
           image: {{ .Values.keycloak.image }}
           args: [start, --http-enabled=true, --proxy-headers=xforwarded, --health-enabled=true]
+          volumeMounts:
+            - name: login-theme
+              mountPath: /opt/keycloak/themes/contexture
+              readOnly: true
           env:
             - { name: KC_DB, value: postgres }
             - { name: KC_DB_URL, value: "jdbc:postgresql://{{ .Values.keycloak.databaseHost }}:5432/{{ .Values.keycloak.database }}" }
@@ -52,6 +58,15 @@ spec:
             failureThreshold: 60
             periodSeconds: 5
           resources: {{- toYaml .Values.keycloak.resources | nindent 12 }}
+      volumes:
+        - name: login-theme
+          configMap:
+            name: {{ .Release.Name }}-login-theme
+            items:
+              {{- range $path, $content := .Values.theme.files }}
+              - key: {{ $path | sha256sum | trunc 16 }}
+                path: login/{{ $path }}
+              {{- end }}
 ---
 apiVersion: v1
 kind: Service
