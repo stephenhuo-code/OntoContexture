@@ -129,3 +129,40 @@ def test_custom_token_source(verifier: TokenVerifier, issuer: LocalIssuer) -> No
         return ctx.user_id or ""
 
     assert TestClient(app).get("/me").json() == "user-1-id"
+
+
+@pytest.mark.parametrize("sub", [None, "", "   "])
+def test_empty_subject_is_not_an_identity(
+    client: TestClient, issuer: LocalIssuer, sub: str | None
+) -> None:
+    assert call(client, issuer.token(sub=sub)).status_code == 401
+
+
+@pytest.mark.parametrize("failure", ["network", "5xx"])
+def test_jwks_dependency_failure_is_502(
+    client: TestClient, verifier: TokenVerifier, issuer: LocalIssuer, failure: str
+) -> None:
+    def unavailable(request: httpx.Request) -> httpx.Response:
+        if failure == "network":
+            raise httpx.ConnectError("offline", request=request)
+        return httpx.Response(503, request=request)
+
+    verifier.http = httpx.Client(transport=httpx.MockTransport(unavailable))
+    response = call(client, issuer.token())
+    assert response.status_code == 502
+    assert response.json()["code"] == "upstream.unavailable"
+
+
+def test_forged_tenant_header_does_not_replace_deployment(
+    client: TestClient, issuer: LocalIssuer
+) -> None:
+    response = client.get(
+        "/whoami",
+        headers={
+            "Authorization": f"Bearer {issuer.token()}",
+            "X-Tenant-Id": "other",
+            "X-User-Id": "admin",
+        },
+    )
+    assert response.json()["tenant_id"] == "local"
+    assert response.json()["user_id"] == "user-1-id"

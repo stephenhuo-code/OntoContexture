@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -103,4 +103,19 @@ describe("示例页面：对象定义与对象列表", () => {
     expect(alert).toHaveTextContent("upstream.unavailable");
     expect(alert).toHaveTextContent("abc123");
   });
+});
+
+it("卸载取消旧设备请求", async () => {
+  let signal: AbortSignal | undefined;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((request: Request) => {
+      signal = request.signal;
+      return new Promise<Response>(() => {});
+    }),
+  );
+  const view = renderPage();
+  await waitFor(() => expect(signal).toBeDefined());
+  view.unmount();
+  expect(signal?.aborted).toBe(true);
 });

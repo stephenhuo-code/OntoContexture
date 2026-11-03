@@ -70,6 +70,31 @@ def test_existing_client_unchanged(imported: tuple[KeycloakEnv, Admin, dict[str,
     assert admin.client("paperclip") == before
 
 
+def test_login_theme_is_client_scoped_and_served(
+    imported: tuple[KeycloakEnv, Admin, dict[str, Any]],
+) -> None:
+    env, admin, before = imported
+    assert admin.client("contexture-bff")["attributes"].get("login_theme") == "contexture"
+    realm = admin.http.get(f"/{REALM}").json()
+    assert realm.get("loginTheme") != "contexture"
+    assert admin.client("paperclip") == before
+    page = httpx.get(
+        f"{env.oidc}/auth",
+        params={
+            "client_id": "contexture-bff",
+            "redirect_uri": REDIRECT_URI,
+            "response_type": "code",
+            "scope": "openid",
+            "code_challenge": "t" * 43,
+            "code_challenge_method": "S256",
+            "prompt": "login",
+        },
+    )
+    assert page.status_code == 200
+    assert "/contexture/identity/identity.css" in page.text
+    assert 'id="kc-form-login"' in page.text and 'name="password"' in page.text
+
+
 def test_roles_and_clients_created(imported: tuple[KeycloakEnv, Admin, dict[str, Any]]) -> None:
     _, admin, _ = imported
     roles = {r["name"] for r in admin.http.get(f"/{REALM}/roles").json()}

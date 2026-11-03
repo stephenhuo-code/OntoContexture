@@ -1,28 +1,14 @@
 // 最终演示第 1–2 步（登录、看到“设备”定义与列表）与第 5 步（直接调 bff：无令牌 401、受众不符 403）
-import { expect, type Page, test } from "@playwright/test";
-
-async function keycloakLogin(page: Page, username: string, password: string) {
-  // 负责人的 realm 为两步登录（先用户名，再密码）；单步登录页同样适用
-  await page.locator("#username").fill(username);
-  const password$ = page.locator("#password");
-  if (!(await password$.isVisible())) {
-    await page
-      .locator("input[type=submit], button[type=submit]")
-      .first()
-      .click();
-  }
-  await password$.fill(password);
-  await page.locator("input[type=submit], button[type=submit]").first().click();
-}
+import { expect, test } from "@playwright/test";
+import { login } from "./helpers/login";
 
 test("第 1–2 步：登录后看到设备的定义与列表", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "登录" }).click();
-  await expect(page).toHaveURL(/protocol\/openid-connect\/auth|login-actions/);
-  await keycloakLogin(page, "user1", "user1");
-
-  await expect(page).toHaveURL(/\/objects\/equipment$/);
-  await expect(page.getByText("租户 local")).toBeVisible();
+  await login(page);
+  await expect(page.getByRole("heading", { name: /你好/ })).toBeVisible();
+  await page.goto("/objects/equipment");
+  await page.getByLabel(/当前账号/).click();
+  await expect(page.getByText("租户：local")).toBeVisible();
+  await page.getByLabel(/当前账号/).click();
   await expect(page.getByRole("heading", { name: /设备/ })).toBeVisible();
 
   const definition = page.getByRole("table", { name: "对象定义" });
@@ -43,7 +29,9 @@ test("第 1–2 步：登录后看到设备的定义与列表", async ({ page })
   expect(cookies[0]?.httpOnly).toBe(true);
 
   await page.getByRole("button", { name: "退出" }).click();
-  await expect(page.getByRole("button", { name: "登录" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "使用企业账号登录" }),
+  ).toBeVisible();
 });
 
 test("第 5 步：无令牌直接调 bff 返回 401", async ({ request }) => {

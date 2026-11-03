@@ -9,9 +9,10 @@ import json
 import re
 import secrets
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
@@ -19,6 +20,8 @@ import httpx
 from testcontainers.core.container import DockerContainer
 from testcontainers.core.network import Network
 from testcontainers.core.wait_strategies import LogMessageWaitStrategy
+
+from tools.keycloak_theme import write_theme
 
 KEYCLOAK_IMAGE = "quay.io/keycloak/keycloak:26.8.0"
 CONFIG_CLI_IMAGE = "adorsys/keycloak-config-cli:6.5.1-26.5.5"
@@ -32,6 +35,7 @@ BFF_SECRET = "test-bff-secret"
 class KeycloakEnv:
     base_url: str
     network: Network
+    container: DockerContainer | None = None
 
     @property
     def issuer(self) -> str:
@@ -86,11 +90,13 @@ class Admin:
 
 @contextmanager
 def keycloak() -> Iterator[KeycloakEnv]:
-    with Network() as network:
+    with Network() as network, TemporaryDirectory(prefix="contexture-theme-") as temporary:
+        theme = write_theme(Path(temporary))
         container = (
             DockerContainer(KEYCLOAK_IMAGE)
             .with_network(network)
             .with_network_aliases("keycloak")
+            .with_volume_mapping(str(theme), "/opt/keycloak/themes/contexture", "ro")
             .with_env("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
             .with_env("KC_BOOTSTRAP_ADMIN_PASSWORD", "admin")
             .with_exposed_ports(8080)
@@ -99,7 +105,9 @@ def keycloak() -> Iterator[KeycloakEnv]:
         )
         with container:
             host = container.get_container_host_ip()
-            yield KeycloakEnv(f"http://{host}:{container.get_exposed_port(8080)}", network)
+            yield KeycloakEnv(
+                f"http://{host}:{container.get_exposed_port(8080)}", network, container
+            )
 
 
 def import_env() -> dict[str, str]:
@@ -136,19 +144,31 @@ def import_config(env: KeycloakEnv, public_url: str) -> None:
     assert result["StatusCode"] == 0, logs
 
 
-def submit_login(authorize_url: str, username: str, password: str) -> str:
-    """在 Keycloak 登录页提交用户名与密码，返回带 code 的回调地址。"""
-    with httpx.Client(follow_redirects=False) as http:
+def submit_login(
+    authorize_url: str,
+    username: str,
+    password: str,
+    *,
+    browser: httpx.Client | None = None,
+) -> str:
+    """提交测试账号认证；可复用客户端保留 SSO，调用方提供的客户端不在此关闭。"""
+    context = nullcontext(browser) if browser is not None else httpx.Client(follow_redirects=False)
+    with context as http:
+        # 隔离 Keycloak 容器走 HTTP；延续现有 Secure Cookie 测试兼容方式。
+        # 只调整测试客户端的 Cookie 标记，不改变服务端或产品 Cookie 配置。
+        if urlparse(authorize_url).scheme == "http":
+            for cookie in http.cookies.jar:
+                cookie.secure = False
         page = http.get(authorize_url)
         assert page.status_code == 200, page.text
-        # Keycloak 的会话 Cookie 带 Secure 标记，测试走 http，需手动回传
-        cookies = "; ".join(c.split(";", 1)[0] for c in page.headers.get_list("set-cookie"))
+        if urlparse(authorize_url).scheme == "http":
+            for cookie in http.cookies.jar:
+                cookie.secure = False
         action = re.search(r'action="([^"]+)"', page.text)
         assert action, "找不到登录表单"
         resp = http.post(
             action.group(1).replace("&amp;", "&"),
             data={"username": username, "password": password},
-            headers={"Cookie": cookies},
         )
         assert resp.status_code == 302, resp.text
         return resp.headers["location"]

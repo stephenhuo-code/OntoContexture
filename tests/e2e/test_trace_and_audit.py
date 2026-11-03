@@ -8,6 +8,7 @@ import base64
 import json
 import subprocess
 import time
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -29,7 +30,7 @@ def _secret(name: str, key: str) -> str:
 
 @pytest.fixture(scope="module")
 def request_trace() -> tuple[str, str]:
-    """重启 bff（清空对象定义缓存），以 user1 发起一次示例查询，返回 (trace_id, 用户 ID)。"""
+    """重启 bff（清空对象定义缓存），以 engineer1 发起一次示例查询，返回 (trace_id, 用户 ID)。"""
     subprocess.run(["kubectl", "-n", NS, "rollout", "restart", "deploy/contexture-bff"], check=True)
     subprocess.run(
         ["kubectl", "-n", NS, "rollout", "status", "deploy/contexture-bff", "--timeout=180s"],
@@ -37,7 +38,7 @@ def request_trace() -> tuple[str, str]:
         capture_output=True,
     )
     time.sleep(5)
-    app = browser_session("user1", "user1")
+    app = browser_session("engineer1", "engineer1")
     me = app.get("/bff/v1/me").json()
     resp = app.get("/bff/v1/object-types/equipment/objects", params={"limit": 4})
     assert resp.status_code == 200, resp.text
@@ -48,10 +49,21 @@ def observations(trace_id: str) -> list[dict[str, Any]]:
     auth = (_secret("langfuse-init", "public-key"), _secret("langfuse-init", "secret-key"))
     with port_forward("svc/langfuse-web", 3000) as lf:
         data: list[dict[str, Any]] = []
+        # 查询本次演练的窄时间窗，避免 v2 API 对全历史扫描超时返回 422。
+        now = datetime.now(UTC)
+        window = {
+            "fromStartTime": (now - timedelta(minutes=15)).isoformat(),
+            "toStartTime": (now + timedelta(minutes=5)).isoformat(),
+        }
         for _ in range(18):  # Langfuse 异步写入，最多等 3 分钟
             resp = httpx.get(
                 f"{lf}/api/public/v2/observations",
-                params={"traceId": trace_id, "limit": 100, "fields": "core,basic,metadata"},
+                params={
+                    "traceId": trace_id,
+                    "limit": 100,
+                    "fields": "core,basic,metadata",
+                    **window,
+                },
                 auth=auth,
                 timeout=30,
             )
