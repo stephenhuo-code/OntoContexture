@@ -1,0 +1,150 @@
+{
+  "browser": "156.0.8078.4",
+  "requests": [
+    {
+      "path": "/v1/me",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/sessions/projects",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/sessions",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/sessions",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/sessions",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/sessions",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/info",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/extensions",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/hosts",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/projects/order",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/me",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/sessions/projects",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/sessions",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/sessions",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/sessions",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/sessions",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/info",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/extensions",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/hosts",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/projects/order",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/sessions",
+      "method": "GET"
+    },
+    {
+      "path": "/v1/sessions",
+      "method": "GET"
+    }
+  ],
+  "errors": [],
+  "blockedExternal": [],
+  "checks": [
+    {
+      "name": "initial mount and deep link",
+      "result": "runtime_pass"
+    },
+    {
+      "name": "CSS host isolation",
+      "result": "runtime_pass"
+    },
+    {
+      "name": "reload retains route",
+      "result": "runtime_pass"
+    },
+    {
+      "name": "shared Router navigation and lazy settings chunk",
+      "result": "runtime_pass"
+    },
+    {
+      "name": "back and forward",
+      "result": "runtime_pass"
+    },
+    {
+      "name": "Radix portal remains inside scope",
+      "result": "runtime_pass"
+    },
+    {
+      "name": "unmount and remount",
+      "result": "runtime_pass"
+    },
+    {
+      "name": "both emitted module workers load",
+      "result": "runtime_pass"
+    },
+    {
+      "name": "all static assets without external network",
+      "result": "runtime_pass"
+    },
+    {
+      "name": "no uncaught runtime error",
+      "result": "runtime_pass"
+    }
+  ],
+  "workers": [
+    {
+      "name": "editor.worker-Dd95eztV-j-f6DlA2.js",
+      "loaded": true,
+      "error": null
+    },
+    {
+      "name": "pdf.worker.min-8IBUfuck-DEckbEvT.js",
+      "loaded": true,
+      "error": null
+    }
+  ],
+  "result": "runtime_pass"
+}
