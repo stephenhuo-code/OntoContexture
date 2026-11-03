@@ -15,7 +15,12 @@ import jwt
 from fastapi import Request
 
 from contexture_core import telemetry
-from contexture_core.errors import InvalidAudience, InvalidToken, current_trace_id
+from contexture_core.errors import (
+    InvalidAudience,
+    InvalidToken,
+    UpstreamUnavailable,
+    current_trace_id,
+)
 
 ALGORITHMS = ["RS256", "RS384", "RS512", "ES256", "ES384", "PS256"]
 
@@ -98,8 +103,13 @@ class TokenVerifier:
             )
         except InvalidToken:
             raise
-        except (jwt.PyJWTError, httpx.HTTPError, ValueError) as exc:
+        except httpx.HTTPError as exc:
+            raise UpstreamUnavailable("身份服务暂时不可用") from exc
+        except (jwt.PyJWTError, ValueError) as exc:
             raise InvalidToken() from exc
+        subject = claims.get("sub")
+        if not isinstance(subject, str) or not subject.strip():
+            raise InvalidToken()
         aud = claims.get("aud", [])
         audiences = aud if isinstance(aud, list) else [aud]
         if self.audience not in audiences:

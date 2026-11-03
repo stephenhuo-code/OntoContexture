@@ -1,0 +1,11 @@
+{{- if .Values.keycloak.enabled }}
+{{- $files := required "theme.files 必须注入 values/theme.yaml" .Values.theme.files }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-login-theme
+data:
+  {{- range $path, $content := $files }}
+  {{ $path | sha256sum | trunc 16 }}: {{ $content | quote }}
+  {{- end }}
+{{- end }}

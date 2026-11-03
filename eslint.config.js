@@ -6,6 +6,8 @@ export default tseslint.config(
     ignores: [
       "**/node_modules/**",
       "**/dist/**",
+      "**/coverage/**",
+      "**/build/**",
       "third_party/**",
       ".venv/**",
       "specs/**",

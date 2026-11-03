@@ -1,3 +1,12 @@
+<!--
+Sync Impact Report
+- Version change: 1.8.0 → 2.0.0（MAJOR：移除指定原型工具的强制要求，重新定义为 HTML 高保真原型先行）
+- Modified sections: 开发流程与质量门禁（直接制作可离线交互的 HTML 高保真原型 → 产品负责人确认 → 据此写 spec）
+- Added sections: 无
+- Removed sections: 无
+- Templates requiring updates: 无（按负责人此前决定不改模板；各特性在 specify 阶段依本条款执行）
+- Follow-up TODOs: 无
+-->
 # 织境（OntoContexture）项目宪法
 
 ## Core Principles
@@ -166,6 +175,11 @@ Agent 可能被提示注入或误调工具，限定其范围可控制影响面�
 - 所有代码 MUST 通过 Pull Request 合并到 main，至少一名评审人批准；评审 MUST 检查测试先行、
   契约变更、开源许可、上游补丁登记、租户隔离与权限审计是否符合本宪法。
 - PR 合并 MUST NOT 使用 squash，以保留测试先行的提交历史。
+- 有用户界面的特性 MUST 界面设计先行，按顺序：① 先制作自包含、可离线打开、可交互的 HTML 高保真原型，
+  存放在 `specs/<编号>-<名称>/prototype/index.html`，页面标注“原型”；② 经产品负责人确认后，
+  以该 HTML 为输入编写 spec，spec MUST 用文字写明界面与交互需求，验收与测试以 spec 的文字为准；
+  ③ HTML 原型与 spec 一起评审与提交。
+  原型中的代码 MUST NOT 作为实现代码复用；原型修改时 MUST 同步更新 HTML 与 spec。
 - 每个特性 MUST 交付一份手动验收文档 `specs/<编号>-<名称>/acceptance.md`，写明：前置条件与数据准备、预计用时、逐步操作、
   每一步的预期结果、与用户故事和成功标准的对应关系、开发方已执行的验证结果（`make lint`、`make test` 及覆盖率、
   `make e2e` 等自动化验证的结论）、已知限制，以及验收记录（日期、验收人、结果、发现的问题）。每一步的命令 MUST 可直接
@@ -190,4 +204,4 @@ Agent 可能被提示注入或误调工具，限定其范围可控制影响面�
 - 合规检查：每个 plan 执行 Constitution Check；每个 PR 评审核对相关条款；
   每季度复审一次本宪法是否仍符合项目实际。
 
-**Version**: 1.7.0 | **Ratified**: 2026-10-03 | **Last Amended**: 2026-10-23
+**Version**: 2.0.0 | **Ratified**: 2026-10-03 | **Last Amended**: 2026-10-31

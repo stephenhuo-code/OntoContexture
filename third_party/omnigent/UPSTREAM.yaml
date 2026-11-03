@@ -10,6 +10,6 @@ mirror:
   main_branch: main                  # 只同步上游，不提交织境改动
 submodule_path: third_party/omnigent/src
 image_version: v0.18.0-ctx.0
-scope: 只维护后端运行时补丁（014：持久化、令牌交换、OTel）；前端复制到 apps/web/ 作为织境代码修改（ADR-0003）
+scope: 方案 B；完整工作台从锁定源码构建官方嵌入产物，轻量助手由织境维护；007 集成与 012 运行时按配置、官方扩展、最小补丁逐级处理，扩展独立维护，不复制上游 UI（ADR-0002、ADR-0003，2026-11-01）
 license: Apache-2.0
 upstream_pr: 本仓库不是 fork；向上游提 PR 时临时 fork 上游后提交

@@ -10,7 +10,7 @@ from contexture_core.ontology import ObjectTypeRef
 class Me(BaseModel):
     tenant_id: str
     user_id: str
-    display_name: str | None = None
+    display_name: str
     roles: list[str] = []
 
 

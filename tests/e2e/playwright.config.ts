@@ -4,6 +4,8 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: ".",
   testMatch: "*.spec.ts",
+  testIgnore: "ui-examples.spec.ts",
+  outputDir: "../../test-results/production",
   timeout: 60_000,
   reporter: [["list"]],
   use: {

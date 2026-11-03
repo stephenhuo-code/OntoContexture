@@ -25,12 +25,14 @@ EQUIPMENT = ObjectTypeRef(
 ROWS = Rows(columns=["code", "model"], rows=[["CNC-01", "Mazak"], ["CNC-02", "DMG"]])
 
 
-def user_context(token: str = "access-token") -> RequestContext:
+def user_context(
+    token: str = "access-token", roles: tuple[str, ...] = ("ai-engineer",)
+) -> RequestContext:
     return RequestContext(
         tenant_id="local",
         user_id="user-1-id",
         agent_id="contexture-bff",
-        roles=("business-user",),
+        roles=roles,
         token_id="jti-1",
         token=token,
         username="user1",
@@ -107,8 +109,10 @@ class FakeOidc:
 class FakeObjectTypes:
     def __init__(self, fail: bool = False) -> None:
         self.fail = fail
+        self.calls: list[str] = []
 
     async def get(self, type_key: str) -> ObjectTypeRef:
+        self.calls.append(type_key)
         if self.fail:
             raise UpstreamUnavailable("OM 不可用", details={"upstream": "openmetadata"})
         return EQUIPMENT
@@ -124,3 +128,36 @@ class FakeObjectData:
         if self.fail:
             raise UpstreamUnavailable("AI 网关不可用", details={"upstream": "ai-gateway"})
         return ROWS
+
+
+class TokenOidc(FakeOidc):
+    """单元测试用签发器，显式传入 Web 角色，不改变公共 JWT 夹具。"""
+
+    def __init__(
+        self,
+        issuer: Any,
+        expires_in: int = 300,
+        roles: tuple[str, ...] = ("ai-engineer", "offline_access"),
+    ) -> None:
+        super().__init__()
+        self.issuer = issuer
+        self.expires_in = expires_in
+        self.roles = roles
+        self.exchanged: list[str] = []
+
+    def _tokens(self, refresh: str) -> TokenSet:
+        return TokenSet(
+            access_token=self.issuer.token(realm_access={"roles": list(self.roles)}),
+            refresh_token=refresh,
+            id_token="id",
+            expires_in=self.expires_in,
+            refresh_expires_in=1800,
+        )
+
+    async def exchange_code(self, *, code: str, code_verifier: str) -> TokenSet:
+        self.exchanged.append(code)
+        return self._tokens("refresh-1")
+
+    async def refresh(self, refresh_token: str) -> TokenSet:
+        self.refreshed.append(refresh_token)
+        return self._tokens("refresh-2")

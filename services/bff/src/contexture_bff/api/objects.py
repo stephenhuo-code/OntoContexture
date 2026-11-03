@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request
 
-from contexture_bff.api.deps import current_context, services
+from contexture_bff.api.deps import require_web_context, services
 from contexture_bff.api.models import ObjectInstance, ObjectListView
 from contexture_core.auth import RequestContext
 from contexture_core.errors import current_trace_id
@@ -17,7 +17,7 @@ SOURCE = "mcp:list_objects"
 async def get_object_type(
     request: Request,
     type_key: str,
-    ctx: Annotated[RequestContext, Depends(current_context)],
+    ctx: Annotated[RequestContext, Depends(require_web_context)],
 ) -> ObjectTypeRef:
     """对象类型定义：OM 中已审批的对象及其属性。"""
     svc = services(request)
@@ -29,7 +29,7 @@ async def get_object_type(
 async def list_objects(
     request: Request,
     type_key: str,
-    ctx: Annotated[RequestContext, Depends(current_context)],
+    ctx: Annotated[RequestContext, Depends(require_web_context)],
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> ObjectListView:
     """示例查询：对象定义（OM，已审批）+ 该类型的对象实例（经 AI 网关取数）。"""

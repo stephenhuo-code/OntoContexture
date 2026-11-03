@@ -9,6 +9,10 @@ keycloak:
     requests: { cpu: 100m, memory: 512Mi }
     limits: { memory: 1Gi }
 
+theme:
+  # 由 values/theme.yaml 注入；无需在离线目标安装构建工具。
+  files: {}
+
 import:
   image: adorsys/keycloak-config-cli:6.5.1-26.5.5
   # 外部 Keycloak 地址与 realm；自带模式下自动指向集群内服务

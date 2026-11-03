@@ -63,3 +63,22 @@ pnpm --filter @contexture/web dev   # 前端开发服务器（/bff 代理到 loc
 | `third_party/` | 织境维护的上游仓库（OpenMetadata、Omnigent）与补丁登记 |
 | `tools/` | 部署、示例数据、组件 / 补丁 / 许可检查脚本 |
 | `tests/` | 端到端测试与共用测试支持代码 |
+
+
+004 Web 外壳实现及验证入口：`http://localhost:8080/home`，Web 准入角色为 admin / ai-engineer。
+导航包含新建对话、首页、资产搜索和 Agent 工作台；后续业务显示尚未开放，不展示假统计。
+退出只结束织境会话，不调用 IdP logout。旧设备回归地址为 `/objects/equipment`。
+开发组件示例和新增页面接入见 [Web 说明](apps/web/README.md)；004 完成状态以
+[验收记录](specs/004-web-shell/acceptance.md) 为准，自动验证不代替负责人手动验收。
+
+```bash
+pnpm --filter @contexture/web test:coverage
+pnpm --filter @contexture/ui test:coverage
+make coverage-check                 # 先运行 make test 与上述覆盖率命令；默认比较 HEAD，含未跟踪新源码
+make e2e KUBE_CONTEXT=kind-contexture # 临时 kubeconfig 隔离上下文；只读集群回归 → 8080 生产组 → 5173 开发组
+```
+
+003 的双规模重建测试单独执行 `make e2e-mock-data`；此命令会重建模拟 MES / QMS / mock_dw，004 回归不要运行。
+
+2026-11-03：004 已经产品负责人验收通过并关闭，见 [验收记录](specs/004-web-shell/acceptance.md)。
+下一项为 005 源系统元数据采集；后续按 006 → 007 → 008 推进。

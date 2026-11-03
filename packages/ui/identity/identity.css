@@ -1,0 +1,570 @@
+/* 共享身份页视觉：Web 与 Keycloak 官方主题使用同一资源。 */
+.oc-identity {
+  --oc-blue: #0753e5;
+  --oc-ink: #101c30;
+  --oc-muted: #73839a;
+  --oc-font: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color: var(--oc-ink);
+  font: 14px/1.7 var(--oc-font);
+  background: #fff;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.oc-identity *,
+.oc-help-dialog * {
+  box-sizing: border-box;
+}
+.oc-identity button,
+.oc-identity input {
+  font: inherit;
+}
+.oc-identity button:focus-visible,
+.oc-identity a:focus-visible {
+  outline: 3px solid #8db6ff;
+  outline-offset: 4px;
+}
+.oc-identity .oc-header {
+  height: 70px;
+  padding: 0 max(4.2vw, 28px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.oc-brand {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+}
+.oc-mark {
+  width: 33px;
+  height: 33px;
+  background: url("brand.svg") center/contain no-repeat;
+}
+.oc-name {
+  font-size: 21px;
+  font-weight: 650;
+  letter-spacing: 2px;
+}
+.oc-en {
+  font-size: 11px;
+  color: #728099;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+}
+.oc-language {
+  font-size: 11px;
+  color: #6e7f99;
+  letter-spacing: 0.5px;
+}
+.oc-identity .oc-hero {
+  position: relative;
+  isolation: isolate;
+  flex: 1;
+  min-height: 530px;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 28px 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: linear-gradient(105deg, #e6f1ff, #d9e9ff 46%, #c7ddff);
+}
+.oc-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: url("hero.svg") center/cover no-repeat;
+  pointer-events: none;
+}
+.oc-hero-inner {
+  width: min(1248px, calc(100% - 120px));
+  margin: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 370px;
+  gap: 70px;
+  align-items: center;
+}
+.oc-intro {
+  max-width: 640px;
+  padding-bottom: 32px;
+}
+.oc-eyebrow {
+  color: #2c65ab;
+  font-size: 12px;
+  letter-spacing: 1px;
+  margin: 0 0 19px;
+}
+.oc-eyebrow::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  background: #1b64e9;
+  margin: 0 8px 2px 0;
+}
+.oc-identity .oc-headline {
+  font-size: clamp(32px, 2.75vw, 41px);
+  line-height: 1.5;
+  font-weight: 650;
+  letter-spacing: 0.4px;
+  margin: 0 0 21px;
+  color: #0a1629;
+}
+.oc-description {
+  font-size: 14px;
+  line-height: 1.95;
+  color: #435a7b;
+  margin: 0;
+}
+.oc-principles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 11px;
+  color: #4a6b99;
+  font-size: 11px;
+  margin-top: 29px;
+}
+.oc-principles span + span::before {
+  content: "·";
+  color: #97b4dd;
+  margin-right: 11px;
+}
+.oc-intro::after {
+  content: "";
+  display: block;
+  width: 34px;
+  height: 2px;
+  background: #2366de;
+  margin-top: 31px;
+}
+.oc-card {
+  min-width: 0;
+  background: #ffffffed;
+  border: 1px solid #fff;
+  border-radius: 8px;
+  padding: 28px 29px;
+  box-shadow: 0 12px 38px #3b6ba612;
+  backdrop-filter: blur(15px);
+}
+.oc-card .oc-kicker {
+  font-size: 9px;
+  color: #8a9ab0;
+  letter-spacing: 1.5px;
+  margin: 0 0 8px;
+}
+.oc-card .oc-title {
+  font-size: 25px;
+  line-height: 1.5;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  margin: 0 0 8px;
+}
+.oc-card-description {
+  font-size: 12px;
+  color: #7b8a9f;
+  margin: 0 0 25px;
+  line-height: 1.9;
+}
+.oc-account {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  border: 1px solid #e1eaf7;
+  border-radius: 4px;
+  padding: 14px 13px;
+  margin-bottom: 19px;
+  background: #f7faff;
+}
+.oc-account-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: #eaf2ff;
+  color: #3b76d2;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+.oc-account-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.oc-account-title {
+  font-size: 12px;
+  font-weight: 550;
+}
+.oc-account-description {
+  font-size: 10px;
+  color: #7a8da8;
+}
+.oc-identity .oc-submit {
+  width: 100%;
+  min-height: 43px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--oc-blue);
+  border: 1px solid var(--oc-blue);
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+  font-weight: 550;
+  text-decoration: none;
+  cursor: pointer;
+}
+.oc-identity .oc-submit:hover:not(:disabled) {
+  background: #0044c4;
+}
+.oc-identity .oc-submit:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+.oc-submit svg {
+  width: 15px;
+  height: 15px;
+}
+.oc-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: 10px;
+  color: #8b99ad;
+  margin: 14px 0 0;
+  line-height: 1.8;
+}
+.oc-note::before {
+  content: "";
+  display: block;
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  margin-top: 3px;
+  background: url("lock.svg") center/contain no-repeat;
+}
+.oc-assist {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: #8b99ad;
+  margin-top: 24px;
+  border-top: 1px solid #e8edf5;
+  padding-top: 18px;
+}
+.oc-identity .oc-help {
+  border: 0;
+  border-radius: 2px;
+  padding: 1px 2px;
+  background: none;
+  color: #2262c2;
+  font-size: 10px;
+  cursor: pointer;
+}
+.oc-identity .oc-help:hover {
+  text-decoration: underline;
+}
+.oc-features {
+  background: white;
+  padding: 35px 0 31px;
+  flex-shrink: 0;
+}
+.oc-features-inner {
+  width: min(1248px, calc(100% - 120px));
+  margin: auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 62px;
+}
+.oc-feature {
+  display: grid;
+  grid-template-columns: 50px 1fr;
+  gap: 16px;
+}
+.oc-feature-icon {
+  width: 48px;
+  height: 53px;
+  background: center/contain no-repeat;
+}
+.oc-feature-icon--data {
+  background-image: url("data.svg");
+}
+.oc-feature-icon--semantics {
+  background-image: url("semantics.svg");
+}
+.oc-feature-icon--trust {
+  background-image: url("trust.svg");
+}
+.oc-identity .oc-feature h3 {
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  margin: 4px 0 8px;
+}
+.oc-feature p {
+  font-size: 11px;
+  line-height: 1.95;
+  color: #78869a;
+  margin: 0;
+  max-width: 285px;
+}
+.oc-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin: auto max(4.2vw, 28px) 0;
+  padding: 14px 0 15px;
+  border-top: 1px solid #f0f3f8;
+  color: #9aa6b8;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.oc-help-overlay {
+  position: fixed;
+  inset: 0;
+  background: #2b589533;
+  backdrop-filter: blur(4px);
+  z-index: 200;
+}
+.oc-help-dialog {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  color: #101c30;
+  font:
+    14px/1.7 "PingFang SC",
+    "Microsoft YaHei",
+    system-ui,
+    sans-serif;
+  width: min(420px, calc(100vw - 40px));
+  padding: 27px;
+  border: 1px solid #dae6f5;
+  border-radius: 8px;
+  box-shadow: 0 20px 80px #396ab12b;
+  z-index: 201;
+}
+.oc-help-dialog h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+.oc-help-dialog p {
+  font-size: 12px;
+  line-height: 1.9;
+  color: #71829c;
+  margin: 0 0 22px;
+}
+.oc-help-dialog button {
+  width: 100%;
+  padding: 10px;
+  background: #0753e5;
+  color: white;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+}
+.oc-help-dialog button:focus-visible {
+  outline: 3px solid #8db6ff;
+  outline-offset: 3px;
+}
+.oc-state .ctx-page-state {
+  min-height: 220px;
+  padding: 18px 0;
+}
+.oc-state .ctx-page-state h2 {
+  font-size: 22px;
+}
+.oc-state .recovery-actions {
+  flex-wrap: wrap;
+}
+@media (min-width: 1600px) {
+  .oc-hero-inner,
+  .oc-features-inner {
+    width: min(1380px, calc(100% - 160px));
+  }
+  .oc-hero-inner {
+    grid-template-columns: minmax(0, 1fr) 390px;
+    gap: 120px;
+  }
+  .oc-identity .oc-headline {
+    font-size: 44px;
+  }
+  .oc-description {
+    font-size: 15px;
+  }
+  .oc-card {
+    padding: 32px;
+  }
+}
+@media (min-width: 761px) and (max-height: 800px) {
+  .oc-identity .oc-header {
+    height: 62px;
+  }
+  .oc-identity .oc-hero {
+    min-height: 400px;
+    padding: 24px 0;
+  }
+  .oc-intro {
+    padding-bottom: 12px;
+  }
+  .oc-eyebrow {
+    margin-bottom: 14px;
+  }
+  .oc-identity .oc-headline {
+    font-size: 34px;
+    margin-bottom: 15px;
+  }
+  .oc-description {
+    font-size: 13px;
+  }
+  .oc-principles {
+    margin-top: 22px;
+  }
+  .oc-intro::after {
+    margin-top: 25px;
+  }
+  .oc-features {
+    padding: 25px 0 21px;
+  }
+  .oc-feature {
+    grid-template-columns: 39px 1fr;
+    gap: 13px;
+  }
+  .oc-feature-icon {
+    width: 38px;
+    height: 42px;
+  }
+  .oc-identity .oc-feature h3 {
+    font-size: 13px;
+    margin: 2px 0 5px;
+  }
+  .oc-feature p {
+    font-size: 10px;
+  }
+  .oc-footer {
+    padding: 10px 0;
+    font-size: 9px;
+  }
+  .oc-identity--auth .oc-features {
+    display: none;
+  }
+  .oc-identity--auth .oc-hero {
+    min-height: calc(100dvh - 100px);
+  }
+}
+@media (max-width: 1050px) {
+  .oc-hero-inner,
+  .oc-features-inner {
+    width: calc(100% - 64px);
+    gap: 35px;
+  }
+  .oc-hero-inner {
+    grid-template-columns: minmax(0, 1fr) 340px;
+  }
+  .oc-en {
+    display: none;
+  }
+  .oc-identity .oc-headline {
+    font-size: 32px;
+  }
+  .oc-description {
+    font-size: 12px;
+  }
+  .oc-principles {
+    gap: 7px;
+    font-size: 10px;
+  }
+}
+@media (max-width: 760px) {
+  .oc-identity .oc-header {
+    height: 62px;
+    padding: 0 20px;
+  }
+  .oc-mark {
+    width: 29px;
+    height: 29px;
+  }
+  .oc-name {
+    font-size: 18px;
+  }
+  .oc-language {
+    font-size: 10px;
+  }
+  .oc-identity .oc-hero {
+    min-height: 0;
+    padding: 34px 0 35px;
+  }
+  .oc-hero-inner {
+    width: calc(100% - 40px);
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+  .oc-intro {
+    padding: 0;
+  }
+  .oc-eyebrow {
+    font-size: 10px;
+    margin-bottom: 11px;
+  }
+  .oc-identity .oc-headline {
+    font-size: 28px;
+    margin-bottom: 12px;
+  }
+  .oc-description {
+    font-size: 11px;
+  }
+  .oc-principles,
+  .oc-intro::after {
+    display: none;
+  }
+  .oc-card {
+    max-width: 440px;
+    width: 100%;
+    margin: auto;
+    padding: 24px;
+  }
+  .oc-features {
+    padding: 28px 0;
+  }
+  .oc-features-inner {
+    width: calc(100% - 40px);
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+  .oc-feature {
+    grid-template-columns: 36px 1fr;
+    gap: 12px;
+  }
+  .oc-feature-icon {
+    width: 34px;
+    height: 38px;
+  }
+  .oc-identity .oc-feature h3 {
+    font-size: 13px;
+    margin: 0 0 4px;
+  }
+  .oc-feature p {
+    font-size: 11px;
+    max-width: none;
+  }
+  .oc-footer {
+    margin: 0 20px;
+    padding: 16px 0;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 9px;
+  }
+  .oc-identity--auth .oc-intro {
+    display: none;
+  }
+}

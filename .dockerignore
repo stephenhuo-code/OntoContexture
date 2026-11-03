@@ -8,3 +8,12 @@ third_party
 docs
 specs
 .env.local
+.env
+.env.*
+**/.env*
+**/dist
+sbom
+test-results
+coverage.json
+**/coverage
+**/*.log

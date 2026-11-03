@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>织境 Web · 可交互原型（原型）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#EEF1F5}
+a{color:#1D4ED8;text-decoration:none}a:hover{color:#1E3A8A}
+</style>
+<style>
+.ctx-prototype-badge{position:fixed;right:12px;bottom:12px;z-index:100;background:#B45309;color:#FFFFFF;font:600 12px/1.4 system-ui,sans-serif;padding:6px 10px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.2);pointer-events:none}
+</style>
+</head>
+<body>
+<!-- 004 织境 Web HTML 高保真原型（宪法 v2.0.0“界面设计先行”）。最初由 Design 画布转换，后续在此维护交互。
+     原型代码不得作为实现代码复用；界面与交互需求以 spec.md 的文字为准。Agent 的回答为按关键词预设。 -->
+<div id="app"></div>
+<div class="ctx-prototype-badge">原型 · 非实现代码 · Agent 回答为预设</div>
+<template id="tpl">
+<div style="min-height: 900px; display: flex; flex-wrap: wrap; font-family: 'Noto Sans SC', system-ui, sans-serif; color: #0F172A; background: #EEF1F5; position: relative;">
+
+  <nav aria-label="一级导航" style="{{railStyle}}">
+    <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 14px; height: 40px;">
+      <div style="width: 40px; height: 40px; flex-shrink: 0; border-radius: 10px; background: #2F5BEA; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px;">织</div>
+    </div>
+    <template data-sc="for" list="{{rail}}" as="r" hint-placeholder-count="6">
+      <button type="button" aria-label="{{r.label}}" onClick="{{r.go}}" onMouseEnter="{{r.enter}}" onMouseLeave="{{r.leave}}" onFocus="{{r.enter}}" onBlur="{{r.leave}}" style="{{r.style}}">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0;"><path d="{{r.d}}"/></svg>
+        <template data-sc="if" value="{{r.hover}}" hint-placeholder-val="{{ false }}"><span role="tooltip" style="position: absolute; left: 58px; top: 50%; transform: translateY(-50%); background: #0F172A; color: #FFFFFF; font-size: 13px; padding: 6px 10px; border-radius: 6px; white-space: nowrap; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3); z-index: 20; pointer-events: none;">{{r.label}}</span></template>
+      </button>
+    </template>
+    <div style="flex-grow: 1"></div>
+    <div style="display: flex; align-items: center; justify-content: center; margin-top: 8px;">
+      <div title="engineer1 · AI 工程师" style="width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%; background: #334155; color: #E2E8F0; font-size: 13px; display: flex; align-items: center; justify-content: center;">工</div>
+    </div>
+  </nav>
+
+  <template data-sc="if" value="{{showSecondary}}" hint-placeholder-val="{{ true }}">
+    <aside aria-label="二级菜单" style="width: 232px; background: #FFFFFF; border-right: 1px solid #E2E8F0; padding: 16px 12px; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px;">
+      <div style="display: flex; align-items: center; padding: 0 4px 10px 10px;">
+        <span style="font-size: 13px; font-weight: 600; color: #334155; flex-grow: 1;">{{moduleName}}</span>
+        <button type="button" onClick="{{toggleSecondary}}" aria-label="收起二级菜单" title="收起二级菜单" style="width: 30px; height: 30px; border: 0; border-radius: 6px; background: transparent; color: #475569; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4zM9 5v14M15 10l-2 2 2 2"/></svg>
+        </button>
+      </div>
+      <template data-sc="for" list="{{menu}}" as="m" hint-placeholder-count="3">
+        <template data-sc="if" value="{{m.isHeading}}" hint-placeholder-val="{{ false }}">
+          <div style="font-size: 12px; color: #64748B; padding: 12px 10px 6px;">{{m.label}}</div>
+        </template>
+        <template data-sc="if" value="{{m.isItem}}" hint-placeholder-val="{{ true }}">
+          <button type="button" onClick="{{m.go}}" style="{{m.style}}"><span style="display: flex; align-items: center; gap: 8px; min-width: 0;"><span aria-hidden="true" style="{{m.indentStyle}}"></span><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{m.label}}</span></span><template data-sc="if" value="{{m.hasBadge}}" hint-placeholder-val="{{ false }}"><span style="{{m.badgeStyle}}">{{m.badge}}</span></template></button>
+        </template>
+      </template>
+    </aside>
+  </template>
+
+  <main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column;">
+    <header style="min-height: 60px; background: #FFFFFF; border-bottom: 1px solid #E2E8F0; display: flex; align-items: center; gap: 14px; padding: 10px 24px; box-sizing: border-box; flex-wrap: wrap;">
+      <template data-sc="if" value="{{showSecondaryOpener}}" hint-placeholder-val="{{ false }}">
+        <button type="button" onClick="{{toggleSecondary}}" aria-label="展开二级菜单" title="展开二级菜单" style="width: 32px; height: 32px; border: 1px solid #E2E8F0; border-radius: 8px; background: #FFFFFF; color: #475569; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4zM9 5v14M13 10l2 2-2 2"/></svg>
+        </button>
+      </template>
+      <div style="font-size: 16px; font-weight: 600;">{{pageTitle}}</div>
+      <div style="font-size: 13px; color: #475569;">{{pageSub}}</div>
+      <div style="flex-grow: 1"></div>
+      <label style="display: flex; align-items: center; gap: 8px; background: #F1F5F9; border-radius: 8px; padding: 0 12px; height: 36px; width: 280px; max-width: 100%; color: #64748B; font-size: 13px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg>
+        <input type="search" value="{{searchInput}}" onChange="{{onSearchInput}}" onKeyDown="{{onSearchKey}}" placeholder="搜索表、字段、术语…（回车搜索）" aria-label="全局搜索" style="border: 0; background: transparent; outline: none; font: inherit; color: #0F172A; flex-grow: 1; min-width: 0;">
+      </label>
+      <template data-sc="if" value="{{showAskButton}}" hint-placeholder-val="{{ true }}">
+        <button type="button" onClick="{{toggleSidebar}}" aria-expanded="{{sidebarAttr}}" style="height: 36px; padding: 0 14px; border-radius: 8px; border: 0; background: #0B1220; color: #FFFFFF; font: inherit; font-size: 13px; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/></svg>{{askLabel}}</button>
+      </template>
+      <template data-sc="if" value="{{isWorkbench}}" hint-placeholder-val="{{ false }}">
+        <span style="font-size: 12px; color: #475569; display: flex; align-items: center; gap: 6px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>以 engineer1 的身份 · 经 AI 网关</span>
+      </template>
+    </header>
+
+    <div style="display: flex; flex-wrap: wrap; flex-grow: 1; align-items: stretch; min-height: 0;">
+      <div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column;">
+
+        <template data-sc="if" value="{{isHome}}" hint-placeholder-val="{{ true }}">
+          <div style="padding: 26px 28px; display: flex; flex-direction: column; gap: 20px; max-width: 1160px; width: 100%; box-sizing: border-box;">
+            <div>
+              <h1 style="margin: 0 0 6px; font-size: 22px;">早上好，engineer1</h1>
+              <div style="font-size: 14px; color: #475569;">模拟工厂 · 数据截至 2026-09-30</div>
+            </div>
+            <section aria-label="三域覆盖" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px;">
+              <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px;"><div style="font-size: 13px; color: #475569;">系统域 · 已接入源系统</div><div style="font-size: 30px; font-weight: 700; margin: 8px 0 4px;">3</div><div style="font-size: 12px; color: #475569;">MES、QMS、数仓 · 28 张表</div></div>
+              <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px;"><div style="font-size: 13px; color: #475569;">工作域 · 飞书</div><div style="font-size: 30px; font-weight: 700; margin: 8px 0 4px; color: #94A3B8;">未接入</div><div style="font-size: 12px; color: #475569;">随 014 接入</div></div>
+              <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px;"><div style="font-size: 13px; color: #475569;">已审批口径</div><div style="font-size: 30px; font-weight: 700; margin: 8px 0 4px;">{{approvedMetrics}}</div><div style="font-size: 12px; color: #B45309;">{{metricHint}}</div></div>
+              <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px;"><div style="font-size: 13px; color: #475569;">Agent 调用 · 近 7 天</div><div style="font-size: 30px; font-weight: 700; margin: 8px 0 4px;">[调用次数]</div><div style="font-size: 12px; color: #475569;">纠正率 [比例]</div></div>
+            </section>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
+              <section aria-label="我的待办" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <h2 style="margin: 0; font-size: 15px;">我的待办</h2>
+                  <button type="button" onClick="{{goApprovals}}" style="border: 0; background: transparent; color: #1D4ED8; font: inherit; font-size: 13px; cursor: pointer;">全部 {{pendingCount}} 项</button>
+                </div>
+                <template data-sc="for" list="{{pendingItems}}" as="p" hint-placeholder-count="3">
+                  <button type="button" onClick="{{p.open}}" style="display: flex; gap: 12px; width: 100%; text-align: left; padding: 12px 0; border: 0; border-top: 1px solid #F1F5F9; background: transparent; font: inherit; color: #0F172A; cursor: pointer;">
+                    <span style="{{p.tagStyle}}">{{p.kind}}</span><span style="flex-grow: 1; font-size: 14px;">{{p.title}}</span>
+                  </button>
+                </template>
+                <template data-sc="if" value="{{noPending}}" hint-placeholder-val="{{ false }}"><div style="padding: 16px 0; font-size: 13px; color: #475569;">没有待办了</div></template>
+              </section>
+              <section aria-label="最近的数据资产" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <h2 style="margin: 0; font-size: 15px;">最近浏览的数据资产</h2>
+                  <button type="button" onClick="{{goExplore}}" style="border: 0; background: transparent; color: #1D4ED8; font: inherit; font-size: 13px; cursor: pointer;">去探索</button>
+                </div>
+                <template data-sc="for" list="{{recentAssets}}" as="ra" hint-placeholder-count="3">
+                  <button type="button" onClick="{{ra.open}}" style="display: block; width: 100%; text-align: left; padding: 11px 0; border: 0; border-top: 1px solid #F1F5F9; background: transparent; font: inherit; color: #0F172A; cursor: pointer;">
+                    <span style="display: block; font-size: 12px; color: #475569;">{{ra.path}}</span>
+                    <span style="display: block; font-size: 14px; margin-top: 2px;"><span style="font-family: 'JetBrains Mono', monospace; color: #1D4ED8;">{{ra.name}}</span>　{{ra.display}}</span>
+                  </button>
+                </template>
+              </section>
+            </div>
+          </div>
+        </template>
+
+        <template data-sc="if" value="{{isApprovals}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-wrap: wrap; gap: 18px; padding: 22px 24px; align-items: flex-start;">
+            <section aria-label="待办列表" style="flex: 1 1 320px; max-width: 400px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; overflow: hidden;">
+              <template data-sc="for" list="{{approvalRows}}" as="a" hint-placeholder-count="3">
+                <button type="button" onClick="{{a.pick}}" style="{{a.rowStyle}}">
+                  <span style="display: flex; align-items: center; gap: 8px;"><span style="{{a.tagStyle}}">{{a.kind}}</span><span style="{{a.statusStyle}}">{{a.statusLabel}}</span></span>
+                  <span style="display: block; font-size: 14px; font-weight: 500; margin: 8px 0 4px; color: #0F172A;">{{a.title}}</span>
+                  <span style="display: block; font-size: 12px; color: #475569;">{{a.meta}}</span>
+                </button>
+              </template>
+            </section>
+            <section aria-label="待办详情" style="flex: 999 1 460px; min-width: 0; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 22px 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px;">
+              <div>
+                <div style="font-size: 12px; color: #475569;">{{sel.kind}} · {{sel.statusLabel}}</div>
+                <h2 style="margin: 6px 0 4px; font-size: 20px;">{{sel.title}}</h2>
+                <div style="font-size: 13px; color: #475569;">{{sel.meta}}</div>
+              </div>
+              <template data-sc="if" value="{{selIsMetric}}" hint-placeholder-val="{{ true }}">
+                <div aria-label="口径差异" style="border: 1px solid #E2E8F0; border-radius: 10px; overflow: hidden;">
+                  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));">
+                    <div style="padding: 16px 18px; border-right: 1px solid #E2E8F0;"><div style="font-size: 13px; font-weight: 600;">口径 A · 帆软现有报表</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #334155; margin: 8px 0 12px;">（首次合格 + 返工后合格）÷ 投入</div><div style="font-size: 12px; color: #475569;">2 号线 · 2026-09</div><div style="font-size: 28px; font-weight: 700;">99.89%</div></div>
+                    <div style="padding: 16px 18px;"><div style="font-size: 13px; font-weight: 600;">口径 B · 严格口径</div><div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #334155; margin: 8px 0 12px;">首次合格 ÷ 投入</div><div style="font-size: 12px; color: #475569;">2 号线 · 2026-09</div><div style="font-size: 28px; font-weight: 700;">98.69%</div></div>
+                  </div>
+                  <div style="background: #FFFBEB; border-top: 1px solid #FDE68A; padding: 12px 18px; font-size: 13px; color: #78350F;">差 1.20 个百分点，来自 720 件返工后合格（投入 60,000，首次合格 59,213，报废 67）</div>
+                </div>
+              </template>
+              <template data-sc="if" value="{{selHasBody}}" hint-placeholder-val="{{ false }}">
+                <div style="font-size: 14px; color: #334155; line-height: 1.75;">{{sel.body}}</div>
+              </template>
+              <template data-sc="if" value="{{selPending}}" hint-placeholder-val="{{ true }}">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                  <template data-sc="for" list="{{selActions}}" as="act" hint-placeholder-count="2">
+                    <button type="button" onClick="{{act.run}}" style="{{act.style}}">{{act.label}}</button>
+                  </template>
+                  <button type="button" onClick="{{askAboutSelection}}" style="height: 40px; padding: 0 14px; border: 0; background: transparent; color: #1D4ED8; font: inherit; font-size: 14px; margin-left: auto; cursor: pointer;">问 Agent</button>
+                </div>
+              </template>
+              <template data-sc="if" value="{{selDone}}" hint-placeholder-val="{{ false }}">
+                <div style="background: #F0FDF4; border: 1px solid #BBF7D0; color: #166534; border-radius: 8px; padding: 12px 14px; font-size: 14px;">{{sel.result}}</div>
+              </template>
+            </section>
+          </div>
+        </template>
+
+        <template data-sc="if" value="{{isExplore}}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; box-sizing: border-box;">
+            <section aria-label="筛选" style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 10px 14px;">
+              <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+                <template data-sc="for" list="{{filters}}" as="fl" hint-placeholder-count="9">
+                  <button type="button" onClick="{{fl.pick}}" style="height: 32px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #334155; display: flex; align-items: center; gap: 4px; cursor: pointer;">{{fl.label}}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+                </template>
+                <div style="flex-grow: 1"></div>
+                <label style="font-size:13px;color:#475569">排序：<select aria-label="资产排序" value="{{sort}}" onChange="{{onSort}}" style="font:inherit;border:1px solid #CBD5E1;border-radius:6px;padding:5px"><option value="relevance">相关度</option><option value="name">名称 A–Z</option><option value="nameDesc">名称 Z–A</option></select></label>
+              </div>
+              <div style="font-size: 12px; color: #475569; padding: 6px 10px 2px; display: flex; gap: 6px; align-items: center;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg>{{filterHint}}
+              </div>
+              <template data-sc="if" value="{{filterOpen}}">
+                <fieldset style="border:1px solid #CBD5E1;border-radius:8px;margin:10px 0;padding:12px;display:flex;gap:12px;flex-wrap:wrap">
+                  <legend>{{filterTitle}} · 同项多选为“或”</legend>
+                  <template data-sc="for" list="{{filterOptions}}" as="op"><button type="button" role="checkbox" aria-checked="{{op.checked}}" onClick="{{op.toggle}}" style="{{op.style}}">{{op.label}}</button></template>
+                  <button type="button" onClick="{{closeFilter}}">完成</button>
+                </fieldset>
+              </template>
+              <div aria-label="已选条件" style="display:flex;gap:8px;flex-wrap:wrap;padding:8px">
+                <template data-sc="for" list="{{chips}}" as="chip"><button type="button" onClick="{{chip.remove}}" aria-label="{{chip.removeLabel}}" style="border:1px solid #BFDBFE;background:#EFF6FF;color:#1D4ED8;padding:5px 8px;border-radius:6px">{{chip.label}} ×</button></template>
+                <template data-sc="if" value="{{hasConditions}}"><button type="button" onClick="{{clearSearch}}">清空全部</button></template>
+              </div>
+            </section>
+            <div role="status" style="font-size:13px;color:#475569">{{resultLabel}}</div>
+            <template data-sc="if" value="{{detailOpen}}"><section aria-label="资产详情预览" style="background:white;border:1px solid #CBD5E1;border-radius:12px;padding:16px"><button type="button" onClick="{{closeDetail}}">← 返回搜索结果</button><h2>{{asset.name}}</h2><p>{{asset.description}}</p><p>原型 · 同一资产的详情入口；004 先演示摘要与字段，不包含后续业务对象实例视图。</p><button type="button" onClick="{{askAsset}}">问这个资产</button></section></template>
+            <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-start;">
+              <section aria-label="资产列表" style="flex: 999 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+                <template data-sc="if" value="{{noAssets}}"><div style="padding:36px;background:white;border-radius:12px;text-align:center"><h3>没有匹配的资产</h3><p>尝试其他关键词，或移除筛选条件。Agent 不会读取空结果之外的资产。</p><button type="button" onClick="{{clearSearch}}">清空搜索与筛选</button></div></template>
+                <template data-sc="for" list="{{assetCards}}" as="ac" hint-placeholder-count="4">
+                  <article tabindex="0" role="button" aria-label="{{ac.selectLabel}}" aria-pressed="{{ac.selected}}" onClick="{{ac.pick}}" onKeyDown="{{ac.key}}" style="{{ac.style}}">
+                    <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #475569;">{{ac.path}}</span>
+                    <span style="display: flex; align-items: center; gap: 8px; margin-top: 6px;"><span style="{{ac.typeStyle}}">{{ac.type}}</span><button type="button" onClick="{{ac.open}}" style="font:inherit;font-size:16px;color:#1D4ED8;background:transparent;border:0;text-decoration:underline;cursor:pointer">{{ac.name}}</button></span>
+                    <span style="display: block; font-size: 14px; color: #0F172A; margin-top: 6px;">{{ac.display}}</span>
+                    <span style="display: block; font-size: 12px; color: #475569; margin-top: 6px;">{{ac.meta}}</span>
+                  </article>
+                </template>
+              </section>
+              <template data-sc="if" value="{{showSummary}}" hint-placeholder-val="{{ true }}">
+                <section aria-label="资产摘要" style="flex: 1 1 300px; max-width: 360px; background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 16px 18px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px;">
+                  <div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 16px; font-weight: 600; color: #1D4ED8; font-family: 'JetBrains Mono', monospace;">{{asset.name}}</span><span style="{{asset.typeStyle}}">{{asset.type}}</span></div>
+                  <button type="button" onClick="{{askAsset}}" style="padding:8px;border:1px solid #BFDBFE;background:#EFF6FF;color:#1D4ED8;border-radius:6px;cursor:pointer">问这个资产</button>
+                  <template data-sc="for" list="{{asset.props}}" as="pp" hint-placeholder-count="6">
+                    <div style="border-top: 1px solid #F1F5F9; padding-top: 12px;">
+                      <div style="font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;">{{pp.k}}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></div>
+                      <div style="{{pp.style}}">{{pp.v}}</div>
+                    </div>
+                  </template>
+                  <div style="border-top: 1px solid #F1F5F9; padding-top: 12px;">
+                    <div style="font-size: 13px; font-weight: 600; margin-bottom: 6px;">{{asset.columnsTitle}}</div>
+                    <template data-sc="for" list="{{asset.columns}}" as="col" hint-placeholder-count="4">
+                      <div style="display: flex; gap: 8px; font-size: 12px; padding: 3px 0;"><span style="font-family: 'JetBrains Mono', monospace; color: #0F172A; min-width: 110px;">{{col.n}}</span><span style="color: #475569;">{{col.c}}</span></div>
+                    </template>
+                  </div>
+                </section>
+              </template>
+            </div>
+          </div>
+        </template>
+
+        <template data-sc="if" value="{{isWorkbench}}" hint-placeholder-val="{{ false }}">
+          <template data-sc="if" value="{{isPageSession}}"><div style="padding:10px 20px;background:#EFF6FF;display:flex;gap:16px;align-items:center"><button type="button" onClick="{{returnToPage}}">← 返回原页面并继续对话</button><span style="font-size:12px">{{pageSessionContext}} · 同一会话，消息同步保留</span></div></template>
+          <section aria-label="Omnigent 工作台（嵌入，默认主题，未改造）" style="flex-grow: 1; display: flex; flex-wrap: wrap; background: #FFFFFF; font-family: system-ui, -apple-system, 'Segoe UI', 'Noto Sans SC', sans-serif; color: #27272a; min-height: 840px;">
+            <template data-sc="if" value="{{omniSidebarOpen}}" hint-placeholder-val="{{ true }}">
+              <aside aria-label="Omnigent sidebar" style="width: 256px; background: #fdfafa; border-right: 1px solid #e4e4e7; display: flex; flex-direction: column; box-sizing: border-box; padding: 10px 8px;">
+                <div style="display: flex; align-items: center; gap: 6px; padding: 4px 6px 10px;">
+                  <span style="font-weight: 600; font-size: 14px; flex-grow: 1;">Omnigent</span>
+                  <button type="button" aria-label="Search" style="width: 30px; height: 30px; border: 0; border-radius: 15px; background: #0000000f; color: #71717a; display: flex; align-items: center; justify-content: center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></button>
+                  <button type="button" onClick="{{toggleOmniSidebar}}" aria-label="Close sidebar" style="width: 30px; height: 30px; border: 0; border-radius: 6px; background: transparent; color: #71717a; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4zM9 5v14"/></svg></button>
+                </div>
+                <template data-sc="for" list="{{omniNav}}" as="on" hint-placeholder-count="3">
+                  <button type="button" onClick="{{on.go}}" style="{{on.style}}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{on.d}}"/></svg>{{on.label}}</button>
+                </template>
+                <div style="font-size: 12px; color: #71717a; padding: 14px 8px 6px; display: flex; align-items: center;"><span style="flex-grow: 1;">Projects</span><span aria-hidden="true">+</span></div>
+                <template data-sc="for" list="{{omniProjects}}" as="pj" hint-placeholder-count="2">
+                  <div>
+                    <button type="button" onClick="{{pj.toggle}}" style="display: flex; align-items: center; gap: 6px; width: 100%; height: 30px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #27272a; cursor: pointer;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{pj.chevron}}"/></svg><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h6l2 2h10v10H3z"/></svg>{{pj.name}}</button>
+                    <template data-sc="if" value="{{pj.open}}" hint-placeholder-val="{{ true }}">
+                      <template data-sc="for" list="{{pj.sessions}}" as="ss" hint-placeholder-count="2">
+                        <button type="button" onClick="{{ss.go}}" style="{{ss.style}}">{{ss.title}}</button>
+                      </template>
+                    </template>
+                  </div>
+                </template>
+                <div style="font-size: 12px; color: #71717a; padding: 14px 8px 6px;">Sessions</div>
+                <button type="button" onClick="{{omniGoNew}}" style="{{omniNewStyle}}">New session</button>
+                <div style="flex-grow: 1"></div>
+                <button type="button" style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #27272a;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14 3h-4l-.6 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2L10 21h4l.6-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg>Settings</button>
+              </aside>
+            </template>
+
+            <div style="flex: 999 1 420px; min-width: 0; display: flex; flex-direction: column;">
+              <div style="height: 48px; border-bottom: 1px solid #e4e4e7; display: flex; align-items: center; gap: 8px; padding: 0 14px;">
+                <template data-sc="if" value="{{omniSidebarClosed}}" hint-placeholder-val="{{ false }}">
+                  <button type="button" onClick="{{toggleOmniSidebar}}" aria-label="Open sidebar" style="width: 30px; height: 30px; border: 0; border-radius: 6px; background: transparent; color: #71717a; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v14H4zM9 5v14"/></svg></button>
+                </template>
+                <span style="font-size: 12px; border: 1px solid #e4e4e7; border-radius: 6px; padding: 2px 8px; color: #71717a;">{{omniProjectTag}}</span>
+                <span style="font-size: 14px; font-weight: 500;">{{omniTitle}}</span>
+                <div style="flex-grow: 1"></div>
+                <span style="font-size: 11px; color: #71717a; border: 1px dashed #a1a1aa; border-radius: 6px; padding: 2px 8px;">嵌入 · Omnigent v0.18.0 · 默认主题，未改造</span>
+              </div>
+
+              <div style="flex-grow: 1; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; max-width: 820px; width: 100%; box-sizing: border-box; margin: 0 auto;">
+                <template data-sc="if" value="{{omniIsNcr}}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="align-self: flex-end; background: #eceef1; border-radius: 16px; padding: 9px 14px; font-size: 14px; max-width: 75%;">帮我查一下 NCR-2609-0901 是怎么回事，问题出在哪？</div>
+                    <template data-sc="for" list="{{omniTools}}" as="tl" hint-placeholder-count="3">
+                      <div style="border: 1px solid #e4e4e7; border-radius: 8px; overflow: hidden;">
+                        <button type="button" onClick="{{tl.toggle}}" style="display: flex; align-items: center; gap: 8px; width: 100%; height: 34px; padding: 0 10px; border: 0; background: #ffffff; font: inherit; font-size: 13px; color: #27272a; cursor: pointer; text-align: left;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{tl.chevron}}"/></svg><span style="color: #71717a;">Tool</span><span style="font-family: 'JetBrains Mono', monospace;">{{tl.name}}</span><span style="margin-left: auto; color: #16a34a; font-size: 12px;">✓</span></button>
+                        <template data-sc="if" value="{{tl.open}}" hint-placeholder-val="{{ false }}">
+                          <div style="background: #0000000f; padding: 8px 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; white-space: pre-wrap; color: #27272a;">{{tl.detail}}</div>
+                        </template>
+                      </div>
+                    </template>
+                    <div style="font-size: 14px; line-height: 1.75;">客诉起因是 2 号线精车设备 <strong>L2-CNC-03</strong> 主轴前轴承磨损：09-11 凌晨乙班在它上面精车的 3 个批次外径逐批偏大，过程检验测到 10 个超差样本却未拦截，终检外径公差又误设为 ±0.03（图纸 ±0.02）而放行。这台设备 09-08 已有振动预警，无人处理。</div>
+                    <div style="overflow-x: auto;">
+                      <table style="border-collapse: collapse; font-size: 13px; min-width: 100%;">
+                        <thead><tr><th style="border: 1px solid #e4e4e7; padding: 6px 10px; text-align: left; font-weight: 600;">批次</th><th style="border: 1px solid #e4e4e7; padding: 6px 10px; text-align: left; font-weight: 600;">精车开工</th><th style="border: 1px solid #e4e4e7; padding: 6px 10px; text-align: left; font-weight: 600;">外径最大值</th><th style="border: 1px solid #e4e4e7; padding: 6px 10px; text-align: left; font-weight: 600;">超差样本</th></tr></thead>
+                        <tbody>
+                          <tr><td style="border: 1px solid #e4e4e7; padding: 6px 10px;">B260911-L2-02</td><td style="border: 1px solid #e4e4e7; padding: 6px 10px;">03:46</td><td style="border: 1px solid #e4e4e7; padding: 6px 10px;">80.027</td><td style="border: 1px solid #e4e4e7; padding: 6px 10px;">2 / 5</td></tr>
+                          <tr><td style="border: 1px solid #e4e4e7; padding: 6px 10px;">B260911-L2-03</td><td style="border: 1px solid #e4e4e7; padding: 6px 10px;">04:38</td><td style="border: 1px solid #e4e4e7; padding: 6px 10px;">80.019</td><td style="border: 1px solid #e4e4e7; padding: 6px 10px;">3 / 5</td></tr>
+                          <tr><td style="border: 1px solid #e4e4e7; padding: 6px 10px;">B260911-L2-04</td><td style="border: 1px solid #e4e4e7; padding: 6px 10px;">05:30</td><td style="border: 1px solid #e4e4e7; padding: 6px 10px;">80.029</td><td style="border: 1px solid #e4e4e7; padding: 6px 10px;">5 / 5</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </template>
+                <template data-sc="if" value="{{omniIsDag}}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="align-self: flex-end; background: #eceef1; border-radius: 16px; padding: 9px 14px; font-size: 14px; max-width: 75%;">帮我写一个每天 2 点把 MES 工单同步到数仓的 Airflow DAG，并在沙箱里试运行。</div>
+                    <div style="font-size: 14px; line-height: 1.75;">已创建 <code style="font-family: 'JetBrains Mono', monospace; background: #0000000f; padding: 1px 5px; border-radius: 4px;">dags/mes_sync.py</code>（右侧 Files / Changes 可查看）。下面在执行沙箱里试运行：</div>
+                    <div aria-label="Terminal command" style="border: 1px solid #e4e4e7; border-radius: 8px; overflow: hidden;">
+                      <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #ffffff; border-bottom: 1px solid #e4e4e7; font-size: 12px; color: #71717a;"><span>Terminal · sbx-engineer1-7f2c</span><div style="flex-grow: 1"></div><button type="button" onClick="{{runDag}}" style="height: 26px; padding: 0 10px; border: 1px solid #d6d6d6; border-radius: 6px; background: #ffffff; font: inherit; font-size: 12px; color: #27272a; cursor: pointer;">{{runLabel}}</button></div>
+                      <div style="background: #0e1013; color: #e8ecf0; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.75; padding: 10px 12px;">
+                        <template data-sc="for" list="{{termLines}}" as="ln" hint-placeholder-count="2">
+                          <div style="{{ln.style}}">{{ln.text}}</div>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+                <template data-sc="if" value="{{omniIsNewEmpty}}" hint-placeholder-val="{{ false }}">
+                  <div style="flex-grow: 1; min-height: 240px;"></div>
+                </template>
+                <template data-sc="for" list="{{omniMsgs}}" as="msg" hint-placeholder-count="0">
+                  <div><div style="{{msg.style}}"><template data-sc="if" value="{{msg.context}}"><div style="font-size:11px;opacity:.75;margin-bottom:4px">{{msg.context}}</div></template>{{msg.text}}</div>
+                <template data-sc="if" value="{{msg.hasCard}}" hint-placeholder-val="{{ false }}">
+                  <div style="border: 1px solid #C7D2FE; background: #F8FAFF; border-radius: 10px; padding: 10px 12px;">
+                    <div style="font-size: 11px; color: #3730A3; font-weight: 600; margin-bottom: 8px;">织境结果组件 · {{msg.cardKind}}</div>
+                    <template data-sc="if" value="{{msg.isTable}}" hint-placeholder-val="{{ false }}">
+                      <div style="overflow-x: auto;">
+                        <table style="border-collapse: collapse; font-size: 12px; width: 100%; background: #FFFFFF;">
+                          <thead><tr><template data-sc="for" list="{{msg.cols}}" as="c" hint-placeholder-count="3"><th style="text-align: left; font-weight: 500; color: #475569; padding: 6px 8px; border-bottom: 1px solid #E2E8F0; white-space: nowrap;">{{c.v}}</th></template></tr></thead>
+                          <tbody><template data-sc="for" list="{{msg.rows}}" as="r" hint-placeholder-count="3"><tr><template data-sc="for" list="{{r.cells}}" as="cell" hint-placeholder-count="3"><td style="{{cell.style}}">{{cell.v}}</td></template></tr></template></tbody>
+                        </table>
+                      </div>
+                    </template>
+                    <template data-sc="if" value="{{msg.isChain}}" hint-placeholder-val="{{ false }}">
+                      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px;">
+                        <template data-sc="for" list="{{msg.nodes}}" as="nd" hint-placeholder-count="3">
+                          <template data-sc="if" value="{{nd.hasEdge}}" hint-placeholder-val="{{ false }}"><span style="color: #64748B; font-size: 11px; white-space: nowrap;">{{nd.edge}}</span></template>
+                          <span style="{{nd.style}}">{{nd.label}}</span>
+                        </template>
+                      </div>
+                    </template>
+                    <template data-sc="if" value="{{msg.isObject}}" hint-placeholder-val="{{ false }}">
+                      <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600;">{{msg.objTitle}}</span><span style="font-size: 11px; background: #E0E7FF; color: #3730A3; border-radius: 4px; padding: 1px 6px;">{{msg.objType}}</span></div>
+                        <template data-sc="for" list="{{msg.objFacts}}" as="of" hint-placeholder-count="3">
+                          <div style="display: flex; gap: 8px; font-size: 12px; margin-top: 6px;"><span style="color: #475569; min-width: 56px;">{{of.k}}</span><span style="color: #0F172A;">{{of.v}}</span></div>
+                        </template>
+                      </div>
+                    </template>
+                    <template data-sc="if" value="{{msg.isDiff}}" hint-placeholder-val="{{ false }}">
+                      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+                        <template data-sc="for" list="{{msg.sides}}" as="sd" hint-placeholder-count="2">
+                          <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 8px 10px;">
+                            <div style="font-size: 12px; font-weight: 600;">{{sd.name}}</div>
+                            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #334155; margin: 4px 0;">{{sd.formula}}</div>
+                            <div style="font-size: 18px; font-weight: 700;">{{sd.value}}</div>
+                          </div>
+                        </template>
+                      </div>
+                      <div style="font-size: 12px; color: #78350F; margin-top: 8px;">{{msg.diffNote}}</div>
+                    </template>
+                  </div>
+                </template>
+                  </div>
+                </template>
+              </div>
+
+              <div style="padding: 10px 24px 18px; max-width: 820px; width: 100%; box-sizing: border-box; margin: 0 auto;">
+                <div style="border: 1px solid #e4e4e7; border-radius: 16px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);">
+                  <textarea rows="2" value="{{omniInput}}" onChange="{{onOmniInput}}" onKeyDown="{{onOmniKey}}" placeholder="Message the agent" aria-label="Message the agent" style="border: 0; outline: none; resize: none; font: inherit; font-size: 14px; color: #27272a;"></textarea>
+                  <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: #71717a;">
+                    <span style="border: 1px solid #e4e4e7; border-radius: 6px; padding: 2px 8px;">质量追溯助手</span>
+                    <span style="border: 1px solid #e4e4e7; border-radius: 6px; padding: 2px 8px;">{{omniProjectTag}}</span>
+                    <div style="flex-grow: 1"></div>
+                    <button type="button" onClick="{{sendOmni}}" aria-label="Send" style="width: 30px; height: 30px; border: 0; border-radius: 15px; background: #11171c; color: #ffffff; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <aside aria-label="Workspace" style="flex: 1 1 280px; max-width: 320px; border-left: 1px solid #e4e4e7; display: flex; flex-direction: column; box-sizing: border-box;">
+              <div role="tablist" aria-label="Workspace tabs" style="display: flex; gap: 2px; padding: 8px; border-bottom: 1px solid #e4e4e7; flex-wrap: wrap;">
+                <template data-sc="for" list="{{railTabs}}" as="rt" hint-placeholder-count="4">
+                  <button type="button" role="tab" aria-selected="{{rt.selected}}" onClick="{{rt.pick}}" style="{{rt.style}}">{{rt.label}}</button>
+                </template>
+              </div>
+              <div style="padding: 10px; font-size: 13px; flex-grow: 1;">
+                <template data-sc="if" value="{{rtFiles}}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; flex-direction: column; gap: 2px;">
+                    <div style="padding: 4px 6px; color: #71717a;">dags</div>
+                    <template data-sc="for" list="{{fileRows}}" as="fr" hint-placeholder-count="2">
+                      <button type="button" onClick="{{fr.open}}" style="{{fr.style}}">{{fr.name}}</button>
+                    </template>
+                    <div style="padding: 4px 6px; color: #71717a;">tests</div>
+                    <template data-sc="if" value="{{showFile}}" hint-placeholder-val="{{ false }}">
+                      <div style="margin-top: 10px; border: 1px solid #e4e4e7; border-radius: 8px; overflow: hidden;">
+                        <div style="padding: 6px 10px; font-size: 12px; color: #71717a; border-bottom: 1px solid #e4e4e7;">{{openFile}}</div>
+                        <div style="padding: 8px 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.7; white-space: pre; overflow-x: auto;">{{fileContent}}</div>
+                      </div>
+                    </template>
+                  </div>
+                </template>
+                <template data-sc="if" value="{{rtChanges}}" hint-placeholder-val="{{ false }}">
+                  <div style="color: #27272a;">{{changesText}}</div>
+                </template>
+                <template data-sc="if" value="{{rtPr}}" hint-placeholder-val="{{ false }}">
+                  <div style="color: #71717a;">No pull requests</div>
+                </template>
+                <template data-sc="if" value="{{rtAgents}}" hint-placeholder-val="{{ false }}">
+                  <div style="color: #71717a;">No subagents running</div>
+                </template>
+              </div>
+            </aside>
+          </section>
+        </template>
+      </div>
+
+      <template data-sc="if" value="{{showSidebar}}" hint-placeholder-val="{{ false }}">
+        <aside aria-label="Agent 侧边栏" style="flex: 1 1 340px; max-width: 380px; background: #FFFFFF; border-left: 1px solid #E2E8F0; display: flex; flex-direction: column; box-sizing: border-box;">
+          <div style="display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid #E2E8F0;">
+            <span style="font-size: 14px; font-weight: 600;">Agent</span><span style="font-size: 12px; color: #475569;">质量助手</span>
+            <div style="flex-grow: 1"></div>
+            <button type="button" onClick="{{openInWorkbench}}" style="border: 0; background: transparent; color: #1D4ED8; font: inherit; font-size: 12px; cursor: pointer;">在工作台中打开</button>
+            <button type="button" onClick="{{toggleSidebar}}" aria-label="关闭侧边栏" style="width: 32px; height: 32px; border: 0; border-radius: 6px; background: transparent; color: #475569; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <div style="padding: 12px 16px; border-bottom: 1px solid #F1F5F9;">
+            <div style="font-size: 12px; color: #475569; margin-bottom: 6px;">下一条消息将使用当前上下文 · 历史消息保留原上下文</div>
+            <span style="display: inline-flex; align-items: center; gap: 6px; font-size: 12px; background: #EFF4FF; color: #1E3A8A; border: 1px solid #C7D2FE; border-radius: 14px; padding: 4px 10px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h11l5 5v9H4z"/></svg>{{contextLabel}}</span>
+          </div>
+          <div style="padding: 16px; display: flex; flex-direction: column; gap: 12px; flex-grow: 1; overflow-y: auto;">
+            <template data-sc="if" value="{{sbEmpty}}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="font-size: 13px; color: #475569;">试试问：</div>
+                <template data-sc="for" list="{{sbSuggestions}}" as="sg" hint-placeholder-count="2">
+                  <button type="button" onClick="{{sg.use}}" style="text-align: left; border: 1px solid #CBD5E1; background: #FFFFFF; border-radius: 10px; padding: 8px 12px; font: inherit; font-size: 13px; color: #334155; cursor: pointer;">{{sg.text}}</button>
+                </template>
+              </div>
+            </template>
+            <template data-sc="for" list="{{sbMsgs}}" as="msg" hint-placeholder-count="0">
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="{{msg.style}}"><template data-sc="if" value="{{msg.context}}"><div style="font-size:11px;opacity:.75;margin-bottom:4px">{{msg.context}}</div></template>{{msg.text}}</div>
+                <template data-sc="if" value="{{msg.hasCard}}" hint-placeholder-val="{{ false }}">
+                  <div style="border: 1px solid #C7D2FE; background: #F8FAFF; border-radius: 10px; padding: 10px 12px;">
+                    <div style="font-size: 11px; color: #3730A3; font-weight: 600; margin-bottom: 8px;">织境结果组件 · {{msg.cardKind}}</div>
+                    <template data-sc="if" value="{{msg.isTable}}" hint-placeholder-val="{{ false }}">
+                      <div style="overflow-x: auto;">
+                        <table style="border-collapse: collapse; font-size: 12px; width: 100%; background: #FFFFFF;">
+                          <thead><tr><template data-sc="for" list="{{msg.cols}}" as="c" hint-placeholder-count="3"><th style="text-align: left; font-weight: 500; color: #475569; padding: 6px 8px; border-bottom: 1px solid #E2E8F0; white-space: nowrap;">{{c.v}}</th></template></tr></thead>
+                          <tbody><template data-sc="for" list="{{msg.rows}}" as="r" hint-placeholder-count="3"><tr><template data-sc="for" list="{{r.cells}}" as="cell" hint-placeholder-count="3"><td style="{{cell.style}}">{{cell.v}}</td></template></tr></template></tbody>
+                        </table>
+                      </div>
+                    </template>
+                    <template data-sc="if" value="{{msg.isChain}}" hint-placeholder-val="{{ false }}">
+                      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px;">
+                        <template data-sc="for" list="{{msg.nodes}}" as="nd" hint-placeholder-count="3">
+                          <template data-sc="if" value="{{nd.hasEdge}}" hint-placeholder-val="{{ false }}"><span style="color: #64748B; font-size: 11px; white-space: nowrap;">{{nd.edge}}</span></template>
+                          <span style="{{nd.style}}">{{nd.label}}</span>
+                        </template>
+                      </div>
+                    </template>
+                    <template data-sc="if" value="{{msg.isObject}}" hint-placeholder-val="{{ false }}">
+                      <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 10px 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px;"><span style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600;">{{msg.objTitle}}</span><span style="font-size: 11px; background: #E0E7FF; color: #3730A3; border-radius: 4px; padding: 1px 6px;">{{msg.objType}}</span></div>
+                        <template data-sc="for" list="{{msg.objFacts}}" as="of" hint-placeholder-count="3">
+                          <div style="display: flex; gap: 8px; font-size: 12px; margin-top: 6px;"><span style="color: #475569; min-width: 56px;">{{of.k}}</span><span style="color: #0F172A;">{{of.v}}</span></div>
+                        </template>
+                      </div>
+                    </template>
+                    <template data-sc="if" value="{{msg.isDiff}}" hint-placeholder-val="{{ false }}">
+                      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;">
+                        <template data-sc="for" list="{{msg.sides}}" as="sd" hint-placeholder-count="2">
+                          <div style="background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 8px 10px;">
+                            <div style="font-size: 12px; font-weight: 600;">{{sd.name}}</div>
+                            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #334155; margin: 4px 0;">{{sd.formula}}</div>
+                            <div style="font-size: 18px; font-weight: 700;">{{sd.value}}</div>
+                          </div>
+                        </template>
+                      </div>
+                      <div style="font-size: 12px; color: #78350F; margin-top: 8px;">{{msg.diffNote}}</div>
+                    </template>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+          <div style="padding: 12px 16px 16px;">
+            <div style="display: flex; align-items: center; gap: 8px; border: 1px solid #CBD5E1; border-radius: 10px; padding: 8px 10px;">
+              <input type="text" value="{{sbInput}}" onChange="{{onSbInput}}" onKeyDown="{{onSbKey}}" placeholder="问关于当前页面的问题（回车发送）" aria-label="给 Agent 发消息" style="border: 0; outline: none; font: inherit; font-size: 13px; flex-grow: 1; min-width: 0;">
+              <button type="button" onClick="{{sendSb}}" aria-label="发送" style="width: 30px; height: 30px; border: 0; border-radius: 8px; background: #2F5BEA; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+            </div>
+          </div>
+        </aside>
+      </template>
+    </div>
+  </main>
+
+  <template data-sc="if" value="{{hasToast}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); background: #0B1220; color: #FFFFFF; border-radius: 10px; padding: 12px 18px; font-size: 14px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25);">{{toast}}</div>
+  </template>
+</div>
+</template>
+<script>
+
+(function () {
+  const HOLE = /\{\{\s*([^}]+?)\s*\}\}/g;
+  const WHOLE = /^\s*\{\{\s*([^}]+?)\s*\}\}\s*$/;
+  const HTMLNS = 'http://www.w3.org/1999/xhtml';
+  const EVENT = { change: 'input' };
+  function lookup(path, scope) {
+    if (path === 'true') return true;
+    if (path === 'false') return false;
+    if (path === 'null') return null;
+    if (/^-?\d+(\.\d+)?$/.test(path)) return Number(path);
+    if (/^'.*'$|^".*"$/.test(path)) return path.slice(1, -1);
+    let cur = scope;
+    for (const part of path.split('.')) { if (cur == null) return undefined; cur = cur[part]; }
+    return cur;
+  }
+  function interp(text, scope) {
+    return text.replace(HOLE, (_, p) => { const v = lookup(p, scope); return v == null ? '' : String(v); });
+  }
+  // 1) 模板 + 数据 → 虚拟节点
+  function build(nodes, scope, out) { for (const n of nodes) buildNode(n, scope, out); return out; }
+  function buildNode(n, scope, out) {
+    if (n.nodeType === 3) { out.push({ text: interp(n.data, scope) }); return; }
+    if (n.nodeType !== 1) return;
+    if (n.localName === 'template' && n.dataset.sc) {
+      if (n.dataset.sc === 'if') {
+        if (lookup(n.getAttribute('value').match(WHOLE)[1], scope)) build(n.content.childNodes, scope, out);
+      } else {
+        const list = lookup(n.getAttribute('list').match(WHOLE)[1], scope) || [];
+        const as = n.getAttribute('as');
+        list.forEach((item, idx) => { const s = Object.create(scope); s[as] = item; s.$index = idx; build(n.content.childNodes, s, out); });
+      }
+      return;
+    }
+    const v = { tag: n.localName, ns: n.namespaceURI, attrs: {}, events: {}, value: undefined, children: [] };
+    for (const a of Array.from(n.attributes)) {
+      const name = a.name;
+      if (name.startsWith('hint-')) continue;
+      const whole = a.value.match(WHOLE);
+      if (/^on[a-z]+$/.test(name) && whole) {
+        const fn = lookup(whole[1], scope);
+        if (typeof fn === 'function') { const ev = name.slice(2); v.events[EVENT[ev] || ev] = fn; }
+        continue;
+      }
+      const val = whole ? lookup(whole[1], scope) : interp(a.value, scope);
+      if (name === 'value') { v.value = val == null ? '' : String(val); continue; }
+      if (val === false || val == null) continue;
+      v.attrs[name] = val === true ? '' : String(val);
+    }
+    build(n.localName === 'template' ? n.content.childNodes : n.childNodes, scope, v.children);
+    out.push(v);
+  }
+  // 2) 原地更新真实 DOM：同位置同类型的元素复用，鼠标下的元素不被替换（避免悬停事件反复触发）
+  const EMPTY = { attrs: {}, events: {}, children: [] };
+  function create(v) {
+    if ('text' in v) return document.createTextNode(v.text);
+    const el = v.ns === HTMLNS ? document.createElement(v.tag) : document.createElementNS(v.ns, v.tag);
+    el.__h = {};
+    patchEl(el, EMPTY, v);
+    return el;
+  }
+  function sameKind(el, v) {
+    if ('text' in v) return el.nodeType === 3;
+    return el.nodeType === 1 && el.localName === v.tag && el.namespaceURI === v.ns;
+  }
+  function patchEl(el, old, v) {
+    for (const k of Object.keys(old.attrs)) if (!(k in v.attrs)) el.removeAttribute(k);
+    for (const [k, val] of Object.entries(v.attrs)) if (old.attrs[k] !== val) el.setAttribute(k, val);
+    for (const [t, fn] of Object.entries(v.events)) {
+      if (!(t in el.__h)) el.addEventListener(t, (e) => { const h = el.__h[t]; if (h) h(e); });
+      el.__h[t] = fn;
+    }
+    for (const t of Object.keys(el.__h)) if (!(t in v.events)) el.__h[t] = null;
+    patchChildren(v.tag === 'template' ? el.content : el, v.children);
+    // Select options must exist before assigning the selected value.
+    if (v.value !== undefined && el.value !== v.value) el.value = v.value;
+    el.__v = v;
+  }
+  function patchChildren(parent, kids) {
+    const nodes = Array.from(parent.childNodes);
+    kids.forEach((v, i) => {
+      const el = nodes[i];
+      if (!el) { parent.appendChild(create(v)); return; }
+      if (!sameKind(el, v)) { parent.replaceChild(create(v), el); return; }
+      if ('text' in v) { if (el.data !== v.text) el.data = v.text; return; }
+      patchEl(el, el.__v || EMPTY, v);
+    });
+    for (let i = nodes.length - 1; i >= kids.length; i--) parent.removeChild(nodes[i]);
+  }
+  let comp, root, scheduled = false;
+  function render() {
+    scheduled = false;
+    patchChildren(root, build(window.__TEMPLATE__.content.childNodes, comp.renderVals(), []));
+  }
+  function schedule() { if (!scheduled) { scheduled = true; Promise.resolve().then(render); } }
+  class DCLogic {
+    constructor(props) { this.props = props || {}; this.state = {}; }
+    setState(patch) {
+      const p = typeof patch === 'function' ? patch(this.state, this.props) : patch;
+      if (Object.keys(p || {}).every((k) => this.state[k] === p[k])) return;
+      this.state = Object.assign({}, this.state, p);
+      schedule();
+    }
+    forceUpdate() { schedule(); }
+  }
+  window.DCLogic = DCLogic;
+  window.__startPrototype = function (Component) {
+    root = document.getElementById('app');
+    comp = new Component({});
+    render();
+  };
+})();
+
+window.__TEMPLATE__ = document.getElementById('tpl');
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      screen: null, sidebar: false, hoverRail: -1, secondaryOpen: true,
+      approvals: [
+        { id: 'fpy', kind: '指标口径', title: '一次合格率：帆软口径与严格口径二选一', meta: 'E0077 提交 · 今天 10:20', status: 'pending', body: '', result: '' },
+        { id: 'onto', kind: '本体提案', title: '新增关系：物料批次 → 投料工单', meta: 'Agent 提议 · E0080 确认 · 昨天', status: 'pending', body: '在本体中新增“物料批次 被投料到 工单”关系，映射 mes.material_consumption（lot_no → wo_no）。C2 来料不良追溯依赖这条关系找出同批物料的全部流向。', result: '' },
+        { id: 'know', kind: '知识片', title: '8D-2609-0901 的根因分析', meta: 'E0078 提交 · 昨天', status: 'pending', body: '根因：L2-CNC-03 主轴前轴承磨损，精车外径逐步偏大；09-08 的振动预警未处理；终检外径公差误设为 ±0.03。批准后进入知识包，供同类追溯参考。', result: '' }
+      ],
+      picked: 'fpy', sbMsgs: [], sbInput: '',
+      tree: 'all', assetId: 'qms.ncr', searchInput: '', query: '', quick: {}, filterOpen: '', sort: 'name', detailOpen: false, pageSessionContext: '', returnScreen: 'explore',
+      omniSidebar: true, omniSession: 'ncr', openProjects: { quality: true, pipeline: true, assets:true },
+      omniMsgs: { ncr: [], fpy: [], dag: [], new: [], page: [] }, omniInput: '', openTools: {}, railTab: 'files', openFile: '',
+      term: [], running: false, toast: ''
+    };
+    this.timers = [];
+    this.requestId = 0;
+    this.restoreSearch();
+    window.addEventListener('hashchange', () => { this.restoreSearch(); this.forceUpdate(); });
+  }
+  componentWillUnmount() { this.timers.forEach((t) => clearTimeout(t)); }
+  later(ms, fn) { this.timers.push(setTimeout(fn, ms)); }
+  flash(text) { this.setState({ toast: text }); this.later(2200, () => this.setState({ toast: '' })); }
+  screen() { return this.state.screen ?? this.props.startScreen ?? 'home'; }
+  go(screen, extra) { this.setState(Object.assign({ screen }, extra || {})); }
+  filterDefs() {
+    return [
+      {key:'type', label:'数据资产', values:['表','术语']},
+      {key:'domain', label:'域', values:['未分配']}, {key:'product', label:'数据产品', values:['未分配']},
+      {key:'owner', label:'所有者', values:['未分配']}, {key:'tag', label:'标签', values:['未分配']},
+      {key:'tier', label:'资产分层（Tier）', values:['未分配']}, {key:'cert', label:'认证', values:['未认证','已认证']},
+      {key:'svc', label:'服务', values:['mes','qms','dw','glossary']},
+      {key:'serviceType', label:'服务类型', values:['MySQL','PostgreSQL','Doris','术语库']}
+    ];
+  }
+  assetValue(a, key) {
+    if (key === 'serviceType') return {mes:'MySQL',qms:'PostgreSQL',dw:'Doris',glossary:'术语库'}[a.svc];
+    if (key === 'cert') return '未认证';
+    return a[key] ?? '未分配';
+  }
+  matchingAssets({ignoreType = false} = {}) {
+    const st = this.state, q = st.query.toLocaleLowerCase();
+    const rows = this.assets().filter(a => (st.tree === 'all' || a.svc === st.tree)
+      && (!q || [a.id,a.name,a.display,a.path,...a.cols.flat()].join(' ').toLocaleLowerCase().includes(q))
+      && Object.entries(st.quick).every(([k,v]) => (ignoreType && k === 'type') || !v.length || v.includes(this.assetValue(a,k))));
+    return rows.sort((a,b) => st.sort === 'nameDesc' ? b.name.localeCompare(a.name) : st.sort === 'relevance'
+      ? Number(b.name.toLowerCase().includes(q)) - Number(a.name.toLowerCase().includes(q)) || a.name.localeCompare(b.name)
+      : a.name.localeCompare(b.name));
+  }
+  selectedAsset() { const rows = this.matchingAssets(); return rows.find(a => a.id === this.state.assetId) || rows[0]; }
+  updateSearch(patch) {
+    this.setState({...patch, detailOpen:false});
+    const a = this.selectedAsset();
+    this.setState({assetId:a?.id || ''});
+    this.saveSearch();
+  }
+  toggleFilter(key, value) {
+    const old = this.state.quick[key] || [];
+    this.updateSearch({quick:{...this.state.quick,[key]:old.includes(value) ? old.filter(v=>v!==value) : [...old,value]}});
+  }
+  clearSearch() { this.updateSearch({query:'',searchInput:'',tree:'all',quick:{},filterOpen:'',sort:'name'}); }
+  submitSearch() { this.go('explore'); this.updateSearch({query:this.state.searchInput.trim(),sort:this.state.searchInput.trim() ? 'relevance' : 'name'}); }
+  saveSearch() {
+    const st=this.state, params=new URLSearchParams();
+    params.set('q',st.query); params.set('tree',st.tree); params.set('sort',st.sort);
+    params.set('filters',JSON.stringify(st.quick)); params.set('asset',st.assetId);
+    const hash='#explore?'+params;
+    if(window.location.hash!==hash) window.history.pushState(null,'',hash);
+  }
+  restoreSearch() {
+    if (!window.location.hash.startsWith('#explore?')) return;
+    try {
+      const p=new URLSearchParams(window.location.hash.slice(9));
+      const raw=JSON.parse(p.get('filters') || '{}'), quick={};
+      for(const d of this.filterDefs()) if(Array.isArray(raw[d.key])) quick[d.key]=raw[d.key].filter(v=>d.values.includes(v));
+      Object.assign(this.state,{screen:'explore',query:p.get('q') || '',searchInput:p.get('q') || '',tree:['all','mes','qms','dw','glossary'].includes(p.get('tree')) ? p.get('tree') : 'all',sort:['name','nameDesc','relevance'].includes(p.get('sort')) ? p.get('sort') : 'name',quick,assetId:p.get('asset') || '',detailOpen:false});
+      this.state.assetId=this.selectedAsset()?.id || '';
+    } catch { /* Ignore malformed prototype URL state. */ }
+  }
+  openPageSession() {
+    this.setState({returnScreen:this.screen(),pageSessionContext:this.contextLabel(),screen:'workbench',omniSession:'page',sidebar:false});
+  }
+
+  assets() {
+    const t = (type) => 'font-size: 11px; border-radius: 4px; padding: 1px 6px; ' + (type === '表' ? 'background: #E0F2FE; color: #075985;' : (type === '术语' ? 'background: #DCFCE7; color: #166534;' : 'background: #FEF3C7; color: #92400E;'));
+    return [
+      { id: 'qms.ncr', svc: 'qms', type: '表', path: 'mock-qms › qms › public', name: 'ncr', display: '不合格报告（客诉、内部、来料）', cols: [['ncr_no', 'NCR 号'], ['source', '来源'], ['batch_no', '成品批次号'], ['lot_no', '物料批次号'], ['defect_code', '缺陷码']], ncol: 13 },
+      { id: 'mes.operation_report', svc: 'mes', type: '表', path: 'mock-mes › mes', name: 'operation_report', display: '工序报工', cols: [['report_id', '报工编号'], ['batch_no', '成品批次号'], ['equip_code', '设备编号'], ['operator_no', '操作工工号'], ['good_qty', '首次合格数量']], ncol: 13 },
+      { id: 'mes.equipment_event', svc: 'mes', type: '表', path: 'mock-mes › mes', name: 'equipment_event', display: '设备事件（保养、报警、预警、停机、维修）', cols: [['event_id', '事件编号'], ['equip_code', '设备编号'], ['event_type', '事件类型'], ['alarm_code', '报警代码'], ['handled_by', '处理人工号']], ncol: 7 },
+      { id: 'qms.inspection_value', svc: 'qms', type: '表', path: 'mock-qms › qms › public', name: 'inspection_value', display: '检验实测值', cols: [['insp_no', '检验单号'], ['item_code', '检验项编码'], ['measured_value', '实测值'], ['judgement', '单值判定']], ncol: 5 },
+      { id: 'dw.dws_line_monthly_quality', svc: 'dw', type: '表', path: 'mock-dw › mock_dw', name: 'dws_line_monthly_quality', display: '产线月质量汇总（帆软现有报表的数据源）', cols: [['line_code', '产线编码'], ['stat_month', '统计月份'], ['fpy_incl_rework', '一次合格率（帆软口径）'], ['fpy_strict', '一次合格率（严格口径）']], ncol: 8 },
+      { id: 'quality.Equipment', svc: 'glossary', type: '术语', path: '术语库 › quality', name: 'Equipment', display: '设备：生产设备，如数控机床', cols: [['code', '设备编号'], ['name', '设备名称'], ['model', '型号']], ncol: 5 }
+    ].map((a) => Object.assign(a, { typeStyle: t(a.type) }));
+  }
+  contextLabel() {
+    const s = this.screen();
+    if (s === 'approvals') { const a = this.state.approvals.find((x) => x.id === this.state.picked); return '审批 · ' + a.title; }
+    if (s === 'explore') { const a = this.selectedAsset(); return a ? '当前资产：' + a.id + ' · ' + a.display : '当前搜索结果：0 项 · 未读取其他资产'; }
+    return '首页 · 概览';
+  }
+  answer(q, ctx) {
+    if(ctx.includes('0 项')) return {text:'当前搜索结果为空。请先调整搜索条件并选择资产；未查询其他资产。'};
+    const ctxAsset = this.assets().find(a=>ctx.startsWith('当前资产：'+a.id+' ·'));
+    if (ctxAsset && /关联|哪些表|谁在用|下游|报表/.test(q) && ctxAsset.id !== 'qms.ncr' && ctxAsset.svc !== 'dw') return {text:'当前资产是 '+ctxAsset.id+'（'+ctxAsset.display+'）。原型尚未提供该资产的血缘示例，不能把其他资产的关系当作它的关系；实际查询将使用该资产的 OM 实体身份。'};
+    const node = (label, tone, edge) => ({ label, tone, edge });
+    if (/8D|D1|起草/.test(q)) return { text: 'D1 小组：组长 E0078，成员 E0077、E0046（L2-B 班组长）、E0072（维修）。D2 问题：09-11 凌晨精车的 3 批法兰盘外径 80.027–80.029，超图纸 Ø80 ±0.02。D3 围堵：冻结 3 批库存与在途，全检外径。D4 根因：L2-CNC-03 主轴前轴承磨损；09-08 振动预警无人处理；终检公差误设 ±0.03。' };
+    if (/终检|拦/.test(q)) return { text: '过程检验其实判了“不合格”（10 个样本超 80.025），但批次照常流转；终检外径公差设为 79.97–80.03（±0.03），比图纸 ±0.02 宽，所以 3 批都判合格放行。' };
+    if (/关联|哪些表/.test(q)) return { text: 'qms.ncr 经 batch_no 关联成品批次与检验单，经 lot_no 关联物料批次；这些关联还没有在 OM 中登记为血缘或本体关系，需要在 016 补上。',
+      card: { kind: '血缘子图', type: 'chain', nodes: [node('mes.production_batch', 'table'), node('qms.ncr', 'focus', 'batch_no ←'), node('mes.material_lot', 'table', '→ lot_no'), node('qms.inspection_record', 'table', '→ batch_no')] } };
+    if (/谁在用|下游|报表/.test(q)) return { text: 'mock_dw.dws_line_monthly_quality 是帆软“产线月质量”报表的数据源，由 MES 报工经明细层汇总而来。',
+      card: { kind: '血缘子图', type: 'chain', nodes: [node('mes.operation_report', 'table'), node('mock_dw.dwd_operation_report', 'table', '→'), node('mock_dw.dws_line_monthly_quality', 'focus', '→'), node('帆软 · 产线月质量', 'report', '→')] } };
+    if (/召回|同一台/.test(q)) return { text: 'L2-CNC-03 在 09-10 20:00 至 09-11 08:00 只精车了这 3 批；它在 09-10 白班与 09-12 维修后加工的批次外径都在 80.014 以内，不需要召回。',
+      card: { kind: '表格', type: 'table', cols: ['批次', '精车开工', '外径最大值', '结论'], rows: [['B260911-L2-02', '03:46', '80.027', '召回'], ['B260911-L2-03', '04:38', '80.019', '召回'], ['B260911-L2-04', '05:30', '80.029', '召回']] } };
+    if (/口径|合格率/.test(q)) return { text: '两个口径都以终检 L2-OP60 为准，差在是否把 720 件返工后合格算作合格。',
+      card: { kind: '口径差异', type: 'diff', sides: [{ name: '口径 A · 帆软报表', formula: '（首次合格 + 返工后合格）÷ 投入', value: '99.89%' }, { name: '口径 B · 严格口径', formula: '首次合格 ÷ 投入', value: '98.69%' }], note: '2 号线 · 2026-09 · 差 1.20 个百分点' } };
+    if (/裂纹|毛坯|0902|供应商|流向/.test(q)) return { text: 'NCR-2609-0902 的裂纹批次都用了 S03 的毛坯批次 ML260902-901（来料硬度 28.3–28.9，下限 28）。同批毛坯共流向 6 个批次，其中 2 批终检“合格”但需冻结全检。',
+      card: { kind: '表格', type: 'table', cols: ['批次', '工单', '终检'], rows: [['B260915-L1-01', 'WO2609-0561', '裂纹 2 件'], ['B260915-L1-02', 'WO2609-0562', '裂纹 1 件'], ['B260916-L1-01', 'WO2609-0601', '裂纹 2 件'], ['B260916-L1-02', 'WO2609-0602', '合格 · 需冻结'], ['B260917-L1-01', 'WO2609-0641', '裂纹 2 件'], ['B260917-L1-02', 'WO2609-0642', '合格 · 需冻结']] } };
+    if (/设备|CNC/.test(q)) return { text: 'L2-CNC-03 是 2 号线精车设备，09-11 凌晨加工的 3 批外径超差，09-12 已更换主轴前轴承。',
+      card: { kind: '对象卡片', type: 'object', title: 'L2-CNC-03', objType: '设备', facts: [['名称', '数控车床 03#'], ['型号', 'CK6150'], ['产线 · 工序', '2 号线 · L2-OP30 精车'], ['最近事件', '09-12 更换主轴前轴承']] } };
+    if (/NCR|0901|怎么回事|事件/.test(q)) return { text: 'NCR-2609-0901：2 号线精车设备 L2-CNC-03 主轴前轴承磨损，09-11 凌晨乙班精车的 3 批外径超差；预警无人处理、终检公差设错，客户退货 37 件。',
+      card: { kind: '追溯子图', type: 'chain', nodes: [node('NCR-2609-0901', 'alert'), node('3 个批次', 'plain', '→'), node('精车 · 乙班 E0047', 'plain', '→'), node('L2-CNC-03', 'focus', '→'), node('09-08 预警无人处理', 'warn', '→')] } };
+    return { text: '我已读取「' + ctx + '」。可以问：它和哪些表关联、谁在用它、相关的质量事件。' };
+  }
+  styles() {
+    return {
+      user: 'align-self: flex-end; background: #0B1220; color: #FFFFFF; border-radius: 12px 12px 4px 12px; padding: 9px 12px; font-size: 13px; max-width: 85%;',
+      agent: 'font-size: 13px; line-height: 1.75; color: #0F172A;',
+      think: 'font-size: 12px; color: #475569;',
+      ouser: 'align-self: flex-end; background: #eceef1; color: #27272a; border-radius: 16px; padding: 9px 14px; font-size: 14px; max-width: 75%;',
+      oagent: 'font-size: 14px; line-height: 1.75; color: #27272a;',
+      othink: 'font-size: 13px; color: #71717a;'
+    };
+  }
+  sendSidebar(text) {
+    const q = (text ?? this.state.sbInput).trim();
+    if (!q) return;
+    const ctx = this.screen()==='workbench' && this.state.omniSession==='page' ? this.state.pageSessionContext : this.contextLabel();
+    const requestId=++this.requestId;
+    this.setState({ sbMsgs: this.state.sbMsgs.concat([{ role: 'user', text: q, context: ctx }, { role: 'think', text: '正在经 AI 网关查询…', context: ctx, requestId }]), sbInput: '' });
+    this.later(900, () => { const a = this.answer(q, ctx); this.setState({ sbMsgs: this.state.sbMsgs.filter((m) => m.requestId !== requestId).concat([{ role: 'agent', text: a.text, card: a.card, context: ctx }]) }); });
+  }
+  sendOmni(text) {
+    const q = (text ?? this.state.omniInput).trim();
+    if (!q) return;
+    const key = this.state.omniSession;
+    if (key === 'page') { this.sendSidebar(q); this.setState({omniInput:''}); return; }
+    const all = Object.assign({}, this.state.omniMsgs);
+    all[key] = all[key].concat([{ role: 'user', text: q }, { role: 'think', text: 'Working…' }]);
+    this.setState({ omniMsgs: all, omniInput: '' });
+    this.later(1000, () => {
+      const cur = Object.assign({}, this.state.omniMsgs);
+      cur[key] = cur[key].filter((m) => m.role !== 'think').concat([{ role: 'agent', text: this.answer(q, key === 'dag' ? 'dags/mes_sync.py' : 'NCR-2609-0901').text }]);
+      this.setState({ omniMsgs: cur });
+    });
+  }
+  runDag() {
+    if (this.state.running) return;
+    const lines = ['[10:42:05] INFO - 读取 mes.work_order（经 AI 网关 · MCP 只读工具）', '[10:42:07] INFO - 同步 40 行（10-22 的工单）到 mock_dw.dwd_work_order', '[10:42:08] INFO - 任务 extract_work_orders 成功', '[10:42:09] INFO - 任务 load_to_warehouse 成功', '[10:42:09] INFO - DAG 运行完成：success'];
+    this.setState({ term: [{ text: '$ airflow dags test mes_sync 2026-10-23', style: 'color: #93C5FD;' }], running: true });
+    lines.forEach((t, i) => this.later(500 * (i + 1), () => {
+      const done = i === lines.length - 1;
+      this.setState({ term: this.state.term.concat([{ text: t, style: done ? 'color: #4ADE80;' : 'color: #e8ecf0;' }]), running: !done });
+    }));
+  }
+  decide(id, status, result) {
+    this.setState({ approvals: this.state.approvals.map((a) => (a.id === id ? Object.assign({}, a, { status, result }) : a)) });
+    this.flash(result);
+  }
+
+  renderVals() {
+    const s = this.screen();
+    const st = this.state;
+    const sty = this.styles();
+    const pending = st.approvals.filter((a) => a.status === 'pending');
+    const tagStyles = { '指标口径': 'background: #FEF3C7; color: #92400E;', '本体提案': 'background: #E0E7FF; color: #3730A3;', '知识片': 'background: #DCFCE7; color: #166534;' };
+    const tag = (k) => 'font-size: 12px; border-radius: 6px; padding: 2px 8px; white-space: nowrap; height: fit-content; ' + tagStyles[k];
+    const railBtn = (active) => 'position: relative; width: 48px; height: 48px; margin: 0 auto; padding: 0; border-radius: 12px; border: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; font: inherit; ' + (active ? 'background: #1E293B; color: #FFFFFF;' : 'background: transparent; color: #CBD5E1;');
+    const homeActive = s === 'home' || s === 'approvals';
+    const rail = [
+      { text: '新建对话', d: 'M12 5v14M5 12h14', active: false, enabled: true, go: () => this.go('workbench', { omniSession: 'new', sidebar: false }) },
+      { text: '首页', d: 'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z', active: homeActive, enabled: true, go: () => this.go('home') },
+      { text: '资产搜索', d: 'M11 5a6 6 0 1 0 0 12a6 6 0 1 0 0-12zM20 20l-4.5-4.5', active: s === 'explore', enabled: true, go: () => this.go('explore') },
+      { text: 'Agent 工作台', d: 'M7 7h10a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3zM12 3v4M9 13h.01M15 13h.01', active: s === 'workbench', enabled: true, go: () => this.go('workbench', { sidebar: false }) }
+    ].map((r, i) => Object.assign(r, { label: r.text, style: railBtn(r.active), hover: st.hoverRail === i,
+      enter: () => this.setState({ hoverRail: i }), leave: () => this.setState({ hoverRail: -1 }) }));
+
+    const item = (label, active, go, badge, depth) => ({ isItem: true, isHeading: false, label, go, hasBadge: badge !== undefined && badge !== null, badge: badge ?? '',
+      badgeStyle: typeof badge === 'number' && depth === undefined ? 'background: #2F5BEA; color: #FFFFFF; border-radius: 10px; padding: 0 7px; font-size: 12px; font-weight: 500;' : 'color: #475569; font-size: 12px; background: #F1F5F9; border-radius: 4px; padding: 0 6px;',
+      indentStyle: 'display: inline-block; width: ' + ((depth || 0) * 14) + 'px;',
+      style: 'display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 8px 10px; border-radius: 8px; border: 0; font: inherit; font-size: 14px; cursor: pointer; ' + (active ? 'background: #EFF4FF; color: #1D4ED8; font-weight: 600;' : 'background: transparent; color: #334155;') });
+    const heading = (label) => ({ isItem: false, isHeading: true, label, go: null, hasBadge: false, badge: '', badgeStyle: '', indentStyle: '', style: '' });
+    let menu = [], moduleName = '';
+    if (homeActive) {
+      moduleName = '首页';
+      menu = [item('概览', s === 'home', () => this.go('home')), item('审批中心', s === 'approvals', () => this.go('approvals'), pending.length)];
+    } else if (s === 'explore') {
+      moduleName = st.query ? '搜索结果 · 资产类型' : '浏览数据资产';
+      menu = [item('全部位置', st.tree === 'all', () => this.updateSearch({tree:'all'})), heading('数据库服务'),
+        item('mock-mes（MySQL）', st.tree === 'mes', () => this.updateSearch({ tree: st.tree === 'mes' ? 'all' : 'mes' }), 13, 0),
+        item('mock-qms（PostgreSQL）', st.tree === 'qms', () => this.updateSearch({ tree: st.tree === 'qms' ? 'all' : 'qms' }), 7, 0),
+        item('mock-dw（Doris）', st.tree === 'dw', () => this.updateSearch({ tree: st.tree === 'dw' ? 'all' : 'dw' }), 8, 0),
+        heading('数据治理'),
+        item('术语库', st.tree === 'glossary', () => this.updateSearch({ tree: st.tree === 'glossary' ? 'all' : 'glossary' }), 6, 0),
+        item('标签', false, () => this.flash('标签在 018 分类分级中维护'), 19, 0),
+        item('指标', false, () => this.flash('指标在 015 交付'), 0, 0)];
+    }
+    if (s === 'explore' && st.query) {
+      const base = this.matchingAssets({ignoreType:true});
+      menu = [item('全部类型', !(st.quick.type || []).length, () => this.updateSearch({quick:{...st.quick,type:[]}}), base.length),
+        ...['表','术语'].map(type => item(type, (st.quick.type || []).includes(type), () => this.toggleFilter('type',type),base.filter(a=>a.type===type).length))];
+    }
+    const showSecondary = s !== 'workbench' && st.secondaryOpen;
+    const titles = { home: ['概览', ''], approvals: ['审批中心', '我的待办 · 来自 OpenMetadata 治理工作流'], explore: ['资产搜索', st.tree === 'all' ? '正在浏览整个数据资产' : '已按左侧位置筛选'], workbench: ['Agent 工作台', ''] };
+
+    const all = this.assets();
+    const list = this.matchingAssets();
+    const selected = this.selectedAsset();
+    const selAsset = selected || {name:'',type:'',display:'',cols:[],ncol:0};
+    const assetCards = list.map((a) => ({ selected:a.id===selAsset.id, selectLabel:'查看摘要：'+a.display, key:(e)=>{if(e.target===e.currentTarget && (e.key==='Enter' || e.key===' ')){e.preventDefault();this.updateSearch({assetId:a.id});}}, open:(e)=>{e.stopPropagation();this.updateSearch({assetId:a.id});this.setState({detailOpen:true});}, path: a.path, type: a.type, typeStyle: a.typeStyle, name: a.name, display: a.display,
+      meta: a.type === '表' ? a.ncol + ' 列 · 没有域 · 没有所有者' : '没有域 · 没有所有者',
+      pick: () => this.updateSearch({ assetId: a.id }),
+      style: 'display: block; width: 100%; text-align: left; font: inherit; cursor: pointer; background: #FFFFFF; border-radius: 12px; padding: 14px 18px; box-sizing: border-box; border: ' + (a.id === selAsset.id ? '1.5px solid #2F5BEA' : '1px solid #E2E8F0') + ';' }));
+    const unset = 'font-size: 13px; color: #94A3B8; margin-top: 6px;';
+    const asset = { description:selAsset.display, name: selAsset.name, type: selAsset.type, typeStyle: selAsset.typeStyle,
+      props: [{ k: '描述', v: selAsset.display, style: 'font-size: 13px; color: #334155; margin-top: 6px;' }, { k: '所有者', v: '未分配 所有者', style: unset }, { k: '域', v: '未分配 域', style: unset }, { k: '资产分层（Tier）', v: '未分配（不代表数据安全级别）', style: unset }, { k: '术语', v: '未分配 术语', style: unset }, { k: '标签', v: '未分配 标签', style: unset }],
+      columnsTitle: selAsset.type === '表' ? '列（前 ' + selAsset.cols.length + ' 个，共 ' + selAsset.ncol + ' 个）' : '属性',
+      columns: selAsset.cols.map(([n, c]) => ({ n, c })) };
+    const defs=this.filterDefs(), activeFilter=defs.find(d=>d.key===st.filterOpen);
+    const filters = defs.map(d=>({label:d.label+((st.quick[d.key] || []).length ? ' ('+st.quick[d.key].length+')' : ''),pick:()=>this.setState({filterOpen:st.filterOpen===d.key ? '' : d.key})}));
+    const filterOptions=(activeFilter?.values || []).map(value=>({label:value,checked:(st.quick[activeFilter.key] || []).includes(value),toggle:()=>this.toggleFilter(activeFilter.key,value),style:'padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid #CBD5E1;background:'+((st.quick[activeFilter.key] || []).includes(value) ? '#DBEAFE' : 'white')}));
+    const chips=[];
+    if(st.query) chips.push({label:'关键词：'+st.query,remove:()=>this.updateSearch({query:'',searchInput:''})});
+    if(st.tree!=='all') chips.push({label:'位置：'+st.tree,remove:()=>this.updateSearch({tree:'all'})});
+    for(const d of defs) for(const v of st.quick[d.key] || []) chips.push({label:d.label+'：'+v,remove:()=>this.toggleFilter(d.key,v)});
+    chips.forEach(c=>c.removeLabel='移除'+c.label);
+    const recentAssets = all.slice(0, 3).map((a) => ({ path: a.path, name: a.name, display: a.display, open: () => { this.go('explore');this.clearSearch();this.updateSearch({assetId:a.id}); } }));
+
+    const sel = st.approvals.find((a) => a.id === st.picked);
+    const statusLabel = (a) => (a.status === 'pending' ? '待审批' : (a.status === 'approved' ? '已批准' : '已退回'));
+    const approvalRows = st.approvals.map((a) => ({ kind: a.kind, title: a.title, meta: a.meta, statusLabel: statusLabel(a), tagStyle: tag(a.kind),
+      statusStyle: 'font-size: 12px; color: ' + (a.status === 'pending' ? '#475569' : (a.status === 'approved' ? '#166534' : '#B91C1C')) + ';',
+      pick: () => this.setState({ picked: a.id }),
+      rowStyle: 'display: block; width: 100%; text-align: left; font: inherit; cursor: pointer; padding: 14px 16px; border: 0; border-bottom: 1px solid #F1F5F9; background: ' + (a.id === st.picked ? '#EFF4FF' : '#FFFFFF') + '; border-left: 3px solid ' + (a.id === st.picked ? '#2F5BEA' : 'transparent') + ';' }));
+    const btn = (primary, danger) => 'height: 40px; padding: 0 18px; border-radius: 8px; font: inherit; font-size: 14px; cursor: pointer; ' + (primary ? 'border: 0; background: #2F5BEA; color: #FFFFFF;' : 'border: 1px solid #CBD5E1; background: #FFFFFF; color: ' + (danger ? '#B91C1C' : '#0F172A') + ';');
+    const selActions = sel.id === 'fpy'
+      ? [{ label: '批准口径 B', style: btn(true), run: () => this.decide('fpy', 'approved', '已批准：一次合格率采用严格口径（口径 B）') },
+         { label: '批准口径 A', style: btn(false), run: () => this.decide('fpy', 'approved', '已批准：一次合格率采用帆软口径（口径 A）') },
+         { label: '退回', style: btn(false, true), run: () => this.decide('fpy', 'rejected', '已退回：一次合格率口径') }]
+      : [{ label: '批准', style: btn(true), run: () => this.decide(sel.id, 'approved', '已批准：' + sel.title) },
+         { label: '退回', style: btn(false, true), run: () => this.decide(sel.id, 'rejected', '已退回：' + sel.title) }];
+    const approved = st.approvals.find((a) => a.id === 'fpy').status === 'approved';
+
+    const msgStyle = (m, omni) => (omni ? { user: sty.ouser, think: sty.othink, agent: sty.oagent } : { user: sty.user, think: sty.think, agent: sty.agent })[m.role];
+    const tone = { table: 'background: #FFFFFF; border: 1px solid #CBD5E1; color: #0F172A;', focus: 'background: #EFF4FF; border: 2px solid #2F5BEA; color: #1E3A8A; font-weight: 600;', report: 'background: #F0FDF4; border: 1px solid #86EFAC; color: #166534;', alert: 'background: #FEF2F2; border: 1px solid #FCA5A5; color: #991B1B;', warn: 'background: #FFFBEB; border: 1px solid #FCD34D; color: #92400E;', plain: 'background: #FFFFFF; border: 1px solid #CBD5E1; color: #0F172A;' };
+    const cardVals = (c) => {
+      if (!c) return { hasCard: false, cardKind: '', isTable: false, isChain: false, isObject: false, isDiff: false, cols: [], rows: [], nodes: [], objTitle: '', objType: '', objFacts: [], sides: [], diffNote: '' };
+      return { hasCard: true, cardKind: c.kind, isTable: c.type === 'table', isChain: c.type === 'chain', isObject: c.type === 'object', isDiff: c.type === 'diff',
+        cols: (c.cols || []).map((v) => ({ v })),
+        rows: (c.rows || []).map((r) => ({ cells: r.map((v, j) => ({ v, style: 'padding: 6px 8px; border-bottom: 1px solid #F1F5F9; white-space: nowrap; ' + (j === 0 ? "font-family: 'JetBrains Mono', monospace;" : '') + (/裂纹|召回/.test(v) ? ' color: #B91C1C;' : (/冻结/.test(v) ? ' color: #B45309;' : '')) })) })),
+        nodes: (c.nodes || []).map((n) => ({ label: n.label, hasEdge: !!n.edge, edge: n.edge || '', style: 'border-radius: 6px; padding: 4px 8px; white-space: nowrap; font-family: ' + (/\./.test(n.label) || /-/.test(n.label) ? "'JetBrains Mono', monospace" : 'inherit') + '; ' + tone[n.tone] })),
+        objTitle: c.title || '', objType: c.objType || '', objFacts: (c.facts || []).map(([k, v]) => ({ k, v })),
+        sides: c.sides || [], diffNote: c.note || '' };
+    };
+    const sbMsgs = st.sbMsgs.map((m) => Object.assign({ text: m.text, context:m.context || '', style: msgStyle(m, false) }, cardVals(m.card)));
+    const sessions = { page:['页面资产对话','资产探索'], ncr: ['NCR-2609-0901 追溯', '质量追溯'], fpy: ['2 号线一次合格率口径', '质量追溯'], dag: ['MES 工单同步 DAG', '数据管线'], new: ['New session', 'No project'] };
+    const sessStyle = (id) => 'display: block; width: 100%; text-align: left; height: 30px; padding: 0 8px 0 34px; border: 0; border-radius: 6px; font: inherit; font-size: 13px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; ' + (st.omniSession === id ? 'background: rgba(240, 1, 150, 0.1); color: #651249;' : 'background: transparent; color: #27272a;');
+    const proj = (key, name, ids) => ({ name, open: !!st.openProjects[key], chevron: st.openProjects[key] ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6',
+      toggle: () => this.setState({ openProjects: Object.assign({}, st.openProjects, { [key]: !st.openProjects[key] }) }),
+      sessions: ids.map((id) => ({ title: sessions[id][0], style: sessStyle(id), go: () => this.setState({ omniSession: id }) })) });
+    const omniNav = [['New session', 'M12 5v14M5 12h14', () => this.setState({ omniSession: 'new' })], ['Automations', 'M12 7v5l3 2M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z', () => this.flash('Automations：Omnigent 原有的定时任务')], ['Inbox', 'M4 13l3-8h10l3 8v6H4zM4 13h5l1 2h4l1-2h5', () => this.flash('Inbox：Omnigent 原有的收件箱')]]
+      .map(([label, d, go]) => ({ label, d, go, style: 'display: flex; align-items: center; gap: 8px; width: 100%; height: 32px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; font: inherit; font-size: 13px; color: #27272a; cursor: pointer; text-align: left;' }));
+    const tools = [['qms_query', "SELECT ncr_no, batch_no, defect_code FROM ncr\nWHERE ncr_no = 'NCR-2609-0901'\n→ 1 行"], ['mes_query', "SELECT equip_code, operator_no, shift FROM operation_report\nWHERE batch_no = 'B260911-L2-03' AND op_code = 'L2-OP30'\n→ L2-CNC-03 · E0047 · 夜班"], ['mes_query', "SELECT event_time, event_type FROM equipment_event\nWHERE equip_code = 'L2-CNC-03'\n→ 3 行（预警、停机、维修）"]];
+    const omniTools = tools.map(([name, detail], i) => ({ name, detail, open: !!st.openTools[i], chevron: st.openTools[i] ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6',
+      toggle: () => this.setState({ openTools: Object.assign({}, st.openTools, { [i]: !st.openTools[i] }) }) }));
+    const omniMsgs = (st.omniSession === 'page' ? st.sbMsgs : (st.omniMsgs[st.omniSession] || [])).map((m) => Object.assign({ text: m.text, context:m.context || '', style: msgStyle(m, true) },cardVals(m.card)));
+    const railTab = (id, label) => ({ label, selected: st.railTab === id ? 'true' : 'false', pick: () => this.setState({ railTab: id }),
+      style: 'height: 28px; padding: 0 10px; border: 0; border-radius: 6px; font: inherit; font-size: 12px; cursor: pointer; ' + (st.railTab === id ? 'background: #eceef1; color: #11171c; font-weight: 500;' : 'background: transparent; color: #71717a;') });
+    const files = ['mes_sync.py', 'qms_sync.py'];
+    const code = 'from airflow.decorators import dag, task\n\n@dag(schedule="0 2 * * *", catchup=False)\ndef mes_sync():\n    # 每天 2 点把 MES 工单同步到数仓\n    @task\n    def extract_work_orders(): ...\n\n    @task\n    def load_to_warehouse(rows): ...\n\n    load_to_warehouse(extract_work_orders())';
+    const term = st.term.length ? st.term : [{ text: '$ airflow dags test mes_sync 2026-10-23　（点 Run 执行）', style: 'color: #a1a1aa;' }];
+    const sbSugs = s === 'explore' ? ['这张表和哪些表关联？', '谁在用这张表？', 'NCR-2609-0901 是怎么回事？'] : (s === 'approvals' ? ['两个口径差在哪？', '批准后会影响哪些报表？'] : ['NCR-2609-0901 是怎么回事？', '同一台设备那个班还做了哪些批次，要召回吗？', 'L2-CNC-03 这台设备什么情况？', '同一批毛坯还流向哪些工单？']);
+
+    return {
+      searchInput:st.searchInput,onSearchInput:e=>this.setState({searchInput:e.target.value}),onSearchKey:e=>{if(e.key==='Enter' && !e.isComposing){e.preventDefault();this.submitSearch();}},
+      sort:st.sort,onSort:e=>this.updateSearch({sort:e.target.value}),filterOpen:!!activeFilter,filterTitle:activeFilter?.label || '',filterOptions,closeFilter:()=>this.setState({filterOpen:''}),
+      chips,hasConditions:!!chips.length,clearSearch:()=>this.clearSearch(),noAssets:!list.length,resultLabel:(st.query ? '搜索结果' : '浏览数据资产')+' · '+list.length+' 项（原型展示 6 项样例，非完整目录）',
+      detailOpen:st.detailOpen && !!selected,closeDetail:()=>this.setState({detailOpen:false}),askAsset:()=>this.setState({sidebar:true}),
+      isPageSession:st.omniSession==='page',pageSessionContext:st.pageSessionContext,returnToPage:()=>this.go(st.returnScreen,{sidebar:true}),
+      railStyle: 'width: 76px; background: #0B1220; display: flex; flex-direction: column; align-items: stretch; padding: 14px 0; gap: 8px; box-sizing: border-box; position: relative; z-index: 10;',
+      rail,
+      showSecondary, showSecondaryOpener: s !== 'workbench' && !st.secondaryOpen,
+      toggleSecondary: () => this.setState({ secondaryOpen: !st.secondaryOpen }),
+      menu, moduleName,
+      pageTitle: titles[s][0], pageSub: titles[s][1],
+      isHome: s === 'home', isApprovals: s === 'approvals', isExplore: s === 'explore', isWorkbench: s === 'workbench',
+      showAskButton: s !== 'workbench', showSidebar: st.sidebar && s !== 'workbench',
+      sidebarAttr: st.sidebar ? 'true' : 'false', askLabel: st.sidebar ? '收起 Agent' : '问 Agent',
+      toggleSidebar: () => this.setState({ sidebar: !st.sidebar }),
+      openInWorkbench: () => this.openPageSession(),
+      approvedMetrics: approved ? 1 : 0, metricHint: approved ? '一次合格率已审批' : '1 个待审批：一次合格率',
+      pendingCount: pending.length, noPending: pending.length === 0,
+      pendingItems: pending.map((a) => ({ kind: a.kind, title: a.title, tagStyle: tag(a.kind), open: () => this.go('approvals', { picked: a.id }) })),
+      goApprovals: () => this.go('approvals'), goExplore: () => this.go('explore'), recentAssets,
+      approvalRows, sel: Object.assign({}, sel, { statusLabel: statusLabel(sel) }),
+      selIsMetric: sel.id === 'fpy', selHasBody: !!sel.body, selPending: sel.status === 'pending', selDone: sel.status !== 'pending', selActions,
+      askAboutSelection: () => { this.setState({ sidebar: true }); this.later(50, () => this.sendSidebar(sel.id === 'fpy' ? '两个口径差在哪？' : '这条审批批准后会影响什么？')); },
+      filters, filterHint: '关键词、浏览位置与不同筛选项按“且”叠加；同一筛选项多选按“或”组合。样例未分配治理属性，可筛选“未分配”。',
+      assetCards, asset, showSummary: !!selected,
+      omniSidebarOpen: st.omniSidebar, omniSidebarClosed: !st.omniSidebar, toggleOmniSidebar: () => this.setState({ omniSidebar: !st.omniSidebar }),
+      omniNav, omniProjects: [proj('assets','资产探索',['page']), proj('quality', '质量追溯', ['ncr', 'fpy']), proj('pipeline', '数据管线', ['dag'])],
+      omniGoNew: () => this.setState({ omniSession: 'new' }), omniNewStyle: sessStyle('new').replace('padding: 0 8px 0 34px', 'padding: 0 8px 0 12px'),
+      omniTitle: sessions[st.omniSession][0], omniProjectTag: sessions[st.omniSession][1],
+      omniIsNcr: st.omniSession === 'ncr', omniIsDag: st.omniSession === 'dag', omniIsNewEmpty: (st.omniSession === 'new' || st.omniSession === 'fpy' || st.omniSession === 'page') && omniMsgs.length === 0,
+      omniTools, omniMsgs, omniInput: st.omniInput,
+      onOmniInput: (e) => this.setState({ omniInput: e.target.value }),
+      onOmniKey: (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendOmni(); } },
+      sendOmni: () => this.sendOmni(),
+      termLines: term, runLabel: st.running ? 'Running…' : 'Run', runDag: () => this.runDag(),
+      railTabs: [railTab('files', 'Files'), railTab('changes', 'Changes'), railTab('pr', 'Pull Requests'), railTab('agents', 'Agents')],
+      rtFiles: st.railTab === 'files', rtChanges: st.railTab === 'changes', rtPr: st.railTab === 'pr', rtAgents: st.railTab === 'agents',
+      fileRows: files.map((f) => ({ name: f, open: () => this.setState({ openFile: st.openFile === f ? '' : f }),
+        style: 'display: block; width: 100%; text-align: left; height: 28px; padding: 0 6px 0 20px; border: 0; border-radius: 6px; font-family: \'JetBrains Mono\', monospace; font-size: 12px; cursor: pointer; ' + (st.openFile === f ? 'background: rgba(240, 1, 150, 0.1); color: #651249;' : 'background: transparent; color: #27272a;') })),
+      showFile: !!st.openFile, openFile: 'dags/' + st.openFile, fileContent: st.openFile === 'mes_sync.py' ? code : '# qms_sync.py（待生成）',
+      changesText: st.omniSession === 'dag' ? 'dags/mes_sync.py　+13' : 'No changes',
+      contextLabel: this.contextLabel(), sbEmpty: st.sbMsgs.length === 0,
+      sbSuggestions: sbSugs.map((t) => ({ text: t, use: () => this.sendSidebar(t) })),
+      sbMsgs, sbInput: st.sbInput,
+      onSbInput: (e) => this.setState({ sbInput: e.target.value }),
+      onSbKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.sendSidebar(); } },
+      sendSb: () => this.sendSidebar(),
+      hasToast: !!st.toast, toast: st.toast
+    };
+  }
+}
+window.__startPrototype(Component);
+</script>
+</body>
+</html>

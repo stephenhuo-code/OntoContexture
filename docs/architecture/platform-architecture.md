@@ -1,6 +1,8 @@
 # 织境平台技术架构（Phase 1）
 
-2026-10-08 · 依据：宪法 v1.5.0、ADR-0001 至 ADR-0013、`specs/001-engineering-foundation/`
+> 特性编号已按 2026-10-31 开发计划迁移表同步；ADR 文档编号不变，已验收规格保留历史编号。
+
+2026-11-01 修订 · 依据：宪法 v2.0.0、ADR-0001 至 ADR-0013（含 ADR-0002 / 0003 的方案 B 修订）、`specs/001-engineering-foundation/`
 
 ## 1. 架构原则
 
@@ -54,26 +56,42 @@
   Langfuse      决策轨迹、人工修订、样本数据集
   Airflow       管线编排 ──► pipelines 任务镜像：OM 元数据采集、源系统接入与物化（直连 Doris 写入）、飞书同步
                 （含修订写回 Langfuse）、文档解析、治理检查、生成 Doris 表结构
-  Omnigent      内部 Agent 运行时（只开放 MCP 工具，Phase 1 不做执行沙箱）；上下文、取数与模型调用经 AI 网关
+  Omnigent      007 提供会话与基础 Agent 服务；012 验收安全执行沙箱后开放终端 / 代码；上下文、取数与模型调用经 AI 网关
   存储与基础    PostgreSQL · OpenSearch · Fuseki · Valkey · 对象存储（OSS / SeaweedFS）
 ```
+
+### 2.1 Web 与 Agent 工作台：方案 B（2026-11-01 确认）
+
+织境拥有主导航、登录会话、设计系统和资产 / 治理 / 审批 / 上下文页面；完整 Agent 工作台采用官方 `OmnigentApp` 嵌入。
+轻量页面助手由织境实现，经 BFF 优先复用官方 `omnigent-client` / 已发布 API，与工作台关联同一服务端会话 ID；
+消息与运行状态以 Omnigent 为准，BFF 只做适配与上下文关联，不新增 Agent 运行时或会话正本。
+
+- 全部浏览器业务 HTTP、SSE、WebSocket 经 BFF；用户识别与下游 Agent 委托分别校验，不信任浏览器身份头。
+- 品牌使用服务端 branding；明暗、路由与传输使用官方嵌入接口。工作台先保留默认样式，侧栏配置不代表任意导航 / 执行授权。
+- 业务结果组件先服务织境助手与页面；嵌入没有现成上下文 / 业务卡片参数。浏览器插件 V1 的隔离页面无网络访问能力，
+  不能直接承载请求 BFF 的业务界面。必要定制按配置 → 官方扩展点 → 最小补丁维护，不复制上游 UI。
+- 004 在产品依赖调整前完成隔离构建 / 挂载验证，并记录代理与身份的方案依据；007 在计划与工期定稿前验证真实身份、
+  资产上下文、同会话延续、断线 / 退出与执行能力拒绝。正式集成归 007，安全执行与恢复加固归 012。
+
+这些是目标架构与待验证接缝，不代表当前运行状态；证据见 [004 research](../../specs/004-web-shell/research.md) 与
+[嵌入验证契约](../../specs/004-web-shell/contracts/embed-readiness.md)。007 的 1.5 周与后续日期仍为暂估基线。
 
 ## 3. 自建部分
 
 | 组件 | 职责 | 承载特性 | 独占存储 | 对外接口 | 主要依赖 |
 | --- | --- | --- | --- | --- | --- |
-| `web` | 织境 Web 前端（React 单页应用），打包为静态资源镜像，由 nginx 提供；Envoy 把页面请求路由到它（ADR-0003） | 004、013、022 等页面 | — | 静态资源（HTTP） | 浏览器内只调用 `bff` |
-| `bff` | 浏览器唯一入口；本体读写；审批待办；轨迹页面；Omnigent 代理；页面取数（经 AI 网关） | 004、006（轨迹页面）、016（本体读写） | PostgreSQL `bff` database（会话） | REST + SSE（仅浏览器） | OM、Langfuse、Omnigent、AI 网关 |
-| `pipelines`（镜像） | Airflow 任务 | 011、010、016、019、020、018 | 不独占（写入各自目标） | Airflow 任务 | Airflow、OM、Langfuse、Doris |
+| `web` | 织境主应用与轻量助手，完整 Omnigent 工作台官方嵌入；React 静态资源由 nginx 提供，Envoy 路由页面请求（ADR-0003） | 004、006、007、008、027 等页面 | — | 静态资源（HTTP） | 浏览器内只调用 `bff` |
+| `bff` | 浏览器唯一入口；本体读写；审批待办；轨迹页面；Omnigent 工作台代理与页面助手适配；页面取数（经 AI 网关） | 004、006、007、008、010、016 等 | PostgreSQL `bff` database（浏览器会话） | REST + SSE + WebSocket 代理（007） | OM、Langfuse、Omnigent、AI 网关 |
+| `pipelines`（镜像） | Airflow 任务 | 005、014、016、024、025、023 | 不独占（写入各自目标） | Airflow 任务 | Airflow、OM、Langfuse、Doris |
 | 公共库 `contexture-core` | 令牌验证与上下文、令牌交换客户端、可观测关联属性、本体读取（`ontology`）、统一错误格式、配置 | 全部 | — | Python 库 | — |
-| Paperclip 插件与下发 CLI | 轨迹回传 Langfuse；数字员工下发到 Paperclip | 007、008 | — | Paperclip 插件、CLI | Paperclip、Langfuse |
-| 组件配置即代码（`deploy/components/<组件>/config/`） | Keycloak realm 与 Agent 客户端、AI 网关路由与策略、MCP Toolbox 工具定义（含追溯查询模板）、OM 初始化；各带测试 | 002、005、016、021 | — | 配置文件 | — |
-| `metric`、`explore`（P2） | 指标生成 SQL；探索与固化 | 012、024、025、026 | 二期确定 | REST / MCP | OM、AI 网关 |
+| Paperclip 插件与下发 CLI | 轨迹回传 Langfuse；数字员工下发到 Paperclip | 011、013 | — | Paperclip 插件、CLI | Paperclip、Langfuse |
+| 组件配置即代码（`deploy/components/<组件>/config/`） | Keycloak realm 与 Agent 客户端、AI 网关路由与策略、MCP Toolbox 工具定义（含追溯查询模板）、OM 初始化；各带测试 | 002、009、016、026 | — | 配置文件 | — |
+| `metric`、`explore`（P2） | 指标生成 SQL；探索与固化 | 015、019、020、021 | 二期确定 | REST / MCP | OM、AI 网关 |
 
-**复用框架、不建服务的特性**：002 身份（Keycloak + 配置即代码）；005 数据访问与审计（AI 网关 + MCP Toolbox；数据层授权推迟）；
-009 内部 Agent 运行时（Omnigent）；006 决策轨迹（Langfuse）；011 / 010 / 019 接入（Airflow + OM 采集框架）；016 本体与分级标签
-（OM 术语库与分类标签）；017 质量领域包（本体内容）；021 追溯（Toolbox 参数化查询工具）；018 / 014 上下文（OM 上下文中心、
-资产 AI 上下文、MCP，OKF v0.2 补丁）；023 / 015 参考 Skill。
+**复用框架、不建服务的特性**：002 身份（Keycloak + 配置即代码）；009 数据访问与审计（AI 网关 + MCP Toolbox；数据层授权推迟）；
+012 内部 Agent 运行时（Omnigent）；010 决策轨迹（Langfuse）；005 / 014 / 024 接入（Airflow + OM 采集框架）；016 本体与分级标签
+（OM 术语库与分类标签）；018 质量领域包（本体内容）；026 追溯（Toolbox 参数化查询工具）；023 / 017 上下文（OM 上下文中心、
+资产 AI 上下文、MCP，OKF v0.2 补丁）；028 / 022 参考 Skill。
 
 ## 4. 第三方组件（开源服务清单，宪法 III）
 
@@ -89,7 +107,7 @@
 | OTel Collector | 0.163.1 | Apache 2.0 | 追踪汇聚 | 网关模式，开启持久化队列 | 配置 | 各组件直连后端 |
 | Doris | 4.1.5（Operator 25.8.0） | Apache 2.0 | 本体实例库 | FE、BE | 配置 | StarRocks |
 | Apache Airflow | 3.3.2 | Apache 2.0 | 管线编排 | scheduler、api-server、dag-processor、triggerer；任务 Pod | 配置 + DAG | Argo Workflows |
-| Omnigent | v0.18.0（`ctx/v0.18.0`） | Apache 2.0 | 内部 Agent 运行时 | `omnigent-server`、runner、host（普通 Pod，只开放 MCP 工具） | 从织境维护的仓库构建；补丁 + 扩展（ADR-0002） | Pydantic AI（需自建会话与界面） |
+| Omnigent | v0.18.0（`ctx/v0.18.0`） | Apache 2.0 | Agent 会话、完整工作台与运行时 | `omnigent-server`、runner、host；007 限制执行能力，012 接入集群内安全沙箱后开放 | 锁定源码构建嵌入产物 / 服务；配置 → 扩展 → 最小补丁（ADR-0002、0003） | Pydantic AI（需自建会话与界面） |
 | Paperclip | 使用方部署的版本 | MIT | 数字员工平台（最终用户） | 使用方部署，织境经 MCP 接入 | 配置 + 织境插件（ADR-0010） | 其他支持远程 MCP 的平台 |
 | Envoy Gateway | 1.9.2 | Apache 2.0 | 边缘网关 | 控制器 + Envoy 代理 | 配置（页面 → `web`，`/bff/*` → `bff`，MCP 与模型 → AI 网关） | Kubernetes Gateway API 的其他实现 |
 | nginx | 1.31.7 | BSD-2-Clause | `web` 静态资源 | `web` 镜像内 | 配置 | Caddy |
@@ -98,7 +116,7 @@
 | Jena Fuseki | 6.2.0（从 OM 子仓库 `docker/rdf-store` 构建） | Apache 2.0 | OM 的 RDF 存储 | 服务器 | 配置 | 不启用 OM 的 RDF |
 | 对象存储 | 测试环境 OSS；本地与离线 SeaweedFS 4.23（Langfuse Chart 自带） | Apache 2.0 | 文件与 Langfuse 存储 | — | S3 兼容接口 | MinIO（AGPL，不选） |
 | 可观测后端 | Prometheus v3.15.0、Jaeger 2.22.0（内存存储）、OpenSearch Dashboards 3.4.0；日志由 OTel Collector 节点代理采集写入 OpenSearch（索引 `ctx-logs`） | Apache 2.0 | 服务指标、追踪、日志查看 | 组件 `prometheus`、`jaeger`、`opensearch-dashboards`、`otel-collector`（节点代理） | 配置 | Grafana 系（AGPL，不选） |
-| JupyterHub（P2） | 在 025 中锁定 | BSD | Notebook 工作台 | hub、proxy；用户 Pod | 配置 + 扩展 | — |
+| JupyterHub（P2） | 在 020 中锁定 | BSD | Notebook 工作台 | hub、proxy；用户 Pod | 配置 + 扩展 | — |
 
 **统一管理**：每个组件在 `deploy/components/<组件>/` 有标准目录：清单 `component.yaml`（版本、镜像来源、许可、
 定制级别、负责人）、Chart、各环境参数、配置即代码与测试；CI 检查清单完整、版本锁定、许可合规、镜像进入离线包
@@ -124,6 +142,7 @@
 | 链路 | 路径 |
 | --- | --- |
 | 用户查询实例 | `web` → `bff`（MCP 客户端，交换令牌）→ AI 网关 → MCP Toolbox → Doris；本体定义经公共库 `ontology` 从 OM 读取 |
+| 页面助手与工作台 | 织境轻量助手 / OmnigentApp → `bff` → Omnigent 官方 API / SDK；同一服务端会话，消息关联发送时的资产上下文，凭证留在服务端（007） |
 | Agent 取上下文 | Agent → AI 网关 → OM 内置 MCP / 资产 AI 上下文（OKF v0.2） |
 | Agent 查实例与客户数据 | Agent（交换令牌：sub = 人，azp = Agent）→ AI 网关 → MCP Toolbox / 其他数据库 MCP → 数据库 |
 | Agent 调模型 | Omnigent → AI 网关（模型网关）→ 模型 |
@@ -138,8 +157,8 @@
 | --- | --- |
 | 通信 | 浏览器经 `bff`（REST + OpenAPI 3.1）；Agent 取数与取上下文经 MCP；无消息中间件；批处理由 Airflow 编排 |
 | 模型接入 | 模型服务（OpenAI、DeepSeek、私有化模型）只在 AI 网关中配置：服务商地址、模型名、key（K8s Secret / KMS）、路由与配额；按人与 Agent 的模型权限和 token 配额用网关自带能力实现（与 LiteLLM 基本对齐，不额外开发）；用量看 Langfuse；Omnigent 以“OpenAI 兼容网关”方式连接 AI 网关，用委托令牌认证，不持有任何厂商 key（ADR-0013） |
-| 用户与界面 | 最终用户（业务人员）在 Paperclip 中与数字员工对话；数据处理与治理人员使用织境 Web（重做的 OM 界面，对话能力复用并改造 Omnigent 前端）；默认角色：管理员、AI 工程师、业务用户；织境与 Paperclip 共用同一个 Keycloak realm（ADR-0003、0010） |
-| 数字员工平台 | Phase 1 选定 Paperclip（Keycloak 单点登录）：经 MCP 连接 AI 网关；织境以下发 CLI 把数字员工推送到 Paperclip（007）；默认权限按 Keycloak 角色，工具清单写入 Paperclip 工具策略；完整轨迹经 Paperclip 插件回传 Langfuse（008） |
+| 用户与界面 | 最终用户（业务人员）在 Paperclip 中与数字员工对话；数据处理与治理人员使用织境主应用与轻量助手，完整工作台官方嵌入；Web 仅 admin / ai-engineer 准入；复用企业 IdP 不联动 Paperclip 应用会话，织境退出只结束自身会话（ADR-0003、004 spec） |
+| 数字员工平台 | Phase 1 选定 Paperclip（Keycloak 单点登录）：经 MCP 连接 AI 网关；织境以下发 CLI 把数字员工推送到 Paperclip（011）；默认权限按 Keycloak 角色，工具清单写入 Paperclip 工具策略；完整轨迹经 Paperclip 插件回传 Langfuse（013） |
 | 外部 Agent 接入 | 不绑定外部框架；客户自建平台经标准 MCP 接入 AI 网关（MCP 授权规范，Keycloak 作授权服务器）；身份分三档：A 每个 Agent 一个客户端、B 平台作为一个客户端（平台内 Agent 为声明属性，注明未验证）、C 服务账号；网关侧必记轨迹，平台侧可选回传（ADR-0010） |
 | 令牌 | Keycloak 登录；Agent 以客户端身份做标准令牌交换（sub = 人，azp = Agent，受众收窄）；无人值守 Agent 用服务账号 |
 | 授权 | Phase 1 只到身份、角色与工具一级（AI 网关 CEL 规则）；数据层授权推迟到二期（宪法 IV 例外） |
@@ -160,6 +179,7 @@
 | --- | --- | --- |
 | 2 | OKF v0.2 补丁是否提交上游 | 待定（ADR-0012） |
 | 3 | Doris 表结构迁移的评审方式 | 管线按本体生成的迁移以 PR 评审还是以 OM 任务审批 |
-| 5 | 需验证 | OM MCP 能否接受交换后的令牌（014）；Omnigent 以委托令牌作网关凭证并续期（009）；资产 AI 上下文是否包含未审批内容 |
+| 5 | 需验证 | OM MCP 能否接受交换后的令牌（017）；Omnigent 以委托令牌作网关凭证并续期（012）；资产 AI 上下文是否包含未审批内容 |
 | 6 | 二期 | 数据层授权方向；BI 与 Notebook 的原生 SQL 通道 |
 | 7 | 是否多租户 | Phase 1 单租户；是否支持多客户共享实例另行评估，不预设在二期（ADR-0007） |
+| 8 | 方案 B 集成验证 | 架构选择已定；004 的 Vite 宿主实测、007 的签名身份桥接 / SDK 同会话 / MCP 凭证生命周期仍待验证；不将源码接缝当作实测通过 |

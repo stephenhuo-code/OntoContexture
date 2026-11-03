@@ -11,7 +11,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 跳转 Keycloak 登录（BFF 模式：令牌只在 bff，浏览器只持有会话 Cookie） */
+        /**
+         * 跳转 Keycloak 登录（BFF 模式：令牌只在 bff，浏览器只持有会话 Cookie）
+         * @description 主动登录统一携带 prompt=login，要求 Keycloak 重新认证；已有企业 SSO 不直接跳过认证页面。
+         *     首次登录、退出后登录和失败恢复共用此规则；正常会话检查及令牌刷新不经过本入口。
+         *     prompt 由 BFF 固定，不提供浏览器覆盖参数；退出仍只结束织境会话，不调用 IdP logout。
+         */
         get: operations["bffLogin"];
         put?: never;
         post?: never;
@@ -28,7 +33,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Keycloak 回调；换取令牌、建立会话后跳回页面 */
+        /**
+         * Keycloak 回调；换取令牌、建立会话后跳回页面
+         * @description 成功形式为 code + state，拒绝形式为 error + state；code 与 error 互斥，均不得重复或为空。
+         *     先校验并一次性消费 state，只有合法成功形式才换码；缺失、过期、重放或无效参数均走 303，避免框架 422。
+         *     只有已验证登录请求的安全 return_to 可恢复；无效 state 的恢复目标固定 /home。
+         *     不透传 code、state、token、error_description、上游 URL 或堆栈，不清除其他既有有效本地会话。
+         */
         get: operations["bffLoginCallback"];
         put?: never;
         post?: never;
@@ -47,7 +58,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** 清除会话并在 Keycloak 登出（无会话时同样返回 204） */
+        /**
+         * 结束当前织境本地会话（无会话时幂等返回 204）
+         * @description 删除当前会话及其中保存的令牌、过期 Cookie；不调用 IdP logout，不结束企业 SSO 或其他客户端会话。删除失败返回 500，不能伪报退出成功。
+         */
         post: operations["bffLogout"];
         delete?: never;
         options?: never;
@@ -62,7 +76,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 当前用户（含部署常量 tenant_id） */
+        /**
+         * 当前用户（含部署常量 tenant_id）
+         * @description 认证后要求 admin 或 ai-engineer；拒绝先于下游访问。临时身份依赖故障不使用过期令牌且保留会话。
+         */
         get: operations["bffGetMe"];
         put?: never;
         post?: never;
@@ -79,7 +96,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 对象类型定义（OM 中已审批的对象及其属性） */
+        /**
+         * 对象类型定义（OM 中已审批的对象及其属性）
+         * @description 认证后要求 admin 或 ai-engineer；拒绝先于下游访问。临时身份依赖故障不使用过期令牌且保留会话。
+         */
         get: operations["bffGetObjectType"];
         put?: never;
         post?: never;
@@ -96,7 +116,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 示例查询：对象类型定义 + 该类型的对象实例 */
+        /**
+         * 示例查询：对象类型定义 + 该类型的对象实例
+         * @description 认证后要求 admin 或 ai-engineer；拒绝先于下游访问。临时身份依赖故障不使用过期令牌且保留会话。
+         */
         get: operations["bffListObjects"];
         put?: never;
         post?: never;
@@ -113,6 +136,7 @@ export interface components {
         Me: {
             tenant_id: string;
             user_id: string;
+            /** @description 姓名、用户名、用户 ID 依次回退；v1 保持字符串保证，可缺省。 */
             display_name?: string;
             roles?: string[];
         };
@@ -158,6 +182,44 @@ export interface components {
         };
     };
     responses: {
+        /** @description 浏览器登录未完成，跳转同源公共恢复页；原因只影响展示，不授予身份或权限。 */
+        LoginFailure: {
+            headers: {
+                /** @description 固定 /auth/error，reason 枚举；可选 32 位十六进制 trace_id 与编码的安全站内 return_to。不得包含敏感回调参数。 */
+                Location: string;
+                "Cache-Control": "no-store";
+                "Referrer-Policy": "no-referrer";
+                [name: string]: unknown;
+            };
+            content?: never;
+        };
+        /** @description 缺少、失效或过期身份，包括明确 invalid_grant；401 终止无效会话。 */
+        Unauthorized: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["error"];
+            };
+        };
+        /** @description 受众错误 auth.invalid_audience 或缺少 Web 角色 auth.web_access_denied；拒绝后仍可退出，不重登循环。 */
+        Forbidden: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["error"];
+            };
+        };
+        /** @description IdP / JWKS 暂时网络或 5xx 故障，upstream.unavailable；保留会话记录，不使用过期令牌。 */
+        Unavailable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["error"];
+            };
+        };
         /** @description 统一错误格式 */
         Error: {
             headers: {
@@ -178,6 +240,7 @@ export interface operations {
     bffLogin: {
         parameters: {
             query?: {
+                /** @description 安全站内路径与查询；拒绝站外、双斜线、反斜杠和控制字符；缺省或不安全时回到 /home。 */
                 return_to?: string;
             };
             header?: never;
@@ -193,14 +256,16 @@ export interface operations {
                 };
                 content?: never;
             };
+            303: components["responses"]["LoginFailure"];
             default: components["responses"]["Error"];
         };
     };
     bffLoginCallback: {
         parameters: {
-            query: {
-                code: string;
-                state: string;
+            query?: {
+                code?: string;
+                error?: string;
+                state?: string;
             };
             header?: never;
             path?: never;
@@ -208,13 +273,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 跳回 return_to */
+            /** @description 建立 HttpOnly 会话 Cookie 后跳回安全 return_to */
             302: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
+            303: components["responses"]["LoginFailure"];
             default: components["responses"]["Error"];
         };
     };
@@ -227,13 +293,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description 已登出 */
+            /** @description 当前本地会话已结束，Cookie 过期；无响应正文 */
             204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
+            500: components["responses"]["Error"];
         };
     };
     bffGetMe: {
@@ -254,6 +321,10 @@ export interface operations {
                     "application/json": components["schemas"]["Me"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
             default: components["responses"]["Error"];
         };
     };
@@ -278,6 +349,10 @@ export interface operations {
                     "application/json": components["schemas"]["ObjectTypeRef"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
             default: components["responses"]["Error"];
         };
     };
@@ -304,6 +379,10 @@ export interface operations {
                     "application/json": components["schemas"]["ObjectListView"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            500: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
             default: components["responses"]["Error"];
         };
     };

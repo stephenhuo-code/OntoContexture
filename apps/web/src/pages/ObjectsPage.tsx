@@ -14,11 +14,13 @@ export function ObjectsPage() {
 
   useEffect(() => {
     let active = true;
+    const abort = new AbortController();
     setView(null);
     setError(null);
     bff
       .GET("/bff/v1/object-types/{typeKey}/objects", {
         params: { path: { typeKey }, query: { limit: 20 } },
+        signal: abort.signal,
       })
       .then(({ data, error: err, response }) => {
         if (!active) return;
@@ -28,6 +30,7 @@ export function ObjectsPage() {
       .catch(() => active && setError(toApiError(null, 0)));
     return () => {
       active = false;
+      abort.abort();
     };
   }, [typeKey]);
 

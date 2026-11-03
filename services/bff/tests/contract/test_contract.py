@@ -27,9 +27,10 @@ def load_contract() -> dict[str, Any]:
     error.pop("$schema", None)
     error.pop("$id", None)
     spec["components"]["schemas"]["Error"] = error
-    spec["components"]["responses"]["Error"]["content"]["application/json"]["schema"] = {
-        "$ref": "#/components/schemas/Error"
-    }
+    for response in spec["components"]["responses"].values():
+        media = response.get("content", {}).get("application/json", {})
+        if media.get("schema", {}).get("$ref") == "../schemas/error.json":
+            media["schema"] = {"$ref": "#/components/schemas/Error"}
     return spec
 
 
@@ -60,7 +61,7 @@ class BearerAuth:
     """为需要鉴权的接口提供合法令牌；Schemathesis 另会用无效令牌检查是否被拒绝。"""
 
     def get(self, case: schemathesis.Case, context: object) -> str:
-        return issuer.token()
+        return issuer.token(realm_access={"roles": ["ai-engineer"]})
 
     def set(self, case: schemathesis.Case, data: str, context: object) -> None:
         case.headers = {**(case.headers or {}), "Authorization": f"Bearer {data}"}  # pyright: ignore[reportAttributeAccessIssue]

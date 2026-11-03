@@ -1,11 +1,18 @@
 """Keycloak OIDC：授权码 + PKCE 登录、刷新与登出（Authlib）。"""
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+import httpx
+import httpx2
+from authlib.integrations.base_client.errors import OAuthError
 from authlib.integrations.httpx_client import AsyncOAuth2Client
+from authlib.oauth2.rfc6749 import OAuth2Error
 
 from contexture_bff.settings import BffSettings
+from contexture_core.errors import InvalidToken, UpstreamUnavailable
 
 
 @dataclass
@@ -34,6 +41,20 @@ def _token_set(token: dict[str, Any], fallback_refresh: str = "") -> TokenSet:
     )
 
 
+@contextmanager
+def _identity_errors() -> Iterator[None]:
+    try:
+        yield
+    except (OAuth2Error, OAuthError) as exc:
+        if exc.error == "invalid_grant":
+            raise InvalidToken("登录授权已失效") from exc
+        if exc.error in {"server_error", "temporarily_unavailable"}:
+            raise UpstreamUnavailable("身份服务暂时不可用") from exc
+        raise
+    except (httpx.HTTPError, httpx2.HTTPError) as exc:
+        raise UpstreamUnavailable("身份服务暂时不可用") from exc
+
+
 class KeycloakOidc:
     def __init__(self, settings: BffSettings) -> None:
         self.settings = settings
@@ -60,15 +81,17 @@ class KeycloakOidc:
             nonce=nonce,
             code_challenge=code_challenge,
             code_challenge_method="S256",
+            prompt="login",
         )
         return str(url)
 
     async def exchange_code(self, *, code: str, code_verifier: str) -> TokenSet:
         client = self._client()
         try:
-            token = await client.fetch_token(
-                self.token_endpoint, code=code, code_verifier=code_verifier
-            )
+            with _identity_errors():
+                token = await client.fetch_token(
+                    self.token_endpoint, code=code, code_verifier=code_verifier
+                )
         finally:
             await client.aclose()
         return _token_set(dict(token))
@@ -76,7 +99,8 @@ class KeycloakOidc:
     async def refresh(self, refresh_token: str) -> TokenSet:
         client = self._client()
         try:
-            token = await client.refresh_token(self.token_endpoint, refresh_token=refresh_token)
+            with _identity_errors():
+                token = await client.refresh_token(self.token_endpoint, refresh_token=refresh_token)
         finally:
             await client.aclose()
         return _token_set(dict(token), fallback_refresh=refresh_token)

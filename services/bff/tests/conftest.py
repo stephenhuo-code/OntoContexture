@@ -48,3 +48,34 @@ def authed_client(settings: BffSettings, services: Services) -> TestClient:
     app = create_app(settings, services=services)
     app.dependency_overrides[current_context] = user_context
     return TestClient(app)
+
+
+@pytest.fixture
+def signed_client() -> TestClient:
+    import httpx
+    from bff_fakes import TokenOidc
+    from support.jwt import ISSUER, JWKS_URL, LocalIssuer
+
+    from contexture_core.auth import Authenticator, TokenVerifier
+
+    issuer = LocalIssuer()
+    svc = Services(
+        sessions=FakeSessions(),
+        oidc=TokenOidc(issuer),
+        object_types=FakeObjectTypes(),
+        object_data=FakeObjectData(),
+        authenticator=Authenticator(
+            tenant_id="local",
+            verifier=TokenVerifier(
+                jwks_url=JWKS_URL,
+                issuer=ISSUER,
+                audience="contexture-bff",
+                http=httpx.Client(transport=issuer.transport()),
+            ),
+        ),
+    )
+    return TestClient(
+        create_app(BffSettings(tenant_id="local", public_url="http://testserver"), services=svc),
+        follow_redirects=False,
+        raise_server_exceptions=False,
+    )

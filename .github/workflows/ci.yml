@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v5
       - run: uv python install 3.12
       - run: uv sync --all-packages --frozen
@@ -27,6 +29,10 @@ jobs:
       - run: uv run pyright
       # 单元、契约、集成测试（集成测试用 Testcontainers）；覆盖率 < 80% 时失败
       - run: make test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-python
+          path: coverage.json
       - run: make components-check
 
   web:
@@ -42,8 +48,35 @@ jobs:
       - run: pnpm lint
       # 前端 API 客户端须与 contracts/openapi/bff.yaml 一致
       - run: pnpm --filter @contexture/ts-api check
-      - run: pnpm --filter @contexture/web test
+      - run: pnpm --filter @contexture/web test:coverage
+      - run: pnpm --filter @contexture/ui test:coverage
       - run: pnpm --filter @contexture/web build
+      - run: pnpm --filter @contexture/ui build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-web
+          path: |
+            apps/web/coverage/
+            packages/ui/coverage/
+
+  coverage:
+    needs: [python, web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          merge-multiple: true
+      - name: 新增与修改行覆盖率 ≥80%
+        env:
+          DIFF_BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD^' }}
+        run: python -m tools.coverage_gate --base "$DIFF_BASE" --python coverage.json --lcov apps/web/coverage/lcov.info --lcov packages/ui/coverage/lcov.info
 
   # 补丁一致性（宪法 VI）：third_party 发布分支相对上游的提交须与 PATCHES.md 一一对应
   patches:
@@ -89,21 +122,34 @@ jobs:
         run: |
           docker build -f services/bff/Dockerfile -t contexture/bff:ci .
           docker build -f apps/web/Dockerfile -t contexture/web:ci .
+          docker build -f apps/web/Dockerfile --target frontend-dependencies -t contexture/web-dependencies:ci .
       - name: SBOM（Syft，CycloneDX）
         run: |
           mkdir -p sbom
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/sbom:/out" \
             "$SYFT_IMAGE" contexture/bff:ci -o cyclonedx-json=/out/bff.cdx.json
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/sbom:/out" \
+            "$SYFT_IMAGE" contexture/web:ci -o cyclonedx-json=/out/web.cdx.json
+          # 安装阶段涵盖实际打包 npm 包，并包含构建工具；不把 nginx 系统清单当成前端 SBOM。
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/sbom:/out" \
+            "$SYFT_IMAGE" contexture/web-dependencies:ci -o cyclonedx-json=/out/web-dependencies.cdx.json
       - name: 许可检查（tools/license-allowlist.yaml）
-        run: uv run python -m tools.license_check sbom/bff.cdx.json
+        run: |
+          for file in sbom/*.cdx.json; do
+            uv run python -m tools.license_check "$file"
+          done
       - name: 漏洞扫描（Grype）
         run: |
-          docker run --rm -v "$PWD/sbom:/sbom" "$GRYPE_IMAGE" sbom:/sbom/bff.cdx.json \
-            --only-fixed --fail-on critical
+          for file in sbom/*.cdx.json; do
+            docker run --rm -v "$PWD/sbom:/sbom" "$GRYPE_IMAGE" "sbom:/sbom/$(basename "$file")" \
+              --only-fixed --fail-on critical
+          done
       - name: 漏洞扫描（Trivy）
         run: |
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE" \
-            image --severity CRITICAL --ignore-unfixed --exit-code 1 contexture/bff:ci
+          for image in contexture/bff:ci contexture/web:ci contexture/web-dependencies:ci; do
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE" \
+              image --severity CRITICAL --ignore-unfixed --exit-code 1 "$image"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: sbom
