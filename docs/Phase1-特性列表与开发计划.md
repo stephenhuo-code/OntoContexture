@@ -141,7 +141,7 @@ D1–D3（仓库、公共库、`bff`）约 1 日；D5、D6、D8、D9（组件目
 | 002 | Keycloak（标准令牌交换、client credentials） | 001 已交付 realm 配置即代码、公共库 `auth` / `mcp`、环境初始化；Agent 客户端随 011、012 以配置加入 |
 | 003 | Testcontainers、Faker、lark-cli | 工厂数据生成器、20 个案例 |
 | 004 | 前端开源库、001 的 OIDC / BFF 会话 | 外壳、亮色设计系统、公共状态组件、兼容性 spike、`web` 静态镜像 |
-| 005 | OM Ingestion 连接器与血缘、Airflow | 采集 DAG、帆软报表 SQL 血缘解析、国产库适配评估 |
+| 005 | OM Ingestion 连接器与数据库血缘、Airflow | 连接与任务管理、元数据目录及属性；帆软解析暂缓 |
 | 006 | OM 搜索 / 实体 API、003 表定义 | 资产搜索与摘要、开发态元数据导入、状态恢复 |
 | 007 | OmnigentApp、官方客户端 / API 与服务端、001 的令牌交换库 | BFF 代理与身份桥接、轻量页面助手、页面上下文、同会话联动、四类结果组件 |
 | 008 | OM 治理工作流 / 任务 API | 我的待办、审批处理、首页待办联动 |
@@ -261,7 +261,7 @@ D1–D3（仓库、公共库、`bff`）约 1 日；D5、D6、D8、D9（组件目
 
    | 组件 | 定制级别 | 本仓库维护的内容 |
    | --- | --- | --- |
-   | OpenMetadata Server | 配置 + 扩展；以上游镜像仓库自行构建（ADR-0011） | `third_party/openmetadata/`：织境维护的 OM 仓库（子仓库），Phase 1 发布分支只含 OKF v0.2 补丁（ADR-0011、0012）；`extensions/`：帆软血缘、国产库等自定义连接器（005） |
+   | OpenMetadata Server | 配置 + 扩展；以上游镜像仓库自行构建（ADR-0011） | `third_party/openmetadata/`：织境维护的 OM 仓库（子仓库），Phase 1 发布分支只含 OKF v0.2 补丁（ADR-0011、0012）；`extensions/`：经确认范围内的官方扩展点实现；005 不包含帆软解析与国产库适配 |
    | Omnigent | **补丁** + 扩展 | `third_party/omnigent/src/`（`stephenhuo-code/contexture-omnigent`，分支 `ctx/v0.18.0`）：持久化、委托令牌、OTel 所需的扩展缝隙（012）；`extensions/`：rollout 存储、令牌交换等实现 |
    | Keycloak | 配置 | `deploy/components/keycloak/config/`：realm 与 Agent 客户端；标准令牌交换为正式功能，无需扩展（001 已交付；Agent 客户端随 011、012） |
    | AI 网关、MCP Toolbox | 仅配置 | `deploy/components/<组件>/config/`：网关路由、令牌校验、授权与审计；Toolbox 数据源与工具定义（009，ADR-0013） |
@@ -404,15 +404,18 @@ $speckit-specify 建立织境 Web 外壳与亮色设计系统：复用 001 的 K
   指标口径（015）、OKF 上下文（017）与本体字段映射（016）的依据。
 - **复用**：OM Ingestion 连接器（通用数据库：MySQL / Oracle / SQL Server / PostgreSQL，数仓）采集元数据与血缘，由织境独立
   部署的 Airflow 调度（ADR-0006）。
-- **自建**：采集 DAG 与连接配置；帆软报表 SQL 血缘解析（基于 sqlglot）；国产库（达梦 / 金仓 / OceanBase / GaussDB）适配评估。
+- **自建 / 适配**：连接与采集任务管理、多层元数据目录及属性维护。
 - **问题**：数据库访问与指标修订都需要先知道客户有哪些表、字段和血缘。
-- **范围**：用 OM Ingestion 接入 MES / QMS / ERP 与数仓的表、字段、血缘；调度与 OM 内置 Airflow 解耦（OM 2.1 将移除）；
-  帆软报表 SQL 解析出血缘；国产库适配评估。
+- **范围**：用 OM Ingestion 接入 MES / QMS / ERP 与数仓的表、字段及有定义依据的数据库血缘，由独立 Airflow 调度；
+  采集配置与运行只在数据源服务下管理，库 / Schema / 表为独立资产详情；接入向导不含业务域，治理属性在实体详情维护。
+  2026-11-04 负责人明确移除国产数据库接入适配及评估；同时明确本次暂缓帆软 SQL 解析及血缘写入交付，保留调研，后续安排另定，不自动分配其他编号。
 - **编排**：采集管线以 Airflow DAG 实现（ADR-0006）。
-- **验收**：模拟源系统表与血缘全部入 OM；血缘覆盖率指标可查；采集按计划定时运行。
+- **验收**：模拟源系统 28 张表 / 198 个字段的实际采集、范围过滤、计划 / 手动运行、异常与重试、多层目录和属性维护；
+  数据库血缘按已标注非空样例核对表级与字段级结果，列明不支持 / 缺权限 / 未验证，不以模拟结果代替通过。
+  原型已于 2026-11-04 确认，详细范围及连接器验证前置条件见 [005 spec](../specs/005-source-metadata-ingestion/spec.md)。
 
 ```
-/speckit-specify 实现源系统元数据采集：通过 OpenMetadata Ingestion 接入 MES、QMS、ERP 与数仓的表、字段与血缘，由独立部署的 Airflow 调度，解析帆软报表 SQL 补充血缘，并评估国产库的适配方式；不复制业务数据。
+$speckit-specify 根据已确认原型编写源系统元数据采集规格：真实接入 MES、QMS、ERP 与数仓的表、字段及数据库血缘，由独立 Airflow 调度；在数据源下管理任务与运行，提供多层目录和元数据属性维护。国产数据库接入适配及评估不纳入本期；帆软 SQL 解析暂缓，不复制业务数据。复用 005-source-metadata-ingestion 分支及现有规格目录，不新建分支或编号。
 ```
 
 ### 006 资产搜索与摘要
@@ -894,6 +897,6 @@ $speckit-specify 实现审批中心：经 BFF 读取并处理当前用户的 OM 
 及 [工程证据](../specs/004-web-shell/evidence/validation.md) 已同步。实际开始 / 完成日期如表；
 后续计划日期保留原基线，不因 004 提前完成自动改排。PR、远端 CI、评审与合并未在此次关闭操作中执行。
 
-1. 下一项为 **005 源系统元数据采集**：先明确首批源系统与连接器范围；如包含产品界面，先确认交互原型，再按 specify → clarify（按需）→ plan → tasks → implement 推进。005 尚未开工，验收需证明 003 模拟源系统的实际元数据采入 OM。
+1. 下一项为 **005 源系统元数据采集**：已确认交互原型（[prototype/index.html](../specs/005-source-metadata-ingestion/prototype/index.html)），帆软 SQL 解析暂缓，国产库适配及评估移出本期；接下来按 specify → clarify（按需）→ plan → tasks → implement 推进。验收需证明 003 模拟源系统的实际元数据采入 OM。
 2. 按 006 → 007 → 008 推进，分别编写 spec、完成自动化与手动验收；开发态元数据导入保留为 006 的独立测试设施。007 计划与工期定稿前完成真实身份、上下文与同会话实验，并据此复估。
 3. 012 开工前复核 Omnigent 的运行时与官方沙箱支持；终端在 012 验收通过后开放。
