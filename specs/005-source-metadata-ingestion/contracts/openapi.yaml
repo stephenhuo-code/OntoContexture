@@ -1,0 +1,505 @@
+openapi: 3.1.0
+info:
+  title: 织境 bff 接口 · 005 源系统元数据采集（增量）
+  version: 0.2.0
+  description: |
+    本文件是 005 对 contracts/openapi/bff.yaml 的增量契约；实施时合入该文件并重新生成 packages/ts-api。
+    鉴权与错误格式沿用 bff.yaml：会话 Cookie 或 Bearer（受众含 contexture-bff）；仅 admin / ai-engineer；错误为 contracts/schemas/error.json。
+    BFF 以登录用户的委托令牌（受众 contexture-openmetadata）调用 OpenMetadata（research R5），不持有、不返回源库明文密码；
+    所有密码字段在响应中恒为 "*********"。
+    数据全部来自 OpenMetadata / Airflow 的真实结果：上游不可用时返回 upstream.unavailable（502），不返回示例数据（宪法 v2.2.0）。
+    所有写操作记录含 trace_id、tenant_id、user_id 的审计日志（FR-010）。
+servers:
+  - url: /
+security:
+  - session: []
+  - bearer: []
+paths:
+  /bff/v1/sources:
+    get:
+      operationId: listSources
+      summary: 数据源列表（含各任务最近运行与已采集统计）
+      responses:
+        "200":
+          description: 全部数据库类数据源；统计由 BFF 基于 OM 实体实时计算，不持久化
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/SourceSummary" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+    post:
+      operationId: createSource
+      summary: 新建数据源：保存 DatabaseService 与采集任务，并由 OM 部署到 Airflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SourceUpsert" }
+      responses:
+        "201":
+          description: 已保存并部署；部署失败时不返回 201，而返回 source.deploy_failed（已保存的实体保留，可再次保存重试部署）
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SourceDetail" }
+        "400": { $ref: "#/components/responses/Error" }
+        "409": { description: "服务标识已存在 source.name_conflict", $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+  /bff/v1/sources/{name}:
+    parameters:
+      - $ref: "#/components/parameters/SourceName"
+    get:
+      operationId: getSource
+      summary: 数据源详情（连接信息脱敏、采集范围、各任务调度与最近运行）
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SourceDetail" }
+        "404": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+    put:
+      operationId: updateSource
+      summary: 修改连接、采集范围与调度；服务标识与连接器不可改；密码传 "*********" 表示不变；保存后重新部署
+      description: |
+        includeViews=false 或 createLineageTask=false 时删除视图血缘任务（OM 实体与其运行记录）。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SourceUpsert" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SourceDetail" }
+        "400": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+  /bff/v1/sources/test-connection:
+    post:
+      operationId: startTestConnection
+      summary: 发起测试连接（OM automation workflow，异步）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [serviceType, connection]
+              properties:
+                serviceName:
+                  type: string
+                  description: 已有数据源时提供；密码为 "*********" 时由 OM 按已保存凭证测试（research R5 验证项 3）
+                serviceType: { $ref: "#/components/schemas/ServiceType" }
+                connection: { $ref: "#/components/schemas/ConnectionInput" }
+      responses:
+        "202":
+          description: 已提交
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestConnectionResult" }
+        "400": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+  /bff/v1/sources/test-connection/{workflowId}:
+    get:
+      operationId: getTestConnection
+      summary: 查询测试连接结果（轮询）
+      parameters:
+        - { name: workflowId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: 进行中或已完成
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TestConnectionResult" }
+        "404": { $ref: "#/components/responses/Error" }
+  /bff/v1/sources/{name}/pipelines/{kind}/runs:
+    parameters:
+      - $ref: "#/components/parameters/SourceName"
+      - $ref: "#/components/parameters/PipelineKind"
+    get:
+      operationId: listPipelineRuns
+      summary: 当前任务的运行记录（OM PipelineStatus），新到旧
+      parameters:
+        - name: state
+          in: query
+          schema: { $ref: "#/components/schemas/PipelineState" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data: { type: array, items: { $ref: "#/components/schemas/PipelineRun" } }
+        "404": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+  /bff/v1/sources/{name}/pipelines/{kind}/trigger:
+    parameters:
+      - $ref: "#/components/parameters/SourceName"
+      - $ref: "#/components/parameters/PipelineKind"
+    post:
+      operationId: triggerPipeline
+      summary: 立即运行（OM trigger）；该任务已有 queued / running 运行时拒绝
+      responses:
+        "202": { description: 已提交到 Airflow；运行记录以 OM 回写为准 }
+        "409": { description: "source.pipeline_in_flight", $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+  /bff/v1/sources/{name}/pipelines/{kind}/schedule:
+    parameters:
+      - $ref: "#/components/parameters/SourceName"
+      - $ref: "#/components/parameters/PipelineKind"
+    put:
+      operationId: setPipelineScheduleEnabled
+      summary: 暂停 / 恢复定时调度（OM toggleIngestion）；仅对有定时计划的任务有效
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled: { type: boolean }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PipelineSummary" }
+        "400": { description: "手动任务不支持 source.schedule_not_set", $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+  /bff/v1/sources/{name}/pipelines/{kind}/logs/last:
+    parameters:
+      - $ref: "#/components/parameters/SourceName"
+      - $ref: "#/components/parameters/PipelineKind"
+    get:
+      operationId: getLastPipelineLogs
+      summary: 该任务最近一次运行的日志（OM 仅提供最近一次，research R7），已脱敏
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [logs]
+                properties:
+                  runId: { type: [string, "null"], format: uuid }
+                  logs: { type: string }
+        "502": { $ref: "#/components/responses/Unavailable" }
+  /bff/v1/catalog/{entityType}/{fqn}:
+    parameters:
+      - name: entityType
+        in: path
+        required: true
+        schema: { type: string, enum: [databaseService, database, databaseSchema, table] }
+      - { name: fqn, in: path, required: true, schema: { type: string }, description: URL 编码的完整 FQN }
+    get:
+      operationId: getCatalogEntity
+      summary: 目录实体（含直接子项、继承来源标注；表含字段与约束）
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CatalogEntity" }
+        "404": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+    patch:
+      operationId: patchCatalogEntity
+      summary: 修改治理属性（转换为 OM JSON Patch）；字段属性经 columnName 定位
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GovernancePatch" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CatalogEntity" }
+        "400": { description: "校验失败：域与数据产品不一致、保留周期非 ISO 8601、互斥分类多选", $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+  /bff/v1/governance/options:
+    get:
+      operationId: getGovernanceOptions
+      summary: 治理选项（用户、团队、业务域、数据产品、分类与标签、术语），实时读取 OM
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GovernanceOptions" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+
+components:
+  parameters:
+    SourceName:
+      name: name
+      in: path
+      required: true
+      schema: { type: string, pattern: "^[a-z][a-z0-9-]{1,49}$" }
+    PipelineKind:
+      name: kind
+      in: path
+      required: true
+      schema: { type: string, enum: [metadata, lineage] }
+  responses:
+    Unauthorized: { description: 见 bff.yaml, content: { application/json: { schema: { $ref: "../../../contracts/schemas/error.json" } } } }
+    Forbidden: { description: 见 bff.yaml, content: { application/json: { schema: { $ref: "../../../contracts/schemas/error.json" } } } }
+    Unavailable:
+      description: OpenMetadata 或 Airflow 不可用 upstream.unavailable；不回退到示例数据
+      content: { application/json: { schema: { $ref: "../../../contracts/schemas/error.json" } } }
+    Error: { description: 统一错误格式, content: { application/json: { schema: { $ref: "../../../contracts/schemas/error.json" } } } }
+  schemas:
+    ServiceType: { type: string, enum: [Mysql, Postgres, Oracle, Mssql, Doris] }
+    PipelineState: { type: string, enum: [queued, running, success, partialSuccess, failed, stopped] }
+    ConnectionInput:
+      type: object
+      description: 按连接器映射到 OM 原生连接字段（research R9）；高级字段不暴露
+      required: [hostPort, username, password]
+      properties:
+        hostPort: { type: string, example: "mes.mock-sources.svc:3306" }
+        username: { type: string }
+        password: { type: string, writeOnly: true, description: '"*********" 表示保留已保存的密码' }
+        database:
+          type: [string, "null"]
+          description: MySQL / Doris 选填（databaseSchema）；PostgreSQL / SQL Server 必填（database）；Oracle 为 Service Name
+        tls: { type: boolean, default: false }
+    ConnectionView:
+      type: object
+      required: [hostPort, username, password]
+      properties:
+        hostPort: { type: string }
+        username: { type: string }
+        password: { type: string, const: "*********" }
+        database: { type: [string, "null"] }
+        tls: { type: boolean }
+    FilterPattern:
+      type: object
+      properties:
+        includes: { type: array, items: { type: string }, description: 正则；空数组表示不限 }
+        excludes: { type: array, items: { type: string } }
+    Scope:
+      type: object
+      properties:
+        databaseFilterPattern: { $ref: "#/components/schemas/FilterPattern" }
+        schemaFilterPattern: { $ref: "#/components/schemas/FilterPattern" }
+        tableFilterPattern: { $ref: "#/components/schemas/FilterPattern" }
+        includeViews: { type: boolean, default: true }
+    Schedule:
+      type: object
+      description: cron 为空表示仅手动触发；时区固定 Asia/Shanghai
+      properties:
+        cron: { type: [string, "null"], example: "0 2 * * *" }
+    SourceUpsert:
+      type: object
+      required: [name, displayName, serviceType, connection, scope, metadataSchedule]
+      properties:
+        name: { type: string, pattern: "^[a-z][a-z0-9-]{1,49}$" }
+        displayName: { type: string, maxLength: 60 }
+        serviceType: { $ref: "#/components/schemas/ServiceType" }
+        connection: { $ref: "#/components/schemas/ConnectionInput" }
+        scope: { $ref: "#/components/schemas/Scope" }
+        metadataSchedule: { $ref: "#/components/schemas/Schedule" }
+        createLineageTask: { type: boolean, default: false, description: 仅在 includeViews=true 时允许为 true }
+        lineageSchedule: { $ref: "#/components/schemas/Schedule" }
+    PipelineSummary:
+      type: object
+      required: [kind, name, fullyQualifiedName, deployed, scheduleEnabled]
+      properties:
+        kind: { type: string, enum: [metadata, lineage] }
+        name: { type: string, description: "<服务>_<kind>_<8 位随机串>（research R8）" }
+        fullyQualifiedName: { type: string }
+        deployed: { type: boolean }
+        schedule: { $ref: "#/components/schemas/Schedule" }
+        scheduleEnabled: { type: boolean }
+        lastRun: { oneOf: [{ $ref: "#/components/schemas/PipelineRun" }, { type: "null" }] }
+    PipelineRun:
+      type: object
+      description: OM PipelineStatus 的投影；不含触发方式
+      required: [runId, pipelineState]
+      properties:
+        runId: { type: string, format: uuid }
+        pipelineState: { $ref: "#/components/schemas/PipelineState" }
+        startDate: { type: [integer, "null"], description: 毫秒时间戳 }
+        endDate: { type: [integer, "null"] }
+        steps:
+          type: array
+          items:
+            type: object
+            required: [name]
+            properties:
+              name: { type: string, description: Source 步骤为连接器类型，Sink 为 OpenMetadata }
+              records: { type: integer }
+              updatedRecords: { type: integer }
+              warnings: { type: integer }
+              errors: { type: integer }
+              filtered: { type: integer }
+              failures:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name: { type: string }
+                    error: { type: string }
+    SourceSummary:
+      type: object
+      required: [name, displayName, serviceType, configured, pipelines]
+      properties:
+        name: { type: string }
+        displayName: { type: string }
+        serviceType: { $ref: "#/components/schemas/ServiceType" }
+        database: { type: [string, "null"] }
+        configured: { type: boolean, description: 已创建元数据采集任务 }
+        tableCount: { type: integer, description: OM 中该服务下的表与视图数（含 View） }
+        columnCount: { type: integer }
+        pipelines: { type: array, items: { $ref: "#/components/schemas/PipelineSummary" } }
+    SourceDetail:
+      allOf:
+        - $ref: "#/components/schemas/SourceSummary"
+        - type: object
+          required: [connection, scope]
+          properties:
+            description: { type: string }
+            connection: { $ref: "#/components/schemas/ConnectionView" }
+            scope: { $ref: "#/components/schemas/Scope" }
+            governance: { $ref: "#/components/schemas/GovernanceValues" }
+    TestConnectionResult:
+      type: object
+      required: [workflowId, status, steps]
+      properties:
+        workflowId: { type: string, format: uuid }
+        status: { type: string, enum: [Pending, Running, Successful, Failed], description: 映射 OM workflow 状态 }
+        steps:
+          type: array
+          description: 以 OM testConnections/database/<connector>.json 的步骤为准
+          items:
+            type: object
+            required: [name, mandatory, passed]
+            properties:
+              name: { type: string, example: CheckAccess }
+              mandatory: { type: boolean }
+              passed: { type: [boolean, "null"], description: null 表示未执行 }
+              message: { type: [string, "null"] }
+    GovernanceValues:
+      type: object
+      properties:
+        displayName: { type: [string, "null"] }
+        description: { type: [string, "null"] }
+        owners: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        domains: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        tier: { type: [string, "null"], example: Tier.Tier2 }
+        tags: { type: array, items: { type: string } }
+        glossaryTerms: { type: array, items: { type: string } }
+        dataProducts: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        retentionPeriod: { type: [string, "null"], example: P30D }
+        inheritedFrom:
+          type: object
+          description: 字段名 → 继承来源 {entityType, fullyQualifiedName}；未列出表示单独设置或为空
+          additionalProperties:
+            type: object
+            properties:
+              entityType: { type: string }
+              fullyQualifiedName: { type: string }
+    GovernancePatch:
+      type: object
+      description: 只含要改的字段；值为 null 表示清空（恢复继承）
+      properties:
+        columnName: { type: string, description: 编辑字段属性时提供；仅允许 displayName / description / tags / glossaryTerms }
+        displayName: { type: [string, "null"] }
+        description: { type: [string, "null"] }
+        owners: { type: [array, "null"], items: { $ref: "#/components/schemas/Ref" } }
+        domain: { oneOf: [{ $ref: "#/components/schemas/Ref" }, { type: "null" }] }
+        tier: { type: [string, "null"] }
+        tags: { type: [array, "null"], items: { type: string } }
+        glossaryTerms: { type: [array, "null"], items: { type: string } }
+        dataProducts: { type: [array, "null"], items: { $ref: "#/components/schemas/Ref" } }
+        retentionPeriod: { type: [string, "null"] }
+    CatalogEntity:
+      type: object
+      required: [entityType, name, fullyQualifiedName]
+      properties:
+        entityType: { type: string, enum: [databaseService, database, databaseSchema, table] }
+        id: { type: string, format: uuid }
+        name: { type: string }
+        fullyQualifiedName: { type: string }
+        governance: { $ref: "#/components/schemas/GovernanceValues" }
+        children:
+          type: array
+          description: 直接子项（库 / Schema / 表）及其计数
+          items:
+            type: object
+            properties:
+              entityType: { type: string }
+              name: { type: string }
+              fullyQualifiedName: { type: string }
+              childCount: { type: integer }
+        table:
+          type: object
+          description: 仅 entityType=table
+          properties:
+            tableType: { type: string, example: Regular }
+            constraints:
+              type: array
+              items:
+                type: object
+                properties:
+                  constraintType: { type: string, example: PRIMARY_KEY }
+                  columns: { type: array, items: { type: string } }
+            schemaDefinition: { type: [string, "null"] }
+            columns:
+              type: array
+              items:
+                type: object
+                properties:
+                  name: { type: string }
+                  dataTypeDisplay: { type: string }
+                  constraint: { type: [string, "null"], description: OM 列级约束，如 PRIMARY_KEY }
+                  displayName: { type: [string, "null"] }
+                  description: { type: [string, "null"] }
+                  tags: { type: array, items: { type: string } }
+                  glossaryTerms: { type: array, items: { type: string } }
+    Ref:
+      type: object
+      required: [id, type]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, example: user }
+        name: { type: string }
+        displayName: { type: string }
+        fullyQualifiedName: { type: string }
+    GovernanceOptions:
+      type: object
+      properties:
+        users: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        teams: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        domains: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        dataProducts:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/Ref"
+              - type: object
+                properties:
+                  domains: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        classifications:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              mutuallyExclusive: { type: boolean }
+              tags: { type: array, items: { type: string } }
+        glossaryTerms: { type: array, items: { type: string } }
