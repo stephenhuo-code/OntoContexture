@@ -16,6 +16,8 @@ class BffSettings(CoreSettings):
     session_ttl_seconds: int = 8 * 3600
     login_ttl_seconds: int = 600
     session_cleanup_interval_seconds: int = 600
+    # 005：以用户委托令牌调用 OpenMetadata 的受众（research R5）
+    om_audience: str = "contexture-openmetadata"
 
     @property
     def redirect_uri(self) -> str:

@@ -75,16 +75,16 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### 公共骨架（闸门通过后）
 
-- [ ] T021 [P] 在 `services/bff/tests/unit/test_om_client.py` 先写测试：令牌交换受众为 `contexture-openmetadata`；OM 5xx / 连接失败映射为 `upstream.unavailable`（502）且无任何回退数据；OM 403 映射为权限错误；响应中任何 `password` 字段被替换为 `*********`（防御性）
-- [ ] T022 实现 `services/bff/src/contexture_bff/adapters/om_sources.py` 的 OM 客户端基础（复用 `contexture_core.mcp.TokenExchanger.exchange`、httpx、trace 传播、错误映射），并在 `services/bff/src/contexture_bff/settings.py` 增加 OM 受众配置、`deploy/charts/bff/values.yaml` 与模板增加对应项（使 T021 通过）
-- [ ] T023 [P] 在 `services/bff/tests/unit/test_om_user_sync.py` 编写测试（先写、先失败）：按令牌 `realm_access.roles` 计算应在的团队（`admin`、`ai-engineer`，其他角色忽略）；OM 中无此用户时以服务账号令牌创建（用户名 = `preferred_username`）；加入应在、移出不应在的团队；已一致时不发写请求；OM 不可用时登录失败并返回 `upstream.unavailable`，不静默跳过
-- [ ] T024 在 `services/bff/src/contexture_bff/adapters/om_users.py` 实现服务账号（`contexture-bff` client credentials）令牌获取与用户 / 团队同步，并在 `services/bff/src/contexture_bff/api/auth.py` 的登录回调与会话刷新中调用（使 T023 通过）
-- [ ] T025 [P] 在 `services/bff/tests/unit/test_audit.py` 编写测试：写操作审计日志含 `trace_id`、`tenant_id`、`user_id`，`action=write`、`resource.kind=api`、`resource.ref` 为“方法 + 实际请求路径”（先提交、先失败）
-- [ ] T026 在 `services/bff/src/contexture_bff/api/sources.py` 建立路由模块骨架与审计辅助函数，挂载到 `services/bff/src/contexture_bff/main.py`（仅 admin / ai-engineer 可访问）（使 T025 通过）
-- [ ] T027 [P] 在 `apps/web/src/__tests__/navigation.test.tsx` 编写测试：“数据资产 → 数据源”入口指向 `/sources`（先提交、先失败）
-- [ ] T028 修改 `apps/web/src/layout/navigation.ts`、`apps/web/src/App.tsx` 新增路由与 `apps/web/src/pages/SourcesPage.tsx` 空壳（使 T027 通过）
-- [ ] T029 [P] 在 `apps/web/src/__tests__/sources-api.test.ts` 编写测试：BFF 返回 502 时调用方得到带错误码与 trace_id 的错误，不返回任何数据（先提交、先失败）
-- [ ] T030 在 `apps/web/src/features/sources/api.ts` 基于 `@contexture/ts-api` 封装全部 005 接口；错误一律抛出并携带 BFF 错误码与 trace_id，不得捕获后返回示例数据（使 T029 通过）
+- [X] T021 [P] 在 `services/bff/tests/unit/test_om_client.py` 先写测试：令牌交换受众为 `contexture-openmetadata`；OM 5xx / 连接失败映射为 `upstream.unavailable`（502）且无任何回退数据；OM 403 映射为权限错误；响应中任何 `password` 字段被替换为 `*********`（防御性）
+- [X] T022 实现 `services/bff/src/contexture_bff/adapters/om_sources.py` 的 OM 客户端基础（复用 `contexture_core.mcp.TokenExchanger.exchange`、httpx、trace 传播、错误映射），并在 `services/bff/src/contexture_bff/settings.py` 增加 OM 受众配置、`deploy/charts/bff/values.yaml` 与模板增加对应项（使 T021 通过）
+- [X] T023 [P] 在 `services/bff/tests/unit/test_om_user_sync.py` 编写测试（先写、先失败）：按令牌 `realm_access.roles` 计算应在的团队（`admin`、`ai-engineer`，其他角色忽略）；OM 中无此用户时以服务账号令牌创建（用户名 = `preferred_username`）；加入应在、移出不应在的团队；已一致时不发写请求；OM 不可用时登录失败并返回 `upstream.unavailable`，不静默跳过
+- [X] T024 在 `services/bff/src/contexture_bff/adapters/om_users.py` 实现服务账号（`contexture-bff` client credentials）令牌获取与用户 / 团队同步，并在 `services/bff/src/contexture_bff/api/auth.py` 的登录回调与会话刷新中调用（使 T023 通过）
+- [X] T025 [P] 在 `services/bff/tests/unit/test_audit.py` 编写测试：写操作审计日志含 `trace_id`、`tenant_id`、`user_id`，`action=write`、`resource.kind=api`、`resource.ref` 为“方法 + 实际请求路径”（先提交、先失败）
+- [X] T026 在 `services/bff/src/contexture_bff/api/sources.py` 建立路由模块骨架与审计辅助函数，挂载到 `services/bff/src/contexture_bff/main.py`（仅 admin / ai-engineer 可访问）（使 T025 通过）
+- [X] T027 [P] 在 `apps/web/src/__tests__/navigation.test.tsx` 编写测试：“数据资产 → 数据源”入口指向 `/sources`（先提交、先失败）
+- [X] T028 修改 `apps/web/src/layout/navigation.ts`、`apps/web/src/App.tsx` 新增路由与 `apps/web/src/pages/SourcesPage.tsx` 空壳（使 T027 通过）
+- [X] T029 [P] 在 `apps/web/src/__tests__/sources-api.test.ts` 编写测试：BFF 返回 502 时调用方得到带错误码与 trace_id 的错误，不返回任何数据（先提交、先失败）
+- [X] T030 在 `apps/web/src/features/sources/api.ts` 基于 `@contexture/ts-api` 封装全部 005 接口；错误一律抛出并携带 BFF 错误码与 trace_id，不得捕获后返回示例数据（使 T029 通过）
 
 **Checkpoint**: 真实链路已验证；BFF 与 Web 公共骨架就绪。
 

@@ -50,6 +50,10 @@ export const zh = {
   } as Record<string, string>,
   greeting: (name: string) => `你好，${name}`,
   homeDescription: "从这里了解数据资产与治理工作的进展。",
+  // 005 源系统元数据采集
+  sources: {
+    ingestionGroup: "数据接入",
+  },
   nav: {
     primary: "一级导航",
     secondary: "首页导航",
@@ -58,6 +62,11 @@ export const zh = {
     overview: "概览",
     approvals: "审批中心",
     assets: "资产搜索",
+    // 005：资产工作空间（原型 2026-11-06 确认）
+    assetWorkspace: "资产",
+    assetModule: "数据资产",
+    assetSecondary: "数据资产导航",
+    sources: "数据源",
     agents: "Agent 工作台",
     collapse: "收起二级菜单",
     expand: "展开二级菜单",

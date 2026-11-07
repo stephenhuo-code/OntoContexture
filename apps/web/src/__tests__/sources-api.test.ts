@@ -9,7 +9,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 function respond(status: number, body: unknown) {
   return vi.fn(
-    async () =>
+    async (_request: Request) =>
       new Response(JSON.stringify(body), {
         status,
         headers: { "Content-Type": "application/json" },

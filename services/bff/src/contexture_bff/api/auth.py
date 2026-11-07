@@ -5,6 +5,7 @@ import hashlib
 import logging
 import secrets
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote, urlencode, urlsplit
 
 from authlib.integrations.base_client.errors import OAuthError
@@ -14,6 +15,9 @@ from fastapi.responses import RedirectResponse
 
 from contexture_bff.adapters.sessions import LoginRequest, SessionRecord
 from contexture_bff.api.deps import services, settings
+
+if TYPE_CHECKING:
+    from contexture_bff.main import Services
 from contexture_core.errors import (
     InvalidAudience,
     InvalidToken,
@@ -85,6 +89,17 @@ async def login(request: Request, return_to: str | None = None) -> RedirectRespo
         return _failure("internal", target)
 
 
+
+async def sync_om_user(svc: "Services", claims: dict[str, Any]) -> None:
+    """005：按令牌中的织境角色在 OpenMetadata 建档并同步团队（research R13）；OM 不可用则登录失败。"""
+    if svc.om_users is None:
+        return
+    username = claims.get("preferred_username")
+    if not isinstance(username, str) or not username:
+        return
+    roles = (claims.get("realm_access") or {}).get("roles") or []
+    await svc.om_users.sync(username, [str(r) for r in roles])
+
 @router.get("/callback", status_code=302)
 async def callback(request: Request) -> RedirectResponse:
     target = "/home"
@@ -110,6 +125,7 @@ async def callback(request: Request) -> RedirectResponse:
         tokens = await svc.oidc.exchange_code(code=code, code_verifier=login_request.code_verifier)
         assert svc.authenticator is not None  # noqa: S101
         claims = await svc.authenticator.verify(tokens.access_token)
+        await sync_om_user(svc, claims)
         cfg = settings(request)
         ttl = cfg.session_ttl_seconds
         if tokens.refresh_expires_in:
