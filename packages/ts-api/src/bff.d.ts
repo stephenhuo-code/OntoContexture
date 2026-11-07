@@ -823,6 +823,8 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
         };
     };
@@ -851,6 +853,8 @@ export interface operations {
             400: components["responses"]["Error"];
             /** @description 服务标识已存在 source.name_conflict */
             409: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
         };
     };
@@ -875,6 +879,8 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
         };
     };
@@ -904,6 +910,8 @@ export interface operations {
             };
             400: components["responses"]["Error"];
             404: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
         };
     };
@@ -935,6 +943,8 @@ export interface operations {
                 };
             };
             400: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
         };
     };
@@ -959,6 +969,8 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
         };
     };
     listPipelineRuns: {
@@ -987,6 +999,8 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
         };
     };
@@ -1011,6 +1025,8 @@ export interface operations {
             };
             /** @description source.pipeline_in_flight */
             409: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
         };
     };
@@ -1043,6 +1059,8 @@ export interface operations {
             };
             /** @description 手动任务不支持 source.schedule_not_set */
             400: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
         };
     };
@@ -1071,6 +1089,8 @@ export interface operations {
                     };
                 };
             };
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
         };
     };
@@ -1097,6 +1117,8 @@ export interface operations {
                 };
             };
             404: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
         };
     };
@@ -1128,6 +1150,8 @@ export interface operations {
             };
             /** @description 校验失败：域与数据产品不一致、保留周期非 ISO 8601、互斥分类多选 */
             400: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
         };
     };
@@ -1149,6 +1173,8 @@ export interface operations {
                     "application/json": components["schemas"]["GovernanceOptions"];
                 };
             };
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
         };
     };

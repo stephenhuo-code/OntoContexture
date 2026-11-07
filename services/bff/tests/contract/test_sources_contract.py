@@ -69,7 +69,7 @@ def test_conflict_not_found_immutable_and_invalid() -> None:
     imm = c.put("/bff/v1/sources/mock-mes", json=upsert(serviceType="Postgres", connection={**upsert()["connection"]}))
     assert imm.status_code == 400 and imm.json()["code"] == "source.immutable_field"
     bad = c.post("/bff/v1/sources", json=upsert(name="Bad_Name"))
-    assert bad.status_code == 400
+    assert bad.status_code == 422 and bad.json()["code"] == "request.invalid"
 
 
 def test_test_connection_flow_matches_contract() -> None:

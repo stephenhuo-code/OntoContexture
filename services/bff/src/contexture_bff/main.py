@@ -6,7 +6,10 @@ import logging
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
 
-from fastapi import FastAPI
+from collections.abc import Awaitable, Callable
+
+from fastapi import FastAPI, Request, Response
+from starlette.routing import Match
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from contexture_bff.adapters.data import McpObjectData, ObjectData
@@ -119,6 +122,24 @@ def create_app(settings: BffSettings | None = None, *, services: Services | None
         services.authenticator.token_source = deps.session_or_bearer
         app.state.services = services
     install_error_handlers(app)
+
+    @app.middleware("http")
+    async def allow_header(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        """同一路径按方法拆成多个路由时，405 的 Allow 合并该路径全部方法（RFC 9110 §15.5.6）。"""
+        response = await call_next(request)
+        if response.status_code == 405:
+            methods = [
+                m
+                for m in ("GET", "POST", "PUT", "PATCH", "DELETE")
+                if any(
+                    route.matches({**request.scope, "method": m})[0] == Match.FULL
+                    for route in app.router.routes
+                )
+            ]
+            if methods:
+                response.headers["Allow"] = ", ".join(methods)
+        return response
+
     setup_telemetry(cfg, app)
     app.include_router(auth.router)
     app.include_router(me.router)

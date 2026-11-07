@@ -135,7 +135,7 @@
 | 用户名 | `username` | `username` | `username` | `username` |
 | 密码 | MySQL `authType.password`；Doris `password` | `authType.password` | `password` | `password` |
 | 数据库 | 选填 `databaseSchema` | 必填 `database`，`ingestAllDatabases=false` | 必填 `database`，`ingestAllDatabases=false` | `oracleConnectionType.oracleServiceName` |
-| TLS | `sslConfig`（按连接器原生字段，具体键在阶段 A 核对） | `sslMode` | `encrypt` | 本期不暴露 |
+| TLS（2026-11-07 核对） | 本期不提供：原生仅 `sslConfig`（须上传 CA 证书） | `sslMode=require` | `encrypt=true` | 本期不提供：原生无此项 |
 
 出处：`OM/openmetadata-spec/.../entity/services/connections/database/{mysql,postgres,mssql,oracle,doris}Connection.json`。
 

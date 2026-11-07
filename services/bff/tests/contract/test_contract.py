@@ -13,6 +13,7 @@ from bff_fakes import FakeObjectData, FakeObjectTypes, FakeOidc, FakeSessions
 from om_fake import FakeOM
 from sources_helpers import service as sources_service
 from hypothesis import HealthCheck, settings
+from schemathesis.specs.openapi.checks import positive_data_acceptance
 from support.jwt import ISSUER, JWKS_URL, LocalIssuer
 
 from contexture_bff.main import Services, create_app
@@ -78,4 +79,7 @@ class BearerAuth:
     deadline=None,
 )
 def test_bff_matches_contract(case: schemathesis.Case) -> None:
-    case.call_and_validate(allow_redirects=False)
+    # 005 的连接器级业务规则（如 MySQL 不提供 TLS、PostgreSQL 须填数据库、过滤规则须为合法正则）无法用 JSON Schema
+    # 表达，按设计返回 400 source.invalid_request；由 test_sources_contract.py 与单元测试覆盖，此处不做“合法数据必被接受”检查
+    excluded = [positive_data_acceptance] if case.path.startswith("/bff/v1/sources") else []
+    case.call_and_validate(allow_redirects=False, excluded_checks=excluded)

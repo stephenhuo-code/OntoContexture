@@ -51,7 +51,7 @@
 
 ## 后续技术方案需验证
 
-- 测试连接的异步执行（OM automation workflow）与 OM 契约的对齐。连接字段已于 2026-11-07 按连接器原生字段调整：MySQL / Doris 数据库选填，PostgreSQL / SQL Server 必填，Oracle 用 Service Name，且本期不提供 TLS 开关（2026-11-07）。
+- 测试连接的异步执行（OM automation workflow）与 OM 契约的对齐。连接字段已于 2026-11-07 按连接器原生字段调整：MySQL / Doris 数据库选填，PostgreSQL / SQL Server 必填，Oracle 用 Service Name；TLS 开关只对 PostgreSQL / SQL Server 提供（MySQL / Doris 原生 TLS 须上传证书，Oracle 原生无此项，2026-11-07）。
 - 独立 Airflow 与 OM 的部署、触发、启停、日志和状态回传，以及动态生成 DAG 与 Git 管理配置的职责边界。
 - 数据库元数据最小权限和视图定义可获取范围，部分成功的真实判定及不采样业务行的配置。
 - 原型代码只作设计输入，不复用为生产实现；已确认范围见正式规格，后续交互调整须同步原型与规格。
