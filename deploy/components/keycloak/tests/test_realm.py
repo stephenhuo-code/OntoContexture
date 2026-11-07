@@ -136,3 +136,33 @@ def test_exchange_to_unknown_audience_rejected(
 ) -> None:
     env, _, _ = imported
     assert exchange(env, user1_token(env), "paperclip").status_code >= 400
+
+
+# ---------- 005：BFF 以用户委托令牌调用 OpenMetadata（research R5） ----------
+OM_AUDIENCE = "contexture-openmetadata"
+ROLE_CLAIM = "contexture_roles"
+
+
+def test_login_token_carries_flat_role_claim(
+    imported: tuple[KeycloakEnv, Admin, dict[str, Any]],
+) -> None:
+    env, _, _ = imported
+    claims = jwt_claims(user1_token(env))
+    assert OM_AUDIENCE in audiences(claims)
+    assert isinstance(claims[ROLE_CLAIM], list)
+    assert "business-user" in claims[ROLE_CLAIM]
+
+
+def test_token_exchange_for_openmetadata(
+    imported: tuple[KeycloakEnv, Admin, dict[str, Any]],
+) -> None:
+    env, admin, _ = imported
+    resp = exchange(env, user1_token(env), OM_AUDIENCE)
+    assert resp.status_code == 200, resp.text
+    claims = jwt_claims(resp.json()["access_token"])
+    assert claims["sub"] == admin.user_id("user1")
+    assert claims["preferred_username"] == "user1"
+    assert claims["azp"] == "contexture-bff"
+    assert audiences(claims) == [OM_AUDIENCE]
+    # OM 的 jwtTeamClaimMapping 读取扁平声明，按值入组（R12）
+    assert "business-user" in claims[ROLE_CLAIM]

@@ -46,9 +46,9 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### 阶段 A · 基础设施测试（先写、先失败）
 
-- [ ] T004 [P] 在 `deploy/components/keycloak/tests/test_realm.py` 增加测试：`contexture-bff` 登录令牌可交换为受众 `contexture-openmetadata` 的令牌；交换后令牌含织境 realm 角色的扁平声明（声明名与 T008 一致）
-- [ ] T005 [P] 在 `deploy/components/airflow/tests/smoke.sh` 增加检查：Airflow 镜像为织境采集镜像、`/pluginsv2` 健康接口可用、dags 卷已挂载且 `DAG_GENERATED_CONFIGS` 位于同一卷、不存在 `contexture_om_dags.py` 及其 DAG
-- [ ] T006 [P] 在 `deploy/components/openmetadata/tests/smoke.sh` 增加检查：OM 的 pipeline service client 已启用并能连通 Airflow（OM 服务状态接口返回 Airflow 版本 3.3.2）
+- [X] T004 [P] 在 `deploy/components/keycloak/tests/test_realm.py` 增加测试：`contexture-bff` 登录令牌可交换为受众 `contexture-openmetadata` 的令牌；交换后令牌含织境 realm 角色的扁平声明（声明名与 T008 一致）
+- [X] T005 [P] 在 `deploy/components/airflow/tests/smoke.sh` 增加检查：Airflow 镜像为织境采集镜像、`/pluginsv2` 健康接口可用、dags 卷已挂载且 `DAG_GENERATED_CONFIGS` 位于同一卷、不存在 `contexture_om_dags.py` 及其 DAG
+- [X] T006 [P] 在 `deploy/components/openmetadata/tests/smoke.sh` 增加检查：OM 的 pipeline service client 已启用并能连通 Airflow（OM 服务状态接口返回 Airflow 版本 3.3.2）
 
 ### 阶段 A · 基础设施实现
 
@@ -58,7 +58,7 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 - [ ] T010 修改 `deploy/components/airflow/values/local.yaml` 与 `deploy/components/airflow/values/lite.yaml`：Airflow 各组件与任务 Pod 模板固定到同一节点（kind 的 `rancher.io/local-path` 只支持 RWO）；在 `deploy/components/airflow/values/base.yaml` 注释中写明 ACK 使用 NAS（RWX）且不固定节点
 - [ ] T011 修改 `deploy/components/openmetadata/values/base.yaml`：`pipelineServiceClientConfig.enabled: true`、`apiEndpoint: http://airflow-api-server:8080`、`metadataApiEndpoint: http://openmetadata:8585/api`、Airflow 用户名与 `om-secrets/airflow-password`；`authentication.jwtTeamClaimMapping` 指向 T008 的声明；删除“OM 保持 NoopClient”的注释（使 T006 通过）
 - [ ] T012 修改 `tools/up.sh`：构建并 `kind load` 织境 Airflow 镜像（与 OM server 镜像同处）；将该镜像纳入 `tools/offline_package.py` 清单与 `deploy/components/airflow/component.yaml`
-- [ ] T013 起草 OM 权限清单：在 `specs/005-source-metadata-ingestion/research.md` 新增 R12，列出团队 `admin`、`ai-engineer` 及其 OM 角色 / 策略所授予的具体操作（DatabaseService、IngestionPipeline 的创建 / 编辑 / 部署 / 触发 / 启停，Workflow 测试连接，Database / DatabaseSchema / Table 治理属性编辑，治理选项读取）。**交负责人确认后**才可进行 T014
+- [X] T013 起草 OM 权限清单：在 `specs/005-source-metadata-ingestion/research.md` 新增 R12，列出团队 `admin`、`ai-engineer` 及其 OM 角色 / 策略所授予的具体操作（DatabaseService、IngestionPipeline 的创建 / 编辑 / 部署 / 触发 / 启停，Workflow 测试连接，Database / DatabaseSchema / Table 治理属性编辑，治理选项读取）。**交负责人确认后**才可进行 T014
 - [ ] T014 在 `tools/om_config.py` 幂等创建 T013 确认的团队、角色与策略（重复执行无副作用），并在 `tools/tests/` 增加对应单元测试（先写、先失败）
 - [ ] T015 更新 `docs/adr/0006-三域数据治理与管线编排.md`（待定问题 2：OM 2.0.3 支持 Airflow 3 外部编排，已采用）与 `docs/adr/0011-OpenMetadata的构建与部署.md`（镜像表新增织境 Airflow 采集镜像及用途）
 

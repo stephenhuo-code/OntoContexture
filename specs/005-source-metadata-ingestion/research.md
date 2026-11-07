@@ -148,3 +148,15 @@
 - 测试连接在 Airflow api-server 进程内执行，预计秒级；采集运行需拉起任务 Pod，含镜像与 Pod 启动耗时。
   首轮计划“测试连接 p95 ≤ 3s”无依据，改为阶段 A 实测后在 acceptance.md 记录；SC-002（3 分钟完成接入与首采）作为验收目标保留。
 - 前端对测试连接与运行状态采用轮询（OM 原生无推送接口给 BFF 使用），间隔与超时在阶段 A 实测后确定。
+
+## R12：OM 团队、角色与策略（负责人 2026-11-07 确认）
+
+- **Decision**: `tools/om_config.py` 幂等创建：
+  - 团队 `admin`、`ai-engineer`（由登录令牌中的织境 realm 角色声明经 `jwtTeamClaimMapping` 入组），默认角色均为 `ContextureSourceManager`；
+  - 角色 `ContextureSourceManager` → 策略 `ContextureSourcePolicy`，三条 allow 规则（操作名取自
+    `OM/openmetadata-spec/.../entity/policies/accessControl/resourceDescriptor.json`）：
+    1. `databaseService`：`Create`、`ViewAll`、`EditAll`、`Deploy`、`Trigger`（不含 `Delete`）；
+    2. `ingestionPipeline`、`workflow`：`Create`、`ViewAll`、`EditAll`、`Deploy`、`Trigger`、`Delete`
+       （删除仅用于关闭视图血缘任务与清理测试连接临时 workflow）；
+    3. `database`、`databaseSchema`、`table`：`ViewAll`、`EditAll`（业务域、数据产品、保留周期没有单独操作，只能用 `EditAll`）。
+  - 用户、团队、业务域、数据产品、分类、标签、术语的读取沿用 OM 默认 Organization 策略，不另授权；不授予创建治理实体的权限。
