@@ -6,17 +6,21 @@ source "$(dirname "$0")/../../smoke-lib.sh"
 NS=contexture
 kubectl -n $NS rollout status deployment/airflow-api-server --timeout=600s
 kubectl -n $NS rollout status deployment/airflow-scheduler --timeout=600s
-curl_in http://airflow-api-server:8080/api/v2/monitor/health | grep -q '"scheduler":{"status":"healthy"' && echo "airflow OK"
+# api-server 仅允许 Airflow 组件与 OM 访问（网络策略），HTTP 检查从 scheduler 容器内发起
+http_get() {
+  kubectl -n $NS exec deployment/airflow-scheduler -c scheduler -- python -c \
+    "import sys,urllib.request;print(urllib.request.urlopen(sys.argv[1],timeout=10).read().decode())" "$1"
+}
+http_get http://airflow-api-server:8080/api/v2/monitor/health | grep -q '"scheduler": *{"status": *"healthy"' && echo "airflow OK"
 
 image=$(kubectl -n $NS get deployment airflow-api-server -o jsonpath='{.spec.template.spec.containers[0].image}')
 [[ $image == contexture/openmetadata-ingestion-airflow:* ]] || { echo "airflow 镜像不是织境采集镜像：$image"; exit 1; }
-curl_in http://airflow-api-server:8080/pluginsv2/api/v2/openmetadata/health | grep -q '"status":"healthy"' \
+http_get http://airflow-api-server:8080/pluginsv2/api/v2/openmetadata/health | grep -q '"status": *"healthy"' \
   && echo "managed-apis OK"
-# managed-apis 在 Airflow 3 下依赖 Airflow 的 Web 认证层（research R3）：不带凭证的写接口必须被拒绝
-code=$(curl_in -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' \
-  http://airflow-api-server:8080/pluginsv2/api/v2/openmetadata/deploy)
-[[ $code == 401 || $code == 403 ]] || { echo "未认证请求未被拒绝（HTTP $code）"; exit 1; }
-echo "managed-apis auth OK"
+# managed-apis 在 Airflow 3 下不校验凭证（research R3），其他 Pod 必须连不上 api-server
+code=$(curl_in -s -o /dev/null -w '%{http_code}' --max-time 5 http://airflow-api-server:8080/pluginsv2/api/v2/openmetadata/health || true)
+[[ $code == 000 ]] || { echo "非授权 Pod 仍可访问 api-server（HTTP $code）"; exit 1; }
+echo "api-server network policy OK"
 
 dags=$(kubectl -n $NS exec deployment/airflow-api-server -c api-server -- sh -c 'airflow config get-value core dags_folder')
 generated=$(kubectl -n $NS exec deployment/airflow-api-server -c api-server -- sh -c 'echo "$AIRFLOW__OPENMETADATA_AIRFLOW_APIS__DAG_GENERATED_CONFIGS"')

@@ -64,10 +64,10 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### 阶段 B · 测试数据（先写测试）
 
-- [ ] T016 [P] 新增 `testdata/tests/cluster/test_readonly_accounts.py`：MES（MySQL）与 QMS（PostgreSQL）只读元数据账号能列出库 / 表 / 字段，不能执行任何写操作；003 原有表与数据不变
-- [ ] T017 [P] 新增 `testdata/tests/cluster/test_viewlab.py`：mock-mes 实例的 `viewlab` 库与 mock-qms 实例的 `viewlab` 库存在；可读账号能读取视图定义；MySQL 受限账号（无 `SHOW VIEW`）读不到视图定义；视图与基表的表级 / 字段级关系与标准答案文件一致
-- [ ] T018 实现只读账号与 viewlab：`testdata/deploy/secrets.sh` 生成新账号密码；`testdata/mockfactory/load/mysql.py`、`testdata/mockfactory/load/postgres.py` 创建账号与 `viewlab` 库（基表、视图、受限账号）；标准答案写入 `testdata/mockfactory/viewlab.py`（视图 → 上游表及 `columnsLineage`）；`make mock-data` 执行后 T016、T017 通过；修改 `tools/ports.sh`，在现有输出中增加 MES / QMS 只读元数据账号与 viewlab 可读账号、受限账号的用户名及取密码命令（与现有 root 密码输出方式一致）；更新 `testdata/README.md`
-- [ ] T019 核对 OM Postgres 连接器读取视图定义所用查询（`third_party/openmetadata/src/ingestion/src/metadata/ingestion/source/database/postgres/`），判断 PostgreSQL 受限账号能否复现“视图定义不可读”，结论写入 `specs/005-source-metadata-ingestion/research.md` R10；不能复现时该场景只用 MySQL 验收
+- [X] T016 [P] 新增 `testdata/tests/cluster/test_readonly_accounts.py`：MES（MySQL）与 QMS（PostgreSQL）只读元数据账号能列出库 / 表 / 字段，不能执行任何写操作；003 原有表与数据不变
+- [X] T017 [P] 新增 `testdata/tests/cluster/test_viewlab.py`：mock-mes 实例的 `viewlab` 库与 mock-qms 实例的 `viewlab` 库存在；可读账号能读取视图定义；MySQL 受限账号（无 `SHOW VIEW`）读不到视图定义；视图与基表的表级 / 字段级关系与标准答案文件一致
+- [X] T018 实现只读账号与 viewlab：`testdata/deploy/secrets.sh` 生成新账号密码；`testdata/mockfactory/load/mysql.py`、`testdata/mockfactory/load/postgres.py` 创建账号与 `viewlab` 库（基表、视图、受限账号）；标准答案写入 `testdata/mockfactory/viewlab.py`（视图 → 上游表及 `columnsLineage`）；`make mock-data` 执行后 T016、T017 通过；修改 `tools/ports.sh`，在现有输出中增加 MES / QMS 只读元数据账号与 viewlab 可读账号、受限账号的用户名及取密码命令（与现有 root 密码输出方式一致）；更新 `testdata/README.md`
+- [X] T019 核对 OM Postgres 连接器读取视图定义所用查询（`third_party/openmetadata/src/ingestion/src/metadata/ingestion/source/database/postgres/`），判断 PostgreSQL 受限账号能否复现“视图定义不可读”，结论写入 `specs/005-source-metadata-ingestion/research.md` R10；不能复现时该场景只用 MySQL 验收
 
 ### 阶段 A 闸门 · 真实链路验证
 

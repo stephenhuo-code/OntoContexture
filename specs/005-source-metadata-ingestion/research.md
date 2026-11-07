@@ -144,6 +144,11 @@
   - MySQL：受限账号不授予 `SHOW VIEW`，视图定义不可读（MySQL 原生权限）。
   - PostgreSQL：`information_schema.views.view_definition` 对非属主返回空，但 `pg_get_viewdef` 对所有人可读；OM Postgres 连接器取视图定义
     所用查询需在阶段 A 核对，若无法用权限复现“不可读”，该场景以 MySQL 验收并在 acceptance.md 中如实注明。
+  - **2026-11-07 核对结论（T019）**：OM Postgres 连接器以 `pg_class` + `pg_get_viewdef(c.oid, true)` 读取视图定义
+    （`OM/ingestion/.../source/database/postgres/queries.py:111-120` `POSTGRES_VIEW_DEFINITIONS`），任何可连接角色均可读，
+    **PostgreSQL 无法用权限复现“视图定义不可读”**，该场景只用 MySQL 验收；PostgreSQL viewlab 只验证有权限时的视图血缘。
+    MySQL 经 SQLAlchemy `inspector.get_view_definition`（`common_db_source.py:468`）读取，需要 `SHOW VIEW`，受限账号
+    `viewlab_noview` 可复现（集成测试已验证 `SHOW CREATE VIEW` 被拒、`information_schema.VIEWS` 定义为空）。
   - 随 `make mock-data` 部署；放在 `testdata/` 下，不进入客户交付物。
 
 ## R11：性能与等待

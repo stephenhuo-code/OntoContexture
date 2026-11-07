@@ -47,6 +47,7 @@ def _parser() -> argparse.ArgumentParser:
         s.add_argument("--dw-reader-password", help="创建 mock_dw 只读账号的密码")
         s.add_argument("--months", type=int, default=DEFAULT_MONTHS)
         s.add_argument("--seed", type=int, default=DEFAULT_SEED)
+    sub.add_parser("provision-005", help="005：只读元数据账号与 viewlab 视图测试库（本地集群）")
     docs = sub.add_parser("docs", help="重新生成 testdata/数据说明.md")
     docs.add_argument("--out", type=Path, default=DOC_PATH)
     roster = sub.add_parser("roster", help="导出人员与班组名单（CSV）")
@@ -148,6 +149,20 @@ def verify_cases(args: argparse.Namespace) -> int:
     return 4 if any(r.status == "失败" for r in results) else 0
 
 
+def provision_005() -> int:
+    """在本地集群的 mock-mes / mock-qms 实例内建只读元数据账号与 viewlab（不改动 003 数据）。"""
+    from mockfactory import viewlab  # noqa: PLC0415
+
+    passwords = viewlab.local_passwords()
+    with local_targets() as t:
+        check_ready(t, 0)
+        assert t.mes is not None and t.qms is not None
+        viewlab.provision_mysql(t.mes, passwords)
+        viewlab.provision_postgres(t.qms, passwords)
+    print("provision-005: mes_meta_ro、qms_meta_ro、viewlab（MySQL / PostgreSQL）就绪")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     try:
         args = _parser().parse_args(argv)
@@ -158,6 +173,8 @@ def main(argv: list[str] | None = None) -> int:
             return load(args, settings)
         if args.command == "verify-cases":
             return verify_cases(args)
+        if args.command == "provision-005":
+            return provision_005()
         if args.command == "docs":
             print(write_docs(args.out))
             return 0

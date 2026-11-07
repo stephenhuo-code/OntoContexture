@@ -35,6 +35,7 @@ mock-data:
 	for t in testdata/deploy/*/tests/smoke.sh; do $$t || exit 1; done
 	uv run python -m mockfactory load --target local --months $(MONTHS) --seed $(SEED)
 	uv run python -m mockfactory verify-cases --target local
+	uv run python -m mockfactory provision-005
 
 # 端到端（需 make up、make seed）：集群测试（Toolbox、AI 网关、追踪与审计）+ 浏览器演示
 KUBE_CONTEXT ?= kind-contexture

@@ -69,7 +69,19 @@ migrateDatabaseJob:
   useHelmHooks: false
   applyCustomEnv: false
 
+# managed-apis 在 Airflow 3 下不校验凭证（上游 security_compat.py 为放行装饰器；2026-11-07 实测不带凭证可调用），
+# 以网络策略限制 api-server 的访问方：只允许 Airflow 自身组件（含任务 Pod，经执行接口回报）与 OpenMetadata（research R3）
+networkPolicies:
+  enabled: true
+
 apiServer:
+  networkPolicy:
+    ingress:
+      from:
+        - podSelector:
+            matchLabels: { tier: airflow, release: airflow }
+        - podSelector:
+            matchLabels: { app.kubernetes.io/name: openmetadata }
   resources:
     requests: { cpu: 100m, memory: 512Mi }
     limits: { memory: 1Gi }
