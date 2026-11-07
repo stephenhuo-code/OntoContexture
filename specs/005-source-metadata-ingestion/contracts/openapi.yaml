@@ -65,7 +65,7 @@ paths:
         "502": { $ref: "#/components/responses/Unavailable" }
     put:
       operationId: updateSource
-      summary: 修改连接、采集范围与调度；服务标识与连接器不可改；密码传 "*********" 表示不变；保存后重新部署
+      summary: 修改连接、采集范围与调度；服务标识与连接器不可改（不同于已保存值时 400 source.immutable_field）；密码传 "*********" 表示不变；保存后重新部署
       description: |
         includeViews=false 或 createLineageTask=false 时删除视图血缘任务（OM 实体与其运行记录）。
       requestBody:
