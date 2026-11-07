@@ -71,7 +71,7 @@ async def test_forbidden_maps_to_permission_error_with_om_message() -> None:
     body = {"code": 403, "message": "operations [Create] not allowed"}
     om, _ = client(httpx.MockTransport(lambda req: httpx.Response(403, json=body)))
     with pytest.raises(ContextureError) as exc:
-        await om.request(user_context(), "PUT", "/services/databaseServices", json={})
+        await om.request(user_context(), "PUT", "/services/databaseServices", json_body={})
     assert exc.value.code == "auth.om_forbidden"
     assert exc.value.status_code == 403
     assert "not allowed" in exc.value.message

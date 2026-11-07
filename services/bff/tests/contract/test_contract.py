@@ -10,6 +10,8 @@ import httpx
 import schemathesis
 import yaml
 from bff_fakes import FakeObjectData, FakeObjectTypes, FakeOidc, FakeSessions
+from om_fake import FakeOM
+from sources_helpers import service as sources_service
 from hypothesis import HealthCheck, settings
 from support.jwt import ISSUER, JWKS_URL, LocalIssuer
 
@@ -49,6 +51,8 @@ app = create_app(
         object_types=FakeObjectTypes(),
         object_data=FakeObjectData(),
         authenticator=Authenticator(tenant_id="local", verifier=verifier),
+        # 005：经内存 OM 夹具运行真实映射代码
+        sources=sources_service(FakeOM()),
     ),
 )
 
