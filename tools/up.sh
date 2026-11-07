@@ -103,10 +103,13 @@ image_exists() { docker image inspect "$1" >/dev/null 2>&1; }
 OM_VERSION=$(awk '/^image_version:/{print $2}' third_party/openmetadata/UPSTREAM.yaml)
 image_exists "contexture/openmetadata-server:$OM_VERSION" || third_party/openmetadata/build/build.sh server
 image_exists contexture/openmetadata-fuseki:6.2.0-ctx.0 || third_party/openmetadata/build/build.sh fuseki
+# 005：织境 Airflow 采集镜像（Airflow 3.3.2 + OM managed-apis + 五类连接器，research R2）
+image_exists "contexture/openmetadata-ingestion-airflow:$OM_VERSION" || third_party/openmetadata/build/build.sh airflow
 docker build -q -f services/bff/Dockerfile -t contexture/bff:dev . >/dev/null
 docker build -q -f apps/web/Dockerfile -t contexture/web:dev . >/dev/null
 kind load docker-image --name "$CLUSTER" "contexture/openmetadata-server:$OM_VERSION" \
-  contexture/openmetadata-fuseki:6.2.0-ctx.0 contexture/bff:dev contexture/web:dev >/dev/null
+  contexture/openmetadata-fuseki:6.2.0-ctx.0 "contexture/openmetadata-ingestion-airflow:$OM_VERSION" \
+  contexture/bff:dev contexture/web:dev >/dev/null
   # 开源组件的镜像：本机 Docker 已有的预先导入集群（新建集群时免去重新下载），其余由节点自行拉取。
   # 按本机架构逐个导出：多架构镜像在本机只有一种架构的数据，整体导出后 kind 无法导入
   PLATFORM=$([[ $(uname -m) == arm64 || $(uname -m) == aarch64 ]] && echo linux/arm64 || echo linux/amd64)

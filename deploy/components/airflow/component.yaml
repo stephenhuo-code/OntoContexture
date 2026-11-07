@@ -1,9 +1,10 @@
+# 005 起使用织境 Airflow 采集镜像（third_party/openmetadata/build/build.sh airflow，基础镜像 apache/airflow:3.3.2），官方 Chart
 name: airflow
 version: 3.3.2
 image:
-  source: official
+  source: self-built
   refs:
-    - apache/airflow:3.3.2
+    - contexture/openmetadata-ingestion-airflow:2.0.3-ctx.0
 license: Apache-2.0
 customization: config
 upstream: https://github.com/apache/airflow

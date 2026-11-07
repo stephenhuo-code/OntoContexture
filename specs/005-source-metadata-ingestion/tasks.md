@@ -57,10 +57,10 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 - [X] T009 修改 `deploy/components/airflow/values/base.yaml`：镜像改为 T007 产物；SimpleAuthManager 为 OM 配置用户（密码取 `om-secrets/airflow-password`）；`AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session`、启用 CSRF；`dags.persistence` 挂 PVC，`DAG_GENERATED_CONFIGS` 指向该卷子目录；KubernetesExecutor 任务 Pod 使用同一镜像与同一卷（research R2–R4）
 - [X] T010 修改 `deploy/components/airflow/values/local.yaml` 与 `deploy/components/airflow/values/lite.yaml`：Airflow 各组件与任务 Pod 模板固定到同一节点（kind 的 `rancher.io/local-path` 只支持 RWO）；在 `deploy/components/airflow/values/base.yaml` 注释中写明 ACK 使用 NAS（RWX）且不固定节点
 - [X] T011 修改 `deploy/components/openmetadata/values/base.yaml`：`pipelineServiceClientConfig.enabled: true`、`type: airflow`、`airflow.apiEndpoint: http://airflow-api-server:8080`、`metadataApiEndpoint: http://openmetadata:8585/api`、Airflow 用户 `openmetadata` 与 `om-secrets/airflow-password`；删除“OM 不接 Airflow 编排”的注释（使 T006 通过）
-- [ ] T012 修改 `tools/up.sh`：构建并 `kind load` 织境 Airflow 镜像（与 OM server 镜像同处）；将该镜像纳入 `tools/offline_package.py` 清单与 `deploy/components/airflow/component.yaml`
+- [X] T012 修改 `tools/up.sh`：构建并 `kind load` 织境 Airflow 镜像（与 OM server 镜像同处）；将该镜像纳入 `tools/offline_package.py` 清单与 `deploy/components/airflow/component.yaml`
 - [X] T013 起草 OM 权限清单：在 `specs/005-source-metadata-ingestion/research.md` 新增 R12，列出团队 `admin`、`ai-engineer` 及其 OM 角色 / 策略所授予的具体操作（DatabaseService、IngestionPipeline 的创建 / 编辑 / 部署 / 触发 / 启停，Workflow 测试连接，Database / DatabaseSchema / Table 治理属性编辑，治理选项读取）。**交负责人确认后**才可进行 T014
 - [X] T014 在 `tools/om_config.py` 幂等创建 R12 的团队、角色与策略，以及 R13 的 OM 用户 `service-account-contexture-bff` 与角色 `ContextureUserProvisioner`（`user`：Create / ViewAll / EditTeams；`team`：ViewAll / EditUsers），重复执行无副作用；先在 `tools/tests/test_om_config.py` 增加对应测试（先写、先失败）
-- [ ] T015 更新 `docs/adr/0006-三域数据治理与管线编排.md`（待定问题 2：OM 2.0.3 支持 Airflow 3 外部编排，已采用）与 `docs/adr/0011-OpenMetadata的构建与部署.md`（镜像表新增织境 Airflow 采集镜像及用途）
+- [X] T015 更新 `docs/adr/0006-三域数据治理与管线编排.md`（待定问题 2：OM 2.0.3 支持 Airflow 3 外部编排，已采用）与 `docs/adr/0011-OpenMetadata的构建与部署.md`（镜像表新增织境 Airflow 采集镜像及用途）
 
 ### 阶段 B · 测试数据（先写测试）
 

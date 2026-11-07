@@ -12,6 +12,11 @@ image=$(kubectl -n $NS get deployment airflow-api-server -o jsonpath='{.spec.tem
 [[ $image == contexture/openmetadata-ingestion-airflow:* ]] || { echo "airflow 镜像不是织境采集镜像：$image"; exit 1; }
 curl_in http://airflow-api-server:8080/pluginsv2/api/v2/openmetadata/health | grep -q '"status":"healthy"' \
   && echo "managed-apis OK"
+# managed-apis 在 Airflow 3 下依赖 Airflow 的 Web 认证层（research R3）：不带凭证的写接口必须被拒绝
+code=$(curl_in -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' \
+  http://airflow-api-server:8080/pluginsv2/api/v2/openmetadata/deploy)
+[[ $code == 401 || $code == 403 ]] || { echo "未认证请求未被拒绝（HTTP $code）"; exit 1; }
+echo "managed-apis auth OK"
 
 dags=$(kubectl -n $NS exec deployment/airflow-api-server -c api-server -- sh -c 'airflow config get-value core dags_folder')
 generated=$(kubectl -n $NS exec deployment/airflow-api-server -c api-server -- sh -c 'echo "$AIRFLOW__OPENMETADATA_AIRFLOW_APIS__DAG_GENERATED_CONFIGS"')

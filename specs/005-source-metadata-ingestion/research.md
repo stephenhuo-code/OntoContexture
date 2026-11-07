@@ -38,12 +38,15 @@
 
 ## R3：Airflow 与 OM 的认证
 
-- **Decision**: Airflow 使用 SimpleAuthManager（Airflow 3 默认），为 OM 配置一个 Airflow 用户，密码取已有 Secret
-  `om-secrets/airflow-password`（`tools/up.sh:65`）；开启 `AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session`
-  与 CSRF。OM 侧 `pipelineServiceClientConfig.airflow.username/password` 使用同一凭证。
-- **Rationale**: `AirflowRESTClient` 只支持用户名 + 密码的 Basic 认证（`AirflowRESTClient.java:85-89,160`）；上游入口脚本
-  `OM/ingestion/ingestion_dependency.sh:31-42` 即按此配置 Airflow 3。
-- **Alternatives considered**: FAB Auth Manager——上游未采用，增加组件。
+- **Decision（2026-11-07 实施时修订）**: 沿用 Airflow Chart 1.22 的默认认证管理器 FAB（`config.core.auth_manager`），开启
+  `AIRFLOW__FAB__AUTH_BACKENDS=…fab.auth_manager.api.auth.backend.basic_auth,…session`；由 Chart 的 createUserJob 创建 OM 专用
+  Airflow 用户 `openmetadata`（Admin 角色），密码取已有 Secret `om-secrets/airflow-password`（`tools/up.sh:65`），并删除 Chart
+  默认的 `admin/admin`。OM 侧 `pipelineServiceClientConfig.airflow.auth.username/password` 使用同一凭证。
+- **Rationale**: `AirflowRESTClient` 只支持用户名 + 密码的 Basic 认证（`AirflowRESTClient.java:85-89,160`）；managed-apis 在
+  Airflow 3 下不做自身鉴权，依赖 Airflow 的 Web 认证层（`openmetadata_managed_apis/utils/security_compat.py`）。Chart 默认即 FAB，
+  改用 SimpleAuthManager（上游单容器入口脚本 `ingestion_dependency.sh:31-42` 的做法）需额外改 Chart 配置，且与现有集群不一致。
+- **验证**: 阶段 A 冒烟检查不带凭证访问 managed-apis 写接口须被拒绝。
+- **Alternatives considered**: SimpleAuthManager——上游单容器做法，与 Chart 默认不一致，未采用。
 
 ## R4：DAG 文件与生成配置的共享存储
 
