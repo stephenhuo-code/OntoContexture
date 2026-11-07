@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 构建 openmetadata-server 与 openmetadata-ingestion 镜像（版本取自 UPSTREAM.yaml 的 image_version）。
-# 用法：third_party/openmetadata/build/build.sh [server|ingestion|fuseki|all]
+# 用法：third_party/openmetadata/build/build.sh [server|ingestion|airflow|fuseki|all]
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION=$(awk '/^image_version:/{print $2}' UPSTREAM.yaml)
@@ -22,4 +22,8 @@ fi
 if [[ $TARGET == ingestion || $TARGET == all ]]; then
   # 采集镜像直接使用上游 Dockerfile（构建上下文为子仓库根目录）
   docker build -f src/ingestion/operators/docker/Dockerfile -t "$REGISTRY/openmetadata-ingestion:$VERSION" src
+fi
+if [[ $TARGET == airflow || $TARGET == all ]]; then
+  # 织境 Airflow 采集镜像（005，research R2）：Airflow 3.3.2 + managed-apis + 五类连接器，从子仓库源码安装
+  docker build -f build/Dockerfile.airflow -t "$REGISTRY/openmetadata-ingestion-airflow:$VERSION" src
 fi

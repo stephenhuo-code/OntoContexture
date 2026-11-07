@@ -160,3 +160,20 @@
        （删除仅用于关闭视图血缘任务与清理测试连接临时 workflow）；
     3. `database`、`databaseSchema`、`table`：`ViewAll`、`EditAll`（业务域、数据产品、保留周期没有单独操作，只能用 `EditAll`）。
   - 用户、团队、业务域、数据产品、分类、标签、术语的读取沿用 OM 默认 Organization 策略，不另授权；不授予创建治理实体的权限。
+
+## R13：OM 用户与团队的同步（负责人 2026-11-07 选择方案 A：织境登录时同步）
+
+- **事实（源码核实，R5 验证项 1 的结论）**：OM 只在自身界面登录流程中即时建档并按 `jwtTeamClaimMapping` 入组
+  （`OM/openmetadata-service/.../security/AuthenticationCodeFlowHandler.java:258,954`）；API 调用经 `JwtFilter` 与
+  `DefaultAuthorizer.getSubjectContext` 查找用户，不存在即拒绝，不建档、不入组。OM 开源版 SCIM 接口均返回
+  `notImplemented()`（`OM/openmetadata-service/.../scim/impl/DefaultScimProvisioningService.java`），无现成持续同步。
+- **Decision**：
+  - 织境登录回调（以及会话刷新）时，BFF 按登录令牌 `realm_access.roles` 中的 `admin` / `ai-engineer` 在 OM 中
+    幂等建档（用户名 = `preferred_username`）并同步其在团队 `admin`、`ai-engineer` 中的成员身份（加入应在的、移出不应在的）。
+  - 建档身份：`contexture-bff` 机密客户端开启服务账号（client credentials，无需新密钥），OM 中对应普通（非 bot）用户
+    `service-account-contexture-bff` 由 `tools/om_config.py` 预置，只授予角色 `ContextureUserProvisioner`：
+    `user`：`Create`、`ViewAll`、`EditTeams`；`team`：`ViewAll`、`EditUsers`。该身份看不到源库密码，也不能操作数据源。
+  - 不再使用 OM `jwtTeamClaimMapping`，删除 Keycloak 扁平角色声明 `contexture_roles`。
+- **撤销语义**：BFF 每个请求按 Keycloak 令牌角色校验 admin / ai-engineer，角色撤销后在织境立即失效；OM 中残留的团队
+  成员身份在下次登录时清除；浏览器只经 BFF 访问 OM，残留身份不可用。Keycloak 中删除的用户在 OM 中不自动删除（本期不做）。
+- **Alternatives considered**：定时同步（延迟、多一个任务与 Keycloak 管理凭证）；部署时同步（不自动）；专用服务账号（OM 变更不归属到人）。

@@ -21,9 +21,9 @@
 
 | 位置 | 内容 |
 | --- | --- |
-| Keycloak `contexture-bff` 客户端 | 增加受众 `contexture-openmetadata`（令牌交换目标）；增加把 realm 角色写入扁平声明的 mapper |
-| OM `authenticationConfiguration.jwtTeamClaimMapping` | 指向上述声明，按值入组 |
-| OM 团队 / 角色 / 策略（`tools/om_config.py` 幂等创建） | 团队 `admin`、`ai-engineer`；角色授予 DatabaseService、IngestionPipeline、Workflow（测试连接）与 Database / Schema / Table 治理属性所需操作 |
+| Keycloak `contexture-bff` 客户端 | 增加受众 `contexture-openmetadata`（令牌交换目标）；开启服务账号（BFF 建档身份，research R13） |
+| OM 团队 / 角色 / 策略 / 用户（`tools/om_config.py` 幂等创建） | 团队 `admin`、`ai-engineer`（角色 `ContextureSourceManager`，R12）；用户 `service-account-contexture-bff`（角色 `ContextureUserProvisioner`，R13） |
+| OM 用户与团队成员 | 织境登录时由 BFF 按令牌角色幂等建档与同步（R13）；不新增织境侧存储 |
 | Airflow 用户 | 供 OM `AirflowRESTClient` 使用，密码来自 `om-secrets/airflow-password` |
 
 ## 3. BFF 投影（运行内计算，不持久化）

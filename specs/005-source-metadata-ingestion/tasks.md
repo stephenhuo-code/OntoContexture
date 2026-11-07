@@ -46,20 +46,20 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### 阶段 A · 基础设施测试（先写、先失败）
 
-- [X] T004 [P] 在 `deploy/components/keycloak/tests/test_realm.py` 增加测试：`contexture-bff` 登录令牌可交换为受众 `contexture-openmetadata` 的令牌；交换后令牌含织境 realm 角色的扁平声明（声明名与 T008 一致）
+- [X] T004 [P] 在 `deploy/components/keycloak/tests/test_realm.py` 增加测试：`contexture-bff` 登录令牌可交换为受众 `contexture-openmetadata` 的令牌；`contexture-bff` 可用 client credentials 取得服务账号 `service-account-contexture-bff` 的令牌（research R13）
 - [X] T005 [P] 在 `deploy/components/airflow/tests/smoke.sh` 增加检查：Airflow 镜像为织境采集镜像、`/pluginsv2` 健康接口可用、dags 卷已挂载且 `DAG_GENERATED_CONFIGS` 位于同一卷、不存在 `contexture_om_dags.py` 及其 DAG
 - [X] T006 [P] 在 `deploy/components/openmetadata/tests/smoke.sh` 增加检查：OM 的 pipeline service client 已启用并能连通 Airflow（OM 服务状态接口返回 Airflow 版本 3.3.2）
 
 ### 阶段 A · 基础设施实现
 
-- [ ] T007 新增 `third_party/openmetadata/build/Dockerfile.airflow`（`FROM apache/airflow:3.3.2-python3.12`，参照上游 `ingestion/Dockerfile.ci` 从子仓库源码安装 `openmetadata-managed-apis` 与 `openmetadata-ingestion[mysql,postgres,oracle,mssql,doris]`，不复制上游示例 DAG），并在 `third_party/openmetadata/build/build.sh` 增加 `airflow` 目标产出 `contexture/openmetadata-ingestion-airflow:<image_version>`；更新 `third_party/openmetadata/build/README.md`
-- [ ] T008 修改 `deploy/components/keycloak/config/contexture.yaml`：`contexture-bff` 客户端增加 `contexture-openmetadata` 受众 mapper，以及把 realm 角色写入扁平多值声明的 mapper（使 T004 通过）
-- [ ] T009 修改 `deploy/components/airflow/values/base.yaml`：镜像改为 T007 产物；SimpleAuthManager 为 OM 配置用户（密码取 `om-secrets/airflow-password`）；`AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session`、启用 CSRF；`dags.persistence` 挂 PVC，`DAG_GENERATED_CONFIGS` 指向该卷子目录；KubernetesExecutor 任务 Pod 使用同一镜像与同一卷（research R2–R4）
-- [ ] T010 修改 `deploy/components/airflow/values/local.yaml` 与 `deploy/components/airflow/values/lite.yaml`：Airflow 各组件与任务 Pod 模板固定到同一节点（kind 的 `rancher.io/local-path` 只支持 RWO）；在 `deploy/components/airflow/values/base.yaml` 注释中写明 ACK 使用 NAS（RWX）且不固定节点
-- [ ] T011 修改 `deploy/components/openmetadata/values/base.yaml`：`pipelineServiceClientConfig.enabled: true`、`apiEndpoint: http://airflow-api-server:8080`、`metadataApiEndpoint: http://openmetadata:8585/api`、Airflow 用户名与 `om-secrets/airflow-password`；`authentication.jwtTeamClaimMapping` 指向 T008 的声明；删除“OM 保持 NoopClient”的注释（使 T006 通过）
+- [X] T007 新增 `third_party/openmetadata/build/Dockerfile.airflow`（`FROM apache/airflow:3.3.2-python3.12`，参照上游 `ingestion/Dockerfile.ci` 从子仓库源码安装 `openmetadata-managed-apis` 与 `openmetadata-ingestion[mysql,postgres,oracle,mssql,doris]`，不复制上游示例 DAG），并在 `third_party/openmetadata/build/build.sh` 增加 `airflow` 目标产出 `contexture/openmetadata-ingestion-airflow:<image_version>`；更新 `third_party/openmetadata/build/README.md`
+- [X] T008 修改 `deploy/components/keycloak/config/contexture.yaml`：`contexture-bff` 客户端增加 `contexture-openmetadata` 受众 mapper，并开启服务账号（BFF 在 OM 中建档用户的身份，research R13）（使 T004 通过）
+- [X] T009 修改 `deploy/components/airflow/values/base.yaml`：镜像改为 T007 产物；SimpleAuthManager 为 OM 配置用户（密码取 `om-secrets/airflow-password`）；`AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session`、启用 CSRF；`dags.persistence` 挂 PVC，`DAG_GENERATED_CONFIGS` 指向该卷子目录；KubernetesExecutor 任务 Pod 使用同一镜像与同一卷（research R2–R4）
+- [X] T010 修改 `deploy/components/airflow/values/local.yaml` 与 `deploy/components/airflow/values/lite.yaml`：Airflow 各组件与任务 Pod 模板固定到同一节点（kind 的 `rancher.io/local-path` 只支持 RWO）；在 `deploy/components/airflow/values/base.yaml` 注释中写明 ACK 使用 NAS（RWX）且不固定节点
+- [X] T011 修改 `deploy/components/openmetadata/values/base.yaml`：`pipelineServiceClientConfig.enabled: true`、`type: airflow`、`airflow.apiEndpoint: http://airflow-api-server:8080`、`metadataApiEndpoint: http://openmetadata:8585/api`、Airflow 用户 `openmetadata` 与 `om-secrets/airflow-password`；删除“OM 不接 Airflow 编排”的注释（使 T006 通过）
 - [ ] T012 修改 `tools/up.sh`：构建并 `kind load` 织境 Airflow 镜像（与 OM server 镜像同处）；将该镜像纳入 `tools/offline_package.py` 清单与 `deploy/components/airflow/component.yaml`
 - [X] T013 起草 OM 权限清单：在 `specs/005-source-metadata-ingestion/research.md` 新增 R12，列出团队 `admin`、`ai-engineer` 及其 OM 角色 / 策略所授予的具体操作（DatabaseService、IngestionPipeline 的创建 / 编辑 / 部署 / 触发 / 启停，Workflow 测试连接，Database / DatabaseSchema / Table 治理属性编辑，治理选项读取）。**交负责人确认后**才可进行 T014
-- [ ] T014 在 `tools/om_config.py` 幂等创建 T013 确认的团队、角色与策略（重复执行无副作用），并在 `tools/tests/` 增加对应单元测试（先写、先失败）
+- [X] T014 在 `tools/om_config.py` 幂等创建 R12 的团队、角色与策略，以及 R13 的 OM 用户 `service-account-contexture-bff` 与角色 `ContextureUserProvisioner`（`user`：Create / ViewAll / EditTeams；`team`：ViewAll / EditUsers），重复执行无副作用；先在 `tools/tests/test_om_config.py` 增加对应测试（先写、先失败）
 - [ ] T015 更新 `docs/adr/0006-三域数据治理与管线编排.md`（待定问题 2：OM 2.0.3 支持 Airflow 3 外部编排，已采用）与 `docs/adr/0011-OpenMetadata的构建与部署.md`（镜像表新增织境 Airflow 采集镜像及用途）
 
 ### 阶段 B · 测试数据（先写测试）
@@ -71,18 +71,20 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### 阶段 A 闸门 · 真实链路验证
 
-- [ ] T020 新增 `tests/e2e/test_om_ingestion_chain.py`（`pytest -m cluster`）并跑通：用 `admin1` 的委托令牌（受众 `contexture-openmetadata`）对 MES 只读账号发起 OM 测试连接并读到逐步结果；创建 `DatabaseService` 与 metadata 管道；deploy → trigger → 轮询 `pipelineStatus` 至终态；读取 `logs/{id}/last`；以用户令牌读取服务时密码为 `*********`；`engineer1` 的权限符合 T013；测试结束删除所建实体。把 research R5 三个验证项（API 调用时用户建档与入组、掩码密码更新保留原值、已有服务掩码密码测试连接）的结论写入 `specs/005-source-metadata-ingestion/research.md`；核对 MySQL / Doris `sslConfig`、PostgreSQL `sslMode`、SQL Server `encrypt` 的具体取值，结论写入 research R9。**本任务通过前不得开始 Phase 3**
+- [ ] T020 新增 `tests/e2e/test_om_ingestion_chain.py`（`pytest -m cluster`）并跑通：以 `service-account-contexture-bff` 为 `admin1`、`engineer1` 在 OM 建档并同步团队（R13）后，用 `admin1` 的委托令牌（受众 `contexture-openmetadata`）对 MES 只读账号发起 OM 测试连接并读到逐步结果；创建 `DatabaseService` 与 metadata 管道；deploy → trigger → 轮询 `pipelineStatus` 至终态；读取 `logs/{id}/last`；以用户令牌读取服务时密码为 `*********`；`engineer1` 的权限符合 T013；测试结束删除所建实体。把 research R5 验证项 2、3（掩码密码更新保留原值、已有服务掩码密码测试连接）的结论写入 `specs/005-source-metadata-ingestion/research.md`；核对 MySQL / Doris `sslConfig`、PostgreSQL `sslMode`、SQL Server `encrypt` 的具体取值，结论写入 research R9。**本任务通过前不得开始 Phase 3**
 
 ### 公共骨架（闸门通过后）
 
 - [ ] T021 [P] 在 `services/bff/tests/unit/test_om_client.py` 先写测试：令牌交换受众为 `contexture-openmetadata`；OM 5xx / 连接失败映射为 `upstream.unavailable`（502）且无任何回退数据；OM 403 映射为权限错误；响应中任何 `password` 字段被替换为 `*********`（防御性）
 - [ ] T022 实现 `services/bff/src/contexture_bff/adapters/om_sources.py` 的 OM 客户端基础（复用 `contexture_core.mcp.TokenExchanger.exchange`、httpx、trace 传播、错误映射），并在 `services/bff/src/contexture_bff/settings.py` 增加 OM 受众配置、`deploy/charts/bff/values.yaml` 与模板增加对应项（使 T021 通过）
-- [ ] T023 [P] 在 `services/bff/tests/unit/test_audit.py` 编写测试：写操作审计日志含 `trace_id`、`tenant_id`、`user_id`，`action=write`、`resource.kind=api`、`resource.ref` 为“方法 + 实际请求路径”（先提交、先失败）
-- [ ] T024 在 `services/bff/src/contexture_bff/api/sources.py` 建立路由模块骨架与审计辅助函数，挂载到 `services/bff/src/contexture_bff/main.py`（仅 admin / ai-engineer 可访问）（使 T023 通过）
-- [ ] T025 [P] 在 `apps/web/src/__tests__/navigation.test.tsx` 编写测试：“数据资产 → 数据源”入口指向 `/sources`（先提交、先失败）
-- [ ] T026 修改 `apps/web/src/layout/navigation.ts`、`apps/web/src/App.tsx` 新增路由与 `apps/web/src/pages/SourcesPage.tsx` 空壳（使 T025 通过）
-- [ ] T027 [P] 在 `apps/web/src/__tests__/sources-api.test.ts` 编写测试：BFF 返回 502 时调用方得到带错误码与 trace_id 的错误，不返回任何数据（先提交、先失败）
-- [ ] T028 在 `apps/web/src/features/sources/api.ts` 基于 `@contexture/ts-api` 封装全部 005 接口；错误一律抛出并携带 BFF 错误码与 trace_id，不得捕获后返回示例数据（使 T027 通过）
+- [ ] T023 [P] 在 `services/bff/tests/unit/test_om_user_sync.py` 编写测试（先写、先失败）：按令牌 `realm_access.roles` 计算应在的团队（`admin`、`ai-engineer`，其他角色忽略）；OM 中无此用户时以服务账号令牌创建（用户名 = `preferred_username`）；加入应在、移出不应在的团队；已一致时不发写请求；OM 不可用时登录失败并返回 `upstream.unavailable`，不静默跳过
+- [ ] T024 在 `services/bff/src/contexture_bff/adapters/om_users.py` 实现服务账号（`contexture-bff` client credentials）令牌获取与用户 / 团队同步，并在 `services/bff/src/contexture_bff/api/auth.py` 的登录回调与会话刷新中调用（使 T023 通过）
+- [ ] T025 [P] 在 `services/bff/tests/unit/test_audit.py` 编写测试：写操作审计日志含 `trace_id`、`tenant_id`、`user_id`，`action=write`、`resource.kind=api`、`resource.ref` 为“方法 + 实际请求路径”（先提交、先失败）
+- [ ] T026 在 `services/bff/src/contexture_bff/api/sources.py` 建立路由模块骨架与审计辅助函数，挂载到 `services/bff/src/contexture_bff/main.py`（仅 admin / ai-engineer 可访问）（使 T025 通过）
+- [ ] T027 [P] 在 `apps/web/src/__tests__/navigation.test.tsx` 编写测试：“数据资产 → 数据源”入口指向 `/sources`（先提交、先失败）
+- [ ] T028 修改 `apps/web/src/layout/navigation.ts`、`apps/web/src/App.tsx` 新增路由与 `apps/web/src/pages/SourcesPage.tsx` 空壳（使 T027 通过）
+- [ ] T029 [P] 在 `apps/web/src/__tests__/sources-api.test.ts` 编写测试：BFF 返回 502 时调用方得到带错误码与 trace_id 的错误，不返回任何数据（先提交、先失败）
+- [ ] T030 在 `apps/web/src/features/sources/api.ts` 基于 `@contexture/ts-api` 封装全部 005 接口；错误一律抛出并携带 BFF 错误码与 trace_id，不得捕获后返回示例数据（使 T029 通过）
 
 **Checkpoint**: 真实链路已验证；BFF 与 Web 公共骨架就绪。
 
@@ -96,24 +98,24 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### Tests for User Story 1（先写、先失败）
 
-- [ ] T029 [P] [US1] 在 `services/bff/tests/contract/test_sources_contract.py` 编写 `listSources`、`createSource`、`getSource`、`updateSource`、`startTestConnection`、`getTestConnection` 的契约测试（请求 / 响应 schema、401 / 403、409 `source.name_conflict`、502 `upstream.unavailable`、密码恒为 `*********`；`updateSource` 请求中 `name` 或 `serviceType` 与已保存值不同时返回 400 `source.immutable_field`）
-- [ ] T030 [P] [US1] 在 `services/bff/tests/unit/test_source_mapping.py` 编写连接字段映射测试（research R9）：MySQL / Doris 的数据库为选填并映射 `databaseSchema`；PostgreSQL / SQL Server 的数据库必填并映射 `database` 且 `ingestAllDatabases=false`；Oracle 映射 `oracleConnectionType.oracleServiceName`；密码为 `*********` 时不覆盖已存密码
-- [ ] T031 [P] [US1] 在 `services/bff/tests/unit/test_pipeline_config.py` 编写管道配置测试：三级过滤规则映射到 `databaseFilterPattern` / `schemaFilterPattern` / `tableFilterPattern` 的 `includes` / `excludes`；非法正则（按 Python `re`）返回 400 并指出规则；强制 `markDeletedTables=false`、`overrideMetadata=false`、`extractJsonSchema=false`、不开启 `includeDDL`，请求不能覆盖；任务名为 `<服务标识中非字母数字替换为 _>_metadata_<8 位字母数字>`；`scheduleInterval` 为 cron 或空、时区 `Asia/Shanghai`；服务标识须匹配 `^[a-z][a-z0-9-]{1,49}$`
-- [ ] T032 [P] [US1] 在 `services/bff/tests/unit/test_test_connection.py` 编写测试：创建 `TEST_CONNECTION` workflow → trigger → 轮询返回步骤（名称、必需 / 可选取自 OM `testConnections/database/<connector>.json`）；完成后删除 workflow；OM 失败时返回真实错误
-- [ ] T033 [P] [US1] 在 `services/bff/tests/integration/test_sources_cluster.py`（`-m cluster`）编写测试：用真实 OM / Airflow / 003 模拟库创建 MES（数据库填 `mes`，使范围排除同实例的 `viewlab` 库）、QMS（数据库 `qms`）、Doris（数据库 `mock_dw`）数据源并运行元数据采集，断言表数与字段数等于 003 金标准（13 / 79、7 / 53、8 / 66），主键约束存在，Doris 键列为 `PRIMARY_KEY`；`listSources` 统计与之一致
-- [ ] T034 [P] [US1] 在 `apps/web/src/__tests__/sources-list.test.tsx` 编写组件测试（mock BFF 响应为测试夹具）：4 张统计卡按夹具计算；空列表显示空状态；BFF 错误显示错误与重试，不出现任何示例数据源；搜索与状态筛选（全部 / 采集成功 / 需要关注 / 待配置 / 调度已暂停）
-- [ ] T035 [P] [US1] 在 `apps/web/src/__tests__/source-wizard.test.tsx` 编写向导测试：服务标识规则与重复拦截；按连接器显示数据库必填 / 选填与 Service Name；测试连接逐步展示（必需 / 可选、通过 / 失败 / 未执行），必需步骤失败或参数变更后不能进入下一步；过滤规则非法正则拦截；“创建视图血缘任务”仅在“采集视图”开启时可选；第 4 步按任务分别设置调度；保存失败显示真实错误
+- [ ] T031 [P] [US1] 在 `services/bff/tests/contract/test_sources_contract.py` 编写 `listSources`、`createSource`、`getSource`、`updateSource`、`startTestConnection`、`getTestConnection` 的契约测试（请求 / 响应 schema、401 / 403、409 `source.name_conflict`、502 `upstream.unavailable`、密码恒为 `*********`；`updateSource` 请求中 `name` 或 `serviceType` 与已保存值不同时返回 400 `source.immutable_field`）
+- [ ] T032 [P] [US1] 在 `services/bff/tests/unit/test_source_mapping.py` 编写连接字段映射测试（research R9）：MySQL / Doris 的数据库为选填并映射 `databaseSchema`；PostgreSQL / SQL Server 的数据库必填并映射 `database` 且 `ingestAllDatabases=false`；Oracle 映射 `oracleConnectionType.oracleServiceName`；密码为 `*********` 时不覆盖已存密码
+- [ ] T033 [P] [US1] 在 `services/bff/tests/unit/test_pipeline_config.py` 编写管道配置测试：三级过滤规则映射到 `databaseFilterPattern` / `schemaFilterPattern` / `tableFilterPattern` 的 `includes` / `excludes`；非法正则（按 Python `re`）返回 400 并指出规则；强制 `markDeletedTables=false`、`overrideMetadata=false`、`extractJsonSchema=false`、不开启 `includeDDL`，请求不能覆盖；任务名为 `<服务标识中非字母数字替换为 _>_metadata_<8 位字母数字>`；`scheduleInterval` 为 cron 或空、时区 `Asia/Shanghai`；服务标识须匹配 `^[a-z][a-z0-9-]{1,49}$`
+- [ ] T034 [P] [US1] 在 `services/bff/tests/unit/test_test_connection.py` 编写测试：创建 `TEST_CONNECTION` workflow → trigger → 轮询返回步骤（名称、必需 / 可选取自 OM `testConnections/database/<connector>.json`）；完成后删除 workflow；OM 失败时返回真实错误
+- [ ] T035 [P] [US1] 在 `services/bff/tests/integration/test_sources_cluster.py`（`-m cluster`）编写测试：用真实 OM / Airflow / 003 模拟库创建 MES（数据库填 `mes`，使范围排除同实例的 `viewlab` 库）、QMS（数据库 `qms`）、Doris（数据库 `mock_dw`）数据源并运行元数据采集，断言表数与字段数等于 003 金标准（13 / 79、7 / 53、8 / 66），主键约束存在，Doris 键列为 `PRIMARY_KEY`；`listSources` 统计与之一致
+- [ ] T036 [P] [US1] 在 `apps/web/src/__tests__/sources-list.test.tsx` 编写组件测试（mock BFF 响应为测试夹具）：4 张统计卡按夹具计算；空列表显示空状态；BFF 错误显示错误与重试，不出现任何示例数据源；搜索与状态筛选（全部 / 采集成功 / 需要关注 / 待配置 / 调度已暂停）
+- [ ] T037 [P] [US1] 在 `apps/web/src/__tests__/source-wizard.test.tsx` 编写向导测试：服务标识规则与重复拦截；按连接器显示数据库必填 / 选填与 Service Name；测试连接逐步展示（必需 / 可选、通过 / 失败 / 未执行），必需步骤失败或参数变更后不能进入下一步；过滤规则非法正则拦截；“创建视图血缘任务”仅在“采集视图”开启时可选；第 4 步按任务分别设置调度；保存失败显示真实错误
 
 ### Implementation for User Story 1
 
-- [ ] T036 [US1] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现连接字段映射与管道配置构建（使 T030、T031 通过）
-- [ ] T037 [US1] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现测试连接 workflow 的创建、触发、查询与清理（使 T032 通过）
-- [ ] T038 [US1] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现数据源列表 / 详情 / 新建 / 修改：保存 `DatabaseService` 与管道后调用 OM `deploy/{id}`，部署失败返回 `source.deploy_failed` 且保留实体；表数 / 字段数按 `tables?service=&fields=columns` 分页实时计算；状态派生按 data-model.md 第 3 节
-- [ ] T039 [US1] 在 `services/bff/src/contexture_bff/api/sources.py` 实现 `GET/POST /bff/v1/sources`、`GET/PUT /bff/v1/sources/{name}`、`POST /bff/v1/sources/test-connection`、`GET /bff/v1/sources/test-connection/{workflowId}`，写操作记审计（使 T029、T033 通过）
-- [ ] T040 [P] [US1] 实现 `apps/web/src/features/sources/SourcesWorkspace.tsx` 列表页（页头、4 张统计卡、工具栏、表格、底部提醒卡与采集链路说明）及样式 `apps/web/src/features/sources/sources.css`，结构与文案对齐 `prototype/index.html`，数据全部来自 BFF（使 T034 通过）
-- [ ] T041 [P] [US1] 实现 `apps/web/src/features/sources/SourceWizardModal.tsx` 四步向导（测试连接轮询，等待期间显示“测试中”）（使 T035 通过）
-- [ ] T042 [US1] 实现 `apps/web/src/features/sources/SourceDetailView.tsx` 的页头、概览页签（数据源属性只读展示、异常提示条、3 张指标卡、连接信息与各任务调度 / 最近运行）与采集配置页签（三级过滤、视图、视图血缘任务、采集边界）
-- [ ] T043 [US1] 在 `tests/e2e/sources.spec.ts` 编写并跑通 US1 端到端：真实环境接入 MES（数据库填 `mes`）并首采，列表与详情统计等于 003 金标准；响应中无密码明文
+- [ ] T038 [US1] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现连接字段映射与管道配置构建（使 T032、T033 通过）
+- [ ] T039 [US1] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现测试连接 workflow 的创建、触发、查询与清理（使 T034 通过）
+- [ ] T040 [US1] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现数据源列表 / 详情 / 新建 / 修改：保存 `DatabaseService` 与管道后调用 OM `deploy/{id}`，部署失败返回 `source.deploy_failed` 且保留实体；表数 / 字段数按 `tables?service=&fields=columns` 分页实时计算；状态派生按 data-model.md 第 3 节
+- [ ] T041 [US1] 在 `services/bff/src/contexture_bff/api/sources.py` 实现 `GET/POST /bff/v1/sources`、`GET/PUT /bff/v1/sources/{name}`、`POST /bff/v1/sources/test-connection`、`GET /bff/v1/sources/test-connection/{workflowId}`，写操作记审计（使 T031、T035 通过）
+- [ ] T042 [P] [US1] 实现 `apps/web/src/features/sources/SourcesWorkspace.tsx` 列表页（页头、4 张统计卡、工具栏、表格、底部提醒卡与采集链路说明）及样式 `apps/web/src/features/sources/sources.css`，结构与文案对齐 `prototype/index.html`，数据全部来自 BFF（使 T036 通过）
+- [ ] T043 [P] [US1] 实现 `apps/web/src/features/sources/SourceWizardModal.tsx` 四步向导（测试连接轮询，等待期间显示“测试中”）（使 T037 通过）
+- [ ] T044 [US1] 实现 `apps/web/src/features/sources/SourceDetailView.tsx` 的页头、概览页签（数据源属性只读展示、异常提示条、3 张指标卡、连接信息与各任务调度 / 最近运行）与采集配置页签（三级过滤、视图、视图血缘任务、采集边界）
+- [ ] T045 [US1] 在 `tests/e2e/sources.spec.ts` 编写并跑通 US1 端到端：真实环境接入 MES（数据库填 `mes`）并首采，列表与详情统计等于 003 金标准；响应中无密码明文
 
 **Checkpoint**: US1 可独立演示（MVP）。
 
@@ -127,17 +129,17 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### Tests for User Story 2（先写、先失败）
 
-- [ ] T044 [P] [US2] 在 `services/bff/tests/contract/test_pipelines_contract.py` 编写 `listPipelineRuns`（含 `state` 筛选）、`triggerPipeline`（202、409 `source.pipeline_in_flight`）、`setPipelineScheduleEnabled`（200、400 `source.schedule_not_set`）、`getLastPipelineLogs` 契约测试；`kind` 仅允许 `metadata`、`lineage`
-- [ ] T045 [P] [US2] 在 `services/bff/tests/unit/test_pipeline_runs.py` 编写测试：`PipelineStatus` 原样投影为 `PipelineRun`（runId、pipelineState、startDate、endDate、steps 的 records / updatedRecords / warnings / errors / filtered / failures），新到旧排序，无触发方式字段；存在 queued / running 时拒绝触发；暂停 / 恢复调用 OM `toggleIngestion`；日志经脱敏
-- [ ] T046 [P] [US2] 在 `services/bff/tests/integration/test_pipelines_cluster.py`（`-m cluster`）编写测试：对 MES 元数据采集任务暂停后 Airflow DAG `is_paused=true`、恢复后为 false；立即运行产生新的 `PipelineStatus`；最近一次日志可读
-- [ ] T047 [P] [US2] 在 `apps/web/src/__tests__/source-tasks.test.tsx` 编写组件测试（夹具数据）：任务列表按 `pipelines` 渲染 1 或 2 条；运行记录列为开始时间 / 状态 / 耗时 / 运行编号；筛选仅作用于当前任务；运行中禁用“立即运行”；暂停确认弹窗；运行详情展示步骤统计与失败对象，仅最近一次运行显示日志，其余注明；异常运行提供“立即运行”
+- [ ] T046 [P] [US2] 在 `services/bff/tests/contract/test_pipelines_contract.py` 编写 `listPipelineRuns`（含 `state` 筛选）、`triggerPipeline`（202、409 `source.pipeline_in_flight`）、`setPipelineScheduleEnabled`（200、400 `source.schedule_not_set`）、`getLastPipelineLogs` 契约测试；`kind` 仅允许 `metadata`、`lineage`
+- [ ] T047 [P] [US2] 在 `services/bff/tests/unit/test_pipeline_runs.py` 编写测试：`PipelineStatus` 原样投影为 `PipelineRun`（runId、pipelineState、startDate、endDate、steps 的 records / updatedRecords / warnings / errors / filtered / failures），新到旧排序，无触发方式字段；存在 queued / running 时拒绝触发；暂停 / 恢复调用 OM `toggleIngestion`；日志经脱敏
+- [ ] T048 [P] [US2] 在 `services/bff/tests/integration/test_pipelines_cluster.py`（`-m cluster`）编写测试：对 MES 元数据采集任务暂停后 Airflow DAG `is_paused=true`、恢复后为 false；立即运行产生新的 `PipelineStatus`；最近一次日志可读
+- [ ] T049 [P] [US2] 在 `apps/web/src/__tests__/source-tasks.test.tsx` 编写组件测试（夹具数据）：任务列表按 `pipelines` 渲染 1 或 2 条；运行记录列为开始时间 / 状态 / 耗时 / 运行编号；筛选仅作用于当前任务；运行中禁用“立即运行”；暂停确认弹窗；运行详情展示步骤统计与失败对象，仅最近一次运行显示日志，其余注明；异常运行提供“立即运行”
 
 ### Implementation for User Story 2
 
-- [ ] T048 [US2] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现运行记录读取、触发（含在途校验）、暂停 / 恢复与最近日志（使 T045 通过）
-- [ ] T049 [US2] 在 `services/bff/src/contexture_bff/api/sources.py` 实现 `/bff/v1/sources/{name}/pipelines/{kind}/runs|trigger|schedule|logs/last`，写操作记审计（使 T044、T046 通过）
-- [ ] T050 [US2] 在 `apps/web/src/features/sources/SourceDetailView.tsx` 实现采集任务页签：任务列表、任务运行视图（轮询刷新、筛选、暂停 / 恢复确认、调度详情弹窗显示 DAG 标识 = 任务名）与运行详情弹窗（使 T047 通过）
-- [ ] T051 [US2] 在 `tests/e2e/sources.spec.ts` 增加 US2 端到端：暂停 / 恢复、立即运行、运行详情与日志
+- [ ] T050 [US2] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现运行记录读取、触发（含在途校验）、暂停 / 恢复与最近日志（使 T047 通过）
+- [ ] T051 [US2] 在 `services/bff/src/contexture_bff/api/sources.py` 实现 `/bff/v1/sources/{name}/pipelines/{kind}/runs|trigger|schedule|logs/last`，写操作记审计（使 T046、T048 通过）
+- [ ] T052 [US2] 在 `apps/web/src/features/sources/SourceDetailView.tsx` 实现采集任务页签：任务列表、任务运行视图（轮询刷新、筛选、暂停 / 恢复确认、调度详情弹窗显示 DAG 标识 = 任务名）与运行详情弹窗（使 T049 通过）
+- [ ] T053 [US2] 在 `tests/e2e/sources.spec.ts` 增加 US2 端到端：暂停 / 恢复、立即运行、运行详情与日志
 
 **Checkpoint**: US1 + US2 可独立验收。
 
@@ -151,17 +153,17 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### Tests for User Story 3（先写、先失败）
 
-- [ ] T052 [P] [US3] 在 `services/bff/tests/contract/test_catalog_contract.py` 编写 `getCatalogEntity` 契约测试（四种 `entityType`、子项与计数、表的 `tableType` / `constraints` / `columns[].constraint`、404）
-- [ ] T053 [P] [US3] 在 `services/bff/tests/integration/test_catalog_cluster.py`（`-m cluster`）编写测试：在 US1 采集结果上逐层读取，层级与子项数量与 OM 一致；同名表按完整 FQN 隔离
-- [ ] T054 [P] [US3] 在 `apps/web/src/__tests__/catalog.test.tsx` 编写组件测试（夹具）：目录树展开与服务节点表数 / “未采集”；资产页眉标、标题、FQN、面包屑只到当前层级、“返回所属数据源”；资产页不显示连接配置、采集页签与源级状态；表详情“选择数据表”切换、结构信息（只显示 OM 实际约束，未提供不伪造）、字段 `PK` 徽章；≤ 850px 时“目录”抽屉
+- [ ] T054 [P] [US3] 在 `services/bff/tests/contract/test_catalog_contract.py` 编写 `getCatalogEntity` 契约测试（四种 `entityType`、子项与计数、表的 `tableType` / `constraints` / `columns[].constraint`、404）
+- [ ] T055 [P] [US3] 在 `services/bff/tests/integration/test_catalog_cluster.py`（`-m cluster`）编写测试：在 US1 采集结果上逐层读取，层级与子项数量与 OM 一致；同名表按完整 FQN 隔离
+- [ ] T056 [P] [US3] 在 `apps/web/src/__tests__/catalog.test.tsx` 编写组件测试（夹具）：目录树展开与服务节点表数 / “未采集”；资产页眉标、标题、FQN、面包屑只到当前层级、“返回所属数据源”；资产页不显示连接配置、采集页签与源级状态；表详情“选择数据表”切换、结构信息（只显示 OM 实际约束，未提供不伪造）、字段 `PK` 徽章；≤ 850px 时“目录”抽屉
 
 ### Implementation for User Story 3
 
-- [ ] T055 [US3] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现目录实体读取（服务 / 库 / Schema / 表及子项计数、表字段与约束）
-- [ ] T056 [US3] 新增 `services/bff/src/contexture_bff/api/catalog.py` 实现 `GET /bff/v1/catalog/{entityType}/{fqn}` 并挂载（使 T052、T053 通过）
-- [ ] T057 [P] [US3] 修改 `apps/web/src/layout/SecondaryNav.tsx` 渲染四层目录树与移动端抽屉；在 `apps/web/src/features/sources/SourceDetailView.tsx` 实现“已采集元数据”页签
-- [ ] T058 [US3] 新增 `apps/web/src/features/sources/CatalogAssetDetailView.tsx` 独立资产详情（使 T054 通过）
-- [ ] T059 [US3] 在 `tests/e2e/sources.spec.ts` 增加 US3 端到端：MES / QMS / Doris 三种层级浏览与面包屑
+- [ ] T057 [US3] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现目录实体读取（服务 / 库 / Schema / 表及子项计数、表字段与约束）
+- [ ] T058 [US3] 新增 `services/bff/src/contexture_bff/api/catalog.py` 实现 `GET /bff/v1/catalog/{entityType}/{fqn}` 并挂载（使 T054、T055 通过）
+- [ ] T059 [P] [US3] 修改 `apps/web/src/layout/SecondaryNav.tsx` 渲染四层目录树与移动端抽屉；在 `apps/web/src/features/sources/SourceDetailView.tsx` 实现“已采集元数据”页签
+- [ ] T060 [US3] 新增 `apps/web/src/features/sources/CatalogAssetDetailView.tsx` 独立资产详情（使 T056 通过）
+- [ ] T061 [US3] 在 `tests/e2e/sources.spec.ts` 增加 US3 端到端：MES / QMS / Doris 三种层级浏览与面包屑
 
 ---
 
@@ -173,17 +175,17 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### Tests for User Story 4（先写、先失败）
 
-- [ ] T060 [P] [US4] 在 `services/bff/tests/contract/test_governance_contract.py` 编写 `patchCatalogEntity` 与 `getGovernanceOptions` 契约测试（`null` 清空恢复继承；字段仅允许 displayName / description / tags / glossaryTerms；400 校验错误）
-- [ ] T061 [P] [US4] 在 `services/bff/tests/unit/test_governance.py` 编写测试：转换为 OM JSON Patch；数据产品所属域须与有效业务域（含继承）一致；同一 `mutuallyExclusive` 分类只保留一个标签；保留周期须为 ISO 8601 时长（如 `P30D`、`PT24H`）；继承来源计算——业务域 服务 → 库 → Schema → 表，负责人与保留周期 库 → Schema → 表（数据库不继承服务负责人）
-- [ ] T062 [P] [US4] 在 `services/bff/tests/integration/test_governance_cluster.py`（`-m cluster`）编写测试：在五个层级写入属性后重新运行元数据采集（`overrideMetadata=false`），属性保持不变；修改数据源连接配置后服务级治理属性保持不变
-- [ ] T063 [P] [US4] 在 `apps/web/src/__tests__/property-edit.test.tsx` 编写组件测试（夹具）：选项来自 BFF；保存回显、取消不保存、清空恢复继承、“单独设置 / 继承自 <上级类型> · <上级 FQN>”标注、域与产品不匹配提示、互斥标签替换、周期校验、HTML 输入转义
+- [ ] T062 [P] [US4] 在 `services/bff/tests/contract/test_governance_contract.py` 编写 `patchCatalogEntity` 与 `getGovernanceOptions` 契约测试（`null` 清空恢复继承；字段仅允许 displayName / description / tags / glossaryTerms；400 校验错误）
+- [ ] T063 [P] [US4] 在 `services/bff/tests/unit/test_governance.py` 编写测试：转换为 OM JSON Patch；数据产品所属域须与有效业务域（含继承）一致；同一 `mutuallyExclusive` 分类只保留一个标签；保留周期须为 ISO 8601 时长（如 `P30D`、`PT24H`）；继承来源计算——业务域 服务 → 库 → Schema → 表，负责人与保留周期 库 → Schema → 表（数据库不继承服务负责人）
+- [ ] T064 [P] [US4] 在 `services/bff/tests/integration/test_governance_cluster.py`（`-m cluster`）编写测试：在五个层级写入属性后重新运行元数据采集（`overrideMetadata=false`），属性保持不变；修改数据源连接配置后服务级治理属性保持不变
+- [ ] T065 [P] [US4] 在 `apps/web/src/__tests__/property-edit.test.tsx` 编写组件测试（夹具）：选项来自 BFF；保存回显、取消不保存、清空恢复继承、“单独设置 / 继承自 <上级类型> · <上级 FQN>”标注、域与产品不匹配提示、互斥标签替换、周期校验、HTML 输入转义
 
 ### Implementation for User Story 4
 
-- [ ] T064 [US4] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现治理选项读取、属性 Patch 与继承来源计算（使 T061 通过）
-- [ ] T065 [US4] 在 `services/bff/src/contexture_bff/api/catalog.py` 实现 `PATCH /bff/v1/catalog/{entityType}/{fqn}` 与 `GET /bff/v1/governance/options`，写操作记审计（使 T060、T062 通过）
-- [ ] T066 [US4] 新增 `apps/web/src/features/sources/PropertyEditModal.tsx`，并接入概览、库 / Schema / 表详情与字段行（使 T063 通过）
-- [ ] T067 [US4] 在 `tests/e2e/sources.spec.ts` 增加 US4 端到端：五层级编辑、继承与恢复、重采集保留
+- [ ] T066 [US4] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现治理选项读取、属性 Patch 与继承来源计算（使 T063 通过）
+- [ ] T067 [US4] 在 `services/bff/src/contexture_bff/api/catalog.py` 实现 `PATCH /bff/v1/catalog/{entityType}/{fqn}` 与 `GET /bff/v1/governance/options`，写操作记审计（使 T062、T064 通过）
+- [ ] T068 [US4] 新增 `apps/web/src/features/sources/PropertyEditModal.tsx`，并接入概览、库 / Schema / 表详情与字段行（使 T065 通过）
+- [ ] T069 [US4] 在 `tests/e2e/sources.spec.ts` 增加 US4 端到端：五层级编辑、继承与恢复、重采集保留
 
 ---
 
@@ -195,25 +197,25 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### Tests for User Story 5（先写、先失败）
 
-- [ ] T068 [P] [US5] 在 `services/bff/tests/unit/test_lineage_pipeline.py` 编写测试：`createLineageTask=true` 且 `includeViews=true` 时创建 `pipelineType=lineage` 管道，配置 `processViewLineage=true`、`processQueryLineage=false`、`processStoredProcedureLineage=false`，任务名 `<服务>_lineage_<8 位随机串>`、独立调度；`includeViews=false` 时 `createLineageTask=true` 返回 400；修改为关闭时删除 lineage 管道
-- [ ] T069 [P] [US5] 在 `services/bff/tests/integration/test_view_lineage_cluster.py`（`-m cluster`）编写测试：viewlab（MySQL；PostgreSQL 视 T019 结论）先运行元数据采集再运行视图血缘，OM 血缘接口中每个视图的上游表与 `columnsLineage` 与 `testdata/mockfactory/viewlab.py` 标准答案完全一致、无多余边；改用受限账号重新采集后表与字段仍入库、不新增血缘边、运行结果如实反映视图定义不可读（以 OM 实际状态为准）
+- [ ] T070 [P] [US5] 在 `services/bff/tests/unit/test_lineage_pipeline.py` 编写测试：`createLineageTask=true` 且 `includeViews=true` 时创建 `pipelineType=lineage` 管道，配置 `processViewLineage=true`、`processQueryLineage=false`、`processStoredProcedureLineage=false`，任务名 `<服务>_lineage_<8 位随机串>`、独立调度；`includeViews=false` 时 `createLineageTask=true` 返回 400；修改为关闭时删除 lineage 管道
+- [ ] T071 [P] [US5] 在 `services/bff/tests/integration/test_view_lineage_cluster.py`（`-m cluster`）编写测试：viewlab（MySQL；PostgreSQL 视 T019 结论）先运行元数据采集再运行视图血缘，OM 血缘接口中每个视图的上游表与 `columnsLineage` 与 `testdata/mockfactory/viewlab.py` 标准答案完全一致、无多余边；改用受限账号重新采集后表与字段仍入库、不新增血缘边、运行结果如实反映视图定义不可读（以 OM 实际状态为准）
 
 ### Implementation for User Story 5
 
-- [ ] T070 [US5] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现 lineage 管道的创建、部署、调度与删除（使 T068、T069 通过）
-- [ ] T071 [US5] 在 `apps/web/src/features/sources/SourceWizardModal.tsx` 与 `SourceDetailView.tsx` 中联通视图血缘任务的创建、调度与任务列表展示（复用 US2 任务视图）
-- [ ] T072 [US5] 在 `tests/e2e/sources.spec.ts` 增加 US5 端到端：viewlab 接入、两条任务依次运行、血缘结果与标准答案一致
+- [ ] T072 [US5] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现 lineage 管道的创建、部署、调度与删除（使 T070、T071 通过）
+- [ ] T073 [US5] 在 `apps/web/src/features/sources/SourceWizardModal.tsx` 与 `SourceDetailView.tsx` 中联通视图血缘任务的创建、调度与任务列表展示（复用 US2 任务视图）
+- [ ] T074 [US5] 在 `tests/e2e/sources.spec.ts` 增加 US5 端到端：viewlab 接入、两条任务依次运行、血缘结果与标准答案一致
 
 ---
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T073 [P] 在 `tests/e2e/sources.spec.ts` 增加 1280 / 768 / 390 视口下列表、详情四页签、向导、资产页与属性弹窗的整页横向溢出检查（SC-007）
-- [ ] T074 [P] 在 `tests/e2e/sources.spec.ts` 增加依赖异常场景：OM 不可用时 `/sources` 显示真实错误、不显示示例数据（quickstart 场景 F）
-- [ ] T075 [P] 代码审查清单核对：`services/bff/src/`、`apps/web/src/` 中无示例数据源 / 表 / 运行、无失败回退分支、无 Airflow 直连、无源库驱动依赖（`pymysql`、`asyncpg` 等不得出现在 `services/bff/pyproject.toml`）；结果记入 acceptance.md
-- [ ] T076 测量并记录：列表与目录读取 p95、测试连接耗时、MES 接入到首采完成耗时（SC-002），写入 `specs/005-source-metadata-ingestion/research.md` R11 与 acceptance.md
-- [ ] T077 运行 `make lint`、`make test`（含覆盖率 ≥ 80%）、`pnpm --filter @contexture/web test`、`make components-check`、`make patches-check`、`make e2e`，全部通过；失败项如实记录原因
-- [ ] T078 编写 `specs/005-source-metadata-ingestion/acceptance.md`（宪法“开发流程与质量门禁”），内容须包含：前置条件与数据准备（`make up`、`make seed`、`make mock-data` 等）、预计用时；逐步操作与每一步的预期结果，每一步的命令可直接复制执行、不要求验收人另装开发环境以外的工具，产品负责人不读代码即可独立执行；每一步与 US1–US5、SC-001–SC-007 的对应关系；开发方已执行的验证结果（T077 的 `make lint`、`make test` 及覆盖率、`make e2e` 等结论，因环境原因未通过的项写明原因与处理方式）；已知限制至少包括：Oracle / SQL Server 无本地实例仅契约与单元测试覆盖、Doris UNIQUE KEY 不识别（键列显示为主键）、仅提供最近一次运行日志、T019 的 PostgreSQL 结论、T020 中 R5 验证项的结论、T075 代码审查结果、T076 实测耗时；验收记录栏目（日期、验收人、结果、发现的问题）留空待负责人填写
+- [ ] T075 [P] 在 `tests/e2e/sources.spec.ts` 增加 1280 / 768 / 390 视口下列表、详情四页签、向导、资产页与属性弹窗的整页横向溢出检查（SC-007）
+- [ ] T076 [P] 在 `tests/e2e/sources.spec.ts` 增加依赖异常场景：OM 不可用时 `/sources` 显示真实错误、不显示示例数据（quickstart 场景 F）
+- [ ] T077 [P] 代码审查清单核对：`services/bff/src/`、`apps/web/src/` 中无示例数据源 / 表 / 运行、无失败回退分支、无 Airflow 直连、无源库驱动依赖（`pymysql`、`asyncpg` 等不得出现在 `services/bff/pyproject.toml`）；结果记入 acceptance.md
+- [ ] T078 测量并记录：列表与目录读取 p95、测试连接耗时、MES 接入到首采完成耗时（SC-002），写入 `specs/005-source-metadata-ingestion/research.md` R11 与 acceptance.md
+- [ ] T079 运行 `make lint`、`make test`（含覆盖率 ≥ 80%）、`pnpm --filter @contexture/web test`、`make components-check`、`make patches-check`、`make e2e`，全部通过；失败项如实记录原因
+- [ ] T080 编写 `specs/005-source-metadata-ingestion/acceptance.md`（宪法“开发流程与质量门禁”），内容须包含：前置条件与数据准备（`make up`、`make seed`、`make mock-data` 等）、预计用时；逐步操作与每一步的预期结果，每一步的命令可直接复制执行、不要求验收人另装开发环境以外的工具，产品负责人不读代码即可独立执行；每一步与 US1–US5、SC-001–SC-007 的对应关系；开发方已执行的验证结果（T079 的 `make lint`、`make test` 及覆盖率、`make e2e` 等结论，因环境原因未通过的项写明原因与处理方式）；已知限制至少包括：Oracle / SQL Server 无本地实例仅契约与单元测试覆盖、Doris UNIQUE KEY 不识别（键列显示为主键）、仅提供最近一次运行日志、T019 的 PostgreSQL 结论、T020 中 R5 验证项的结论、T077 代码审查结果、T078 实测耗时；验收记录栏目（日期、验收人、结果、发现的问题）留空待负责人填写
 
 ---
 
@@ -222,14 +224,14 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 ### Phase Dependencies
 
 - **Phase 1 Setup**：无依赖。
-- **Phase 2 Foundational**：依赖 Phase 1；T013 需负责人确认后才能做 T014；**T020 是闸门**，依赖 T007–T014、T018；T021–T028 在 T020 通过后进行。
+- **Phase 2 Foundational**：依赖 Phase 1；T013 需负责人确认后才能做 T014；**T020 是闸门**，依赖 T007–T014、T018；T021–T030 在 T020 通过后进行。
 - **Phase 3–7 用户故事**：全部依赖 Phase 2 完成。
 - **Phase 8 Polish**：依赖所需用户故事完成。
 
 ### User Story Dependencies
 
 - **US1（P1）**：仅依赖 Foundational；MVP。
-- **US2（P1）**：需要已配置的数据源与管道（复用 US1 的 BFF 接口与详情页）；可在 US1 的 T038 完成后并行开发。
+- **US2（P1）**：需要已配置的数据源与管道（复用 US1 的 BFF 接口与详情页）；可在 US1 的 T040 完成后并行开发。
 - **US3（P1）**：需要 US1 采集出的目录数据做集成测试；BFF / 前端开发可与 US2 并行。
 - **US4（P2）**：依赖 US3 的资产详情页承载属性卡片。
 - **US5（P2）**：依赖 US1 的向导与 US2 的任务视图；需要 T018 的 viewlab。
@@ -240,9 +242,9 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### Parallel Opportunities
 
-- Phase 2：T004–T006 并行；T016–T017 并行；T021、T023、T025、T027 并行（各自的实现任务 T022、T024、T026、T028 在对应测试提交后进行）。
-- US1：T029–T035 全部可并行编写；T040 与 T041 并行。
-- US2 / US3 的测试任务可并行；US3 的 T057 与 US2 的 T050 改动不同文件，可并行。
+- Phase 2：T004–T006 并行；T016–T017 并行；T021、T023、T025、T027、T029 并行（各自的实现任务 T022、T024、T026、T028、T030 在对应测试提交后进行）。
+- US1：T031–T037 全部可并行编写；T042 与 T043 并行。
+- US2 / US3 的测试任务可并行；US3 的 T059 与 US2 的 T052 改动不同文件，可并行。
 
 ---
 
@@ -250,16 +252,16 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ```bash
 # 先并行编写全部 US1 测试（确认失败后提交）：
-Task: "T029 BFF 契约测试 services/bff/tests/contract/test_sources_contract.py"
-Task: "T030 连接字段映射单元测试 services/bff/tests/unit/test_source_mapping.py"
-Task: "T031 管道配置单元测试 services/bff/tests/unit/test_pipeline_config.py"
-Task: "T032 测试连接单元测试 services/bff/tests/unit/test_test_connection.py"
-Task: "T034 列表组件测试 apps/web/src/__tests__/sources-list.test.tsx"
-Task: "T035 向导组件测试 apps/web/src/__tests__/source-wizard.test.tsx"
+Task: "T031 BFF 契约测试 services/bff/tests/contract/test_sources_contract.py"
+Task: "T032 连接字段映射单元测试 services/bff/tests/unit/test_source_mapping.py"
+Task: "T033 管道配置单元测试 services/bff/tests/unit/test_pipeline_config.py"
+Task: "T034 测试连接单元测试 services/bff/tests/unit/test_test_connection.py"
+Task: "T036 列表组件测试 apps/web/src/__tests__/sources-list.test.tsx"
+Task: "T037 向导组件测试 apps/web/src/__tests__/source-wizard.test.tsx"
 
 # 实现阶段前端两个组件并行：
-Task: "T040 SourcesWorkspace.tsx"
-Task: "T041 SourceWizardModal.tsx"
+Task: "T042 SourcesWorkspace.tsx"
+Task: "T043 SourceWizardModal.tsx"
 ```
 
 ---

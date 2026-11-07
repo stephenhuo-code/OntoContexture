@@ -1,3 +1,6 @@
 # 精简：不部署 triggerer（001 不使用延迟任务）
 triggerer:
   enabled: false
+# 本地 kind：local-path 只支持 RWO，Airflow 全部 Pod（含 KubernetesExecutor 任务 Pod）固定到同一节点共享 dags 卷（research R4）
+nodeSelector:
+  kubernetes.io/hostname: contexture-worker
