@@ -2925,6 +2925,19 @@
         running: ["采集中", "blue"],
       };
       const status = (s) => badge(...(STATUS[s] || [s, ""]));
+      // 原型示例：任务、运行与统计均为离线示例；字段名对齐 OM 2.0.3 IngestionPipeline / PipelineStatus
+      const OM_TYPE = {
+        MySQL: "Mysql",
+        PostgreSQL: "Postgres",
+        Oracle: "Oracle",
+        "SQL Server": "Mssql",
+        Doris: "Doris",
+      };
+      const emptyFilters = () => ({
+        database: { includes: "", excludes: "" },
+        schema: { includes: "", excludes: "" },
+        table: { includes: "", excludes: "" },
+      });
       const seedSources = () => [
         {
           id: "mes",
@@ -2938,13 +2951,22 @@
           port: "3306",
           username: "mes_ro",
           password: "********",
+          suffix: "x7Qp2LmA",
           state: "success",
           last: "今天 02:00",
           duration: "48 秒",
           schedule: "每天 02:00",
           active: true,
-          scope: "全部 13 张表",
-          lineage: "等待 SQL 来源",
+          filters: emptyFilters(),
+          includeViews: true,
+          lineage: "表与字段元数据已更新",
+          lineageTask: {
+            state: "success",
+            last: "今天 03:00",
+            duration: "6 秒",
+            schedule: "每天 03:00",
+            active: true,
+          },
         },
         {
           id: "qms",
@@ -2958,13 +2980,25 @@
           port: "5432",
           username: "qms_ro",
           password: "********",
+          suffix: "R4kz9TbE",
           state: "partial",
           last: "今天 02:15",
           duration: "32 秒",
           schedule: "每天 02:15",
           active: true,
-          scope: "public · 全部 7 张表",
-          lineage: "视图定义读取受限",
+          filters: {
+            ...emptyFilters(),
+            schema: { includes: "^public$", excludes: "" },
+          },
+          includeViews: true,
+          lineage: "部分对象读取失败",
+          lineageTask: {
+            state: "success",
+            last: "今天 03:15",
+            duration: "4 秒",
+            schedule: "每天 03:15",
+            active: true,
+          },
         },
         {
           id: "dw",
@@ -2978,13 +3012,16 @@
           port: "9030",
           username: "dw_ro",
           password: "********",
+          suffix: "c2Wn8HvJ",
           state: "success",
           last: "今天 03:00",
           duration: "1 分 12 秒",
           schedule: "每天 03:00",
           active: true,
-          scope: "全部 8 张表",
-          lineage: "元数据采集完成",
+          filters: emptyFilters(),
+          includeViews: true,
+          lineage: "表与字段元数据已更新",
+          lineageTask: null,
         },
         {
           id: "erp",
@@ -2998,39 +3035,59 @@
           port: "1521",
           username: "",
           password: "",
+          suffix: "",
           state: "draft",
           last: "—",
           duration: "—",
           schedule: "未设置",
           active: false,
-          scope: "尚未选择",
+          filters: emptyFilters(),
+          includeViews: true,
           lineage: "尚未采集",
+          lineageTask: null,
         },
       ];
       let sources = seedSources();
+      // OM 的 runId 为 UUID；PipelineStatus 不记录触发方式
       let runs = [
         {
-          id: "RUN-1103-003",
-          source: "dw",
+          id: "3f0c9a52-6d1e-4b8a-9c27-5e41d7a08b13",
+          source: "qms",
+          kind: "lineage",
+          state: "success",
+          time: "今天 03:15:00",
+          duration: "4 秒",
+        },
+        {
+          id: "b81e47d0-2c95-4f36-a1d8-90e6c3f45a27",
+          source: "mes",
+          kind: "lineage",
           state: "success",
           time: "今天 03:00:00",
-          trigger: "定时",
+          duration: "6 秒",
+        },
+        {
+          id: "9d24e6b1-7a03-4c58-b6f2-1e8a5d37c904",
+          source: "dw",
+          kind: "metadata",
+          state: "success",
+          time: "今天 03:00:00",
           duration: "1 分 12 秒",
         },
         {
-          id: "RUN-1103-002",
+          id: "e5a71c38-04bf-4d92-8e63-2b9f0c6d1a85",
           source: "qms",
+          kind: "metadata",
           state: "partial",
           time: "今天 02:15:00",
-          trigger: "定时",
           duration: "32 秒",
         },
         {
-          id: "RUN-1103-001",
+          id: "06c3d8f4-91a2-4e7b-bd50-7f4e2a9c6b18",
           source: "mes",
+          kind: "metadata",
           state: "success",
           time: "今天 02:00:00",
-          trigger: "定时",
           duration: "48 秒",
         },
       ];
@@ -3044,7 +3101,6 @@
         selectedTask = null,
         modalKind = "",
         returnFocus = null,
-        runSeq = 4,
         timers = [];
       let wizard = null,
         toastTimer;
@@ -3053,6 +3109,62 @@
         s.catalogOverride || CATALOG[s.id] || s.previewTables || [];
       const totalColumns = (s) =>
         tables(s).reduce((n, t) => n + t.columns.length, 0);
+      // OM 原生：MySQL / Doris 的 databaseSchema 为选填；PostgreSQL / SQL Server 的 database 必填；Oracle 用 Service Name
+      const dbOptional = (type) => ["MySQL", "Doris"].includes(type);
+      const KIND_LABEL = { metadata: "元数据采集", lineage: "视图血缘" };
+      // OM 前端命名规则：<服务名>_<类型>_<8 位随机串>（ServicePureUtils.getIngestionName）
+      const taskName = (s, kind = "metadata") =>
+        `${s.service.replace(/[^A-Za-z0-9]/g, "_")}_${kind}_${s.suffix}`;
+      const task = (s, kind) => (kind === "lineage" ? s.lineageTask : s);
+      const tasksOf = (s) =>
+        s.state === "draft"
+          ? []
+          : ["metadata", ...(s.lineageTask ? ["lineage"] : [])];
+      const needsAttention = (s) =>
+        tasksOf(s).some((k) => ["partial", "failed"].includes(task(s, k).state));
+      const schedulePaused = (s) =>
+        tasksOf(s).some((k) => {
+          const t = task(s, k);
+          return t.schedule !== "手动触发" && !t.active;
+        });
+      const randomSuffix = () =>
+        Array.from({ length: 8 }, () =>
+          "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789".charAt(
+            Math.floor(Math.random() * 56),
+          ),
+        ).join("");
+      const uuid = () =>
+        "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+          const r = Math.floor(Math.random() * 16);
+          return (c === "x" ? r : (r & 3) | 8).toString(16);
+        });
+      const splitPatterns = (text) =>
+        text
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean);
+      const FILTER_LABEL = { database: "数据库", schema: "Schema", table: "表" };
+      function filterSummary(f) {
+        const parts = [];
+        for (const level of ["database", "schema", "table"]) {
+          const inc = splitPatterns(f[level].includes),
+            exc = splitPatterns(f[level].excludes);
+          if (inc.length)
+            parts.push(`${FILTER_LABEL[level]}包含 ${inc.join(", ")}`);
+          if (exc.length)
+            parts.push(`${FILTER_LABEL[level]}排除 ${exc.join(", ")}`);
+        }
+        return parts.length ? parts.join("；") : "全部（未设置过滤规则）";
+      }
+      function applyTableFilter(list, f) {
+        const inc = splitPatterns(f.table.includes).map((x) => new RegExp(x)),
+          exc = splitPatterns(f.table.excludes).map((x) => new RegExp(x));
+        return list.filter(
+          (t) =>
+            (!inc.length || inc.some((r) => r.test(t.name))) &&
+            !exc.some((r) => r.test(t.name)),
+        );
+      }
       const dbIcon = (s) =>
         `<span class="dbicon ${s.color || ""}">${esc(s.abbr || s.type.slice(0, 2))}</span>`;
       function toast(text) {
@@ -3267,13 +3379,7 @@
         const configured = sources.filter((s) => s.state !== "draft"),
           count = configured.reduce((n, s) => n + tables(s).length, 0),
           cols = configured.reduce((n, s) => n + totalColumns(s), 0),
-          attention = sources.filter(
-            (s) =>
-              ["partial", "failed"].includes(s.state) ||
-              (s._extraTasks || []).some((t) =>
-                ["partial", "failed"].includes(t.runs[0]?.state),
-              ),
-          );
+          attention = sources.filter(needsAttention);
         return (
           pageHead(
             "数据源",
@@ -3294,7 +3400,7 @@
         .join(
           "",
         )}</select><span class="spacer"></span><span class="small muted">${sources.length} 个数据源</span>${btn("重置筛选", "clear-filters", "", "ghost sm")}</div><div class="table-scroll" id="source-table-wrap">${sourceTable()}</div><div class="panel-foot"><span>采集结果统一写入 OpenMetadata</span><span>独立 Airflow 调度 <span class="dot" style="color:#82a88e;margin-left:8px"></span></span></div></section>
-      <div class="bottom-grid"><section class="notice-card"><div class="icon-block">${icon(attention.length ? "warning" : "check")}</div><div class="grow"><h3>${attention.length ? "有一项元数据采集需要处理" : "采集状态已更新"}</h3><p>${attention.length ? "QMS 表与字段已采集；视图定义读取受限，相关血缘尚不完整。" : "本轮采集已完成。可在运行记录中查看处理过程与元数据变更。"}</p><button class="link small" data-action="detail" data-value="qms">${attention.length ? "查看原因与处理建议" : "查看 QMS 采集详情"} →</button></div></section><section class="pipeline-strip"><div class="row between"><h3>连接数据，保留数据边界</h3>${icon("branch")}</div><div class="flow"><span>源系统</span><i>→</i><span>OpenMetadata Ingestion</span><i>→</i><span>元数据目录</span></div><p class="small muted" style="font-size:10px">Airflow 编排采集任务 · 业务数据保留在源系统</p></section></div>${footer()}`
+      <div class="bottom-grid"><section class="notice-card"><div class="icon-block">${icon(attention.length ? "warning" : "check")}</div><div class="grow"><h3>${attention.length ? `有 ${attention.length} 个数据源的采集需要处理` : "采集状态已更新"}</h3><p>${attention.length ? `${esc(attention.map((x) => x.name).join("、"))}：最近一次运行部分成功或失败，已写入的元数据保留。` : "最近运行均已完成。可在数据源详情的采集任务中查看运行记录。"}</p>${attention.length ? `<button class="link small" data-action="detail" data-value="${attention[0].id}">查看运行与日志 →</button>` : ""}</div></section><section class="pipeline-strip"><div class="row between"><h3>连接数据，保留数据边界</h3>${icon("branch")}</div><div class="flow"><span>源系统</span><i>→</i><span>OpenMetadata Ingestion</span><i>→</i><span>元数据目录</span></div><p class="small muted" style="font-size:10px">Airflow 编排采集任务 · 业务数据保留在源系统</p></section></div>${footer()}`
         );
       }
       function sourceTable() {
@@ -3307,17 +3413,9 @@
                 .includes(sourceQuery.toLowerCase())) &&
             (!sourceFilter ||
               (sourceFilter === "paused"
-                ? (s.schedule !== "手动触发" &&
-                    !s.active &&
-                    s.state !== "draft") ||
-                  (s._extraTasks || []).some(
-                    (t) => t.schedule !== "手动触发" && !t.active,
-                  )
+                ? schedulePaused(s)
                 : sourceFilter === "partial"
-                  ? ["partial", "failed"].includes(s.state) ||
-                    (s._extraTasks || []).some((t) =>
-                      ["partial", "failed"].includes(t.runs[0]?.state),
-                    )
+                  ? needsAttention(s)
                   : s.state === sourceFilter)),
         );
         if (!list.length)
@@ -3532,7 +3630,7 @@
       }
       function structuralInfo(s, t) {
         const keyColumns = t.columns.filter((c) => c.pk).map((c) => c.name);
-        return `<section class="panel" style="margin-bottom:20px"><div class="panel-head"><h2>结构信息</h2><span class="small muted">结构元数据 · 只读</span></div><dl class="kv"><dt>表类型</dt><dd>Regular（普通表）</dd><dt>字段数</dt><dd>${t.columns.length}</dd><dt>表约束</dt><dd class="mono">${keyColumns.length ? `${s.type === "Doris" ? "UNIQUE" : "PRIMARY_KEY"} (${esc(keyColumns.join(", "))})` : "示例未提供约束信息"}</dd><dt>其他结构</dt><dd class="muted">本示例未提供分区、外键或视图定义；不推测补全。</dd></dl></section>`;
+        return `<section class="panel" style="margin-bottom:20px"><div class="panel-head"><h2>结构信息</h2><span class="small muted">结构元数据 · 只读</span></div><dl class="kv"><dt>表类型</dt><dd>Regular（普通表）</dd><dt>字段数</dt><dd>${t.columns.length}</dd><dt>表约束</dt><dd class="mono">${keyColumns.length ? `PRIMARY_KEY (${esc(keyColumns.join(", "))})` : "示例未提供约束信息"}</dd><dt>其他结构</dt><dd class="muted">${s.type === "Doris" ? "Doris 键列按 OpenMetadata 原生 Doris 连接器记为主键约束；不区分 UNIQUE / DUPLICATE / AGGREGATE 键模型。" : "本示例未提供分区、外键或视图定义；不推测补全。"}</dd></dl></section>`;
       }
       let propertyDraft = null;
       const propertyNames = (kind, ids) =>
@@ -3686,7 +3784,21 @@
       }
 
       function sourceOverview(s) {
-        return `${sourceProperties(s)}${s.state === "partial" ? `<div class="alert amber" style="margin-bottom:20px">${icon("warning")}<div><b>表与字段已采集，视图血缘不完整</b><br>采集账号无法读取视图定义。请由源系统管理员补充只读元数据权限，再重试采集。<br><button class="link small" data-action="task-runs" data-value="${s.id}">查看运行与处理建议 →</button></div></div>` : ""}<div class="metric-row"><div class="metric"><span>已采集表</span><b>${tables(s).length}</b><span>${esc(s.database)} ${s.type === "PostgreSQL" ? " / public" : ""}</span></div><div class="metric"><span>字段元数据</span><b>${totalColumns(s)}</b><span>字段类型、注释与主键标识</span></div><div class="metric"><span>采集任务</span><b>${s.state === "draft" ? 0 : 1}</b><span>元数据采集 · 表、字段与视图定义</span></div></div><div class="detail-grid"><section class="panel"><div class="panel-head"><h2>连接信息</h2>${badge("SecretsManager 加密", "blue")}</div><dl class="kv"><dt>数据库</dt><dd class="mono">${esc(s.database)}</dd><dt>连接地址</dt><dd class="mono">${s.host ? esc(s.host + ":" + s.port) : "待配置"}</dd><dt>只读账号</dt><dd class="mono">${esc(s.username || "待配置")}</dd><dt>采集边界</dt><dd>仅表、字段与血缘元数据</dd></dl></section><section class="panel"><div class="panel-head"><h2>调度与最近运行</h2>${badge("Airflow", "blue")}</div><dl class="kv"><dt>调度计划</dt><dd>${esc(s.schedule)} ${!s.active && s.state !== "draft" && s.schedule !== "手动触发" ? "（已暂停）" : ""}</dd><dt>时区</dt><dd>Asia/Shanghai</dd><dt>最近运行</dt><dd>${esc(s.last)}</dd><dt>执行状态</dt><dd>${status(s.state)}</dd><dt>采集任务</dt><dd><button class="link mono" data-action="open-tasks" data-value="${s.id}">metadata_${esc(s.service.replaceAll("-", "_"))} ↗</button></dd></dl></section></div>`;
+        const bad = tasksOf(s).filter((k) =>
+          ["partial", "failed"].includes(task(s, k).state),
+        );
+        return `${sourceProperties(s)}${bad.length ? `<div class="alert amber" style="margin-bottom:20px">${icon("warning")}<div><b>${bad.map((k) => KIND_LABEL[k]).join("、")}最近一次运行${task(s, bad[0]).state === "failed" ? "失败" : "部分成功"}</b><br>已写入的元数据保留。请在运行详情中查看失败对象与日志，处理后重新运行。<br><button class="link small" data-action="task-runs" data-value="${s.id}|${bad[0]}">查看运行与日志 →</button></div></div>` : ""}<div class="metric-row"><div class="metric"><span>已采集表</span><b>${tables(s).length}</b><span>${esc(s.database || "全部库")}</span></div><div class="metric"><span>字段元数据</span><b>${totalColumns(s)}</b><span>字段类型、注释与主键标识</span></div><div class="metric"><span>采集任务</span><b>${tasksOf(s).length}</b><span>${tasksOf(s).length ? tasksOf(s).map((k) => KIND_LABEL[k]).join(" · ") : "尚未配置"}</span></div></div><div class="detail-grid"><section class="panel"><div class="panel-head"><h2>连接信息</h2>${badge("SecretsManager 加密", "blue")}</div><dl class="kv"><dt>数据库</dt><dd class="mono">${esc(s.database || "全部库")}</dd><dt>连接地址</dt><dd class="mono">${s.host ? esc(s.host + ":" + s.port) : "待配置"}</dd><dt>只读账号</dt><dd class="mono">${esc(s.username || "待配置")}</dd><dt>采集边界</dt><dd>仅表、字段与视图血缘元数据</dd></dl></section><section class="panel"><div class="panel-head"><h2>调度与最近运行</h2>${badge("Airflow", "blue")}</div>${
+          tasksOf(s).length
+            ? `<dl class="kv">${tasksOf(s)
+                .map((k) => {
+                  const t = task(s, k);
+                  return `<dt>${KIND_LABEL[k]}</dt><dd>${status(t.state)} <span class="small muted">${esc(t.last)} · ${esc(t.schedule)}${!t.active && t.schedule !== "手动触发" ? "（已暂停）" : ""}</span></dd>`;
+                })
+                .join(
+                  "",
+                )}<dt>时区</dt><dd>Asia/Shanghai</dd><dt>采集任务</dt><dd><button class="link" data-action="open-tasks" data-value="${s.id}">查看 ${tasksOf(s).length} 个任务 ↗</button></dd></dl>`
+            : `<div class="panel-body"><p class="small muted">完成连接与采集配置后生成采集任务。</p></div>`
+        }</section></div>`;
       }
       function sourceMetadata(s) {
         const node = catalogNodes.get(catalogSelection);
@@ -3706,7 +3818,7 @@
             .map((c) => {
               const columnKey = key + "/column/" + c.name,
                 r = propertyTarget(columnKey).record;
-              return `<tr data-column-key="${esc(columnKey)}"><td class="mono">${esc(c.name)} ${c.pk ? `<span class="badge blue" style="font-size:9px;margin-left:3px">${s.type === "Doris" ? "UK" : "PK"}</span>` : ""}</td><td class="mono muted">${esc(c.type)}</td><td><b>${esc(r.displayName || "未设置显示名称")}</b><div class="cell-sub" style="white-space:pre-wrap">${esc(r.description || "暂无描述")}</div></td><td>${propertyChips(r.tags.filter((t) => t.source === "Classification").map((t) => t.tagFQN))}</td><td>${propertyChips(
+              return `<tr data-column-key="${esc(columnKey)}"><td class="mono">${esc(c.name)} ${c.pk ? `<span class="badge blue" style="font-size:9px;margin-left:3px">PK</span>` : ""}</td><td class="mono muted">${esc(c.type)}</td><td><b>${esc(r.displayName || "未设置显示名称")}</b><div class="cell-sub" style="white-space:pre-wrap">${esc(r.description || "暂无描述")}</div></td><td>${propertyChips(r.tags.filter((t) => t.source === "Classification").map((t) => t.tagFQN))}</td><td>${propertyChips(
                 propertyNames(
                   "terms",
                   r.tags
@@ -3719,30 +3831,50 @@
         );
       }
       function sourceScope(s) {
-        return `<div class="detail-grid"><section class="panel"><div class="panel-head"><h2>采集范围</h2>${btn("调整配置", "configure", s.id, "sm", "settings")}</div><dl class="kv"><dt>数据库</dt><dd>${esc(s.database)}</dd><dt>表选择</dt><dd>${esc(s.scope)}</dd><dt>元数据内容</dt><dd>表结构、字段类型、字段注释、主键</dd><dt>视图血缘</dt><dd>${s.viewLineage === false ? "未启用" : "读取视图定义（按连接器能力）"}</dd></dl></section><section class="panel"><div class="panel-head"><h2>采集边界</h2>${icon("shield")}</div><div class="panel-body stack"><div class="review-chip">${icon("check")}只读连接源系统</div><div class="review-chip">${icon("check")}密码由 OpenMetadata SecretsManager 加密托管</div><div class="review-chip">${icon("check")}不开启数据采样或数据剖析</div><div class="review-chip">${icon("check")}不复制表中的业务记录</div><p class="help">本原型不连接实际系统。配置保存、运行状态和发布结果均在当前页面内模拟。</p></div></section></div>`;
+        return `<div class="detail-grid"><section class="panel"><div class="panel-head"><h2>采集范围</h2>${btn("调整配置", "configure", s.id, "sm", "settings")}</div><dl class="kv"><dt>连接数据库</dt><dd class="mono">${esc(s.database || "全部库")}</dd>${["database", "schema", "table"]
+          .map(
+            (level) =>
+              `<dt>${FILTER_LABEL[level]}过滤</dt><dd class="mono">${splitPatterns(s.filters[level].includes).length || splitPatterns(s.filters[level].excludes).length ? `${splitPatterns(s.filters[level].includes).length ? "包含 " + esc(splitPatterns(s.filters[level].includes).join(", ")) : ""}${splitPatterns(s.filters[level].includes).length && splitPatterns(s.filters[level].excludes).length ? "；" : ""}${splitPatterns(s.filters[level].excludes).length ? "排除 " + esc(splitPatterns(s.filters[level].excludes).join(", ")) : ""}` : '<span class="muted">未设置（全部）</span>'}</dd>`,
+          )
+          .join(
+            "",
+          )}<dt>视图</dt><dd>${s.includeViews ? "采集视图元数据" : "不采集视图"}</dd><dt>视图血缘任务</dt><dd>${s.lineageTask ? "已创建（处理视图血缘；不处理查询日志血缘）" : "未创建"}</dd></dl></section><section class="panel"><div class="panel-head"><h2>采集边界</h2>${icon("shield")}</div><div class="panel-body stack"><div class="review-chip">${icon("check")}只读连接源系统</div><div class="review-chip">${icon("check")}密码由 OpenMetadata SecretsManager 加密托管</div><div class="review-chip">${icon("check")}不开启数据采样或数据剖析</div><div class="review-chip">${icon("check")}不复制表中的业务记录</div><p class="help">过滤规则为 OpenMetadata 原生正则表达式，多个规则用逗号分隔；未设置时采集全部。本原型不连接实际系统。</p></div></section></div>`;
       }
-
-      function taskName(s) {
-        return "metadata_" + s.service.replaceAll("-", "_");
-      }
-      function taskActions(s) {
-        return `${btn(s.schedule === "手动触发" ? "配置调度" : s.active ? "暂停调度" : "恢复调度", s.schedule === "手动触发" ? "configure" : "schedule-confirm", s.id, "sm", s.active ? "pause" : "settings")}<button class="btn primary sm" data-action="run" data-value="${s.id}" ${["running", "queued"].includes(s.state) ? "disabled" : ""}>${icon("play")}立即运行</button>`;
+      function taskActions(s, kind) {
+        const t = task(s, kind),
+          v = s.id + "|" + kind;
+        return `${btn(t.schedule === "手动触发" ? "配置调度" : t.active ? "暂停调度" : "恢复调度", t.schedule === "手动触发" ? "configure" : "schedule-confirm", t.schedule === "手动触发" ? s.id : v, "sm", t.active ? "pause" : "settings")}<button class="btn primary sm" data-action="run" data-value="${v}" ${["running", "queued"].includes(t.state) ? "disabled" : ""}>${icon("play")}立即运行</button>`;
       }
       function sourceTasks(s) {
         if (s.state === "draft")
           return `<section class="panel empty">${icon("activity")}<h3>尚未配置采集任务</h3><p class="small">先完成数据源连接与采集配置，再查看任务和运行记录。</p><div style="margin-top:18px">${btn("继续配置", "configure", s.id, "primary")}</div></section>`;
-        if (selectedTask) {
+        if (selectedTask && tasksOf(s).includes(selectedTask)) {
+          const kind = selectedTask,
+            t = task(s, kind);
           const list = runs.filter(
-            (r) => r.source === s.id && (!runFilter || r.state === runFilter),
+            (r) =>
+              r.source === s.id &&
+              r.kind === kind &&
+              (!runFilter || r.state === runFilter),
           );
-          return `<div class="row between wrap" style="margin-bottom:18px"><div><button class="link small row" data-action="tasks-back">${icon("back")}返回采集任务</button><h2 style="margin-top:14px">运行 · <span class="mono">${esc(taskName(s))}</span></h2><p class="subtitle">元数据采集 · ${esc(s.service)} · ${esc(s.schedule)}${!s.active && s.schedule !== "手动触发" ? "（已暂停）" : ""}</p></div><div class="row">${taskActions(s)}</div></div><section class="panel"><div class="toolbar"><select id="run-filter" class="filter" aria-label="筛选运行状态"><option value="">全部状态</option>${["success", "partial", "failed", "running", "queued"].map((k) => `<option value="${k}" ${runFilter === k ? "selected" : ""}>${STATUS[k][0]}</option>`).join("")}</select><span class="spacer"></span><span class="small muted">${list.length} 次运行</span>${btn("刷新", "refresh-runs", "", "ghost sm", "refresh")}</div>${runsTable(list)}<div class="panel-foot"><span>OpenMetadata Ingestion · 独立 Airflow 调度</span>${btn("调度详情", "dag", s.id, "ghost sm")}</div></section>`;
+          return `<div class="row between wrap" style="margin-bottom:18px"><div><button class="link small row" data-action="tasks-back">${icon("back")}返回采集任务</button><h2 style="margin-top:14px">运行 · <span class="mono">${esc(taskName(s, kind))}</span></h2><p class="subtitle">${KIND_LABEL[kind]} · ${esc(s.service)} · ${esc(t.schedule)}${!t.active && t.schedule !== "手动触发" ? "（已暂停）" : ""}</p></div><div class="row">${taskActions(s, kind)}</div></div><section class="panel"><div class="toolbar"><select id="run-filter" class="filter" aria-label="筛选运行状态"><option value="">全部状态</option>${["success", "partial", "failed", "running", "queued"].map((k) => `<option value="${k}" ${runFilter === k ? "selected" : ""}>${STATUS[k][0]}</option>`).join("")}</select><span class="spacer"></span><span class="small muted">${list.length} 次运行</span>${btn("刷新", "refresh-runs", "", "ghost sm", "refresh")}</div>${runsTable(list)}<div class="panel-foot"><span>OpenMetadata Ingestion · 独立 Airflow 调度</span>${btn("调度详情", "dag", s.id + "|" + kind, "ghost sm")}</div></section>`;
         }
-        return `<section class="panel"><div class="panel-head"><div><h2>采集任务</h2><p class="subtitle">管理当前数据源的采集配置、调度与运行记录。</p></div><span class="badge blue">1 个任务</span></div><div class="table-scroll"><table><thead><tr><th>任务名称</th><th>类型 / 范围</th><th>调度计划</th><th>最近运行</th><th>操作</th></tr></thead><tbody><tr><td><button class="link mono" data-action="task-runs" data-value="${s.id}">${esc(taskName(s))}</button><div class="cell-sub">OpenMetadata Ingestion</div></td><td>元数据采集<div class="cell-sub">${esc(s.scope)}</div></td><td>${esc(s.schedule)}<div class="cell-sub">${s.schedule === "手动触发" ? "按需执行" : s.active ? "Asia/Shanghai · 已启用" : "定时调度已暂停"}</div></td><td>${status(s.state)}<div class="cell-sub">${esc(s.last)}</div></td><td>${btn("查看运行", "task-runs", s.id, "sm", "arrow")}</td></tr></tbody></table></div><div class="panel-foot"><span>选中任务后查看运行、日志，或手动触发采集。</span></div></section>`;
+        return `<section class="panel"><div class="panel-head"><div><h2>采集任务</h2><p class="subtitle">当前数据源的 OpenMetadata 采集任务：调度与运行记录。</p></div><span class="badge blue">${tasksOf(s).length} 个任务</span></div><div class="table-scroll"><table><thead><tr><th>任务名称</th><th>类型</th><th>调度计划</th><th>最近运行</th><th>操作</th></tr></thead><tbody>${tasksOf(
+          s,
+        )
+          .map((kind) => {
+            const t = task(s, kind),
+              v = s.id + "|" + kind;
+            return `<tr><td><button class="link mono" data-action="task-runs" data-value="${v}">${esc(taskName(s, kind))}</button><div class="cell-sub">OpenMetadata Ingestion</div></td><td>${KIND_LABEL[kind]}<div class="cell-sub">${kind === "metadata" ? "表、字段与视图元数据" : "依据已采集的视图定义"}</div></td><td>${esc(t.schedule)}<div class="cell-sub">${t.schedule === "手动触发" ? "按需执行" : t.active ? "Asia/Shanghai · 已启用" : "定时调度已暂停"}</div></td><td>${status(t.state)}<div class="cell-sub">${esc(t.last)}</div></td><td>${btn("查看运行", "task-runs", v, "sm", "arrow")}</td></tr>`;
+          })
+          .join(
+            "",
+          )}</tbody></table></div><div class="panel-foot"><span>${s.lineageTask ? "视图血缘依赖已采集的视图定义，建议安排在元数据采集之后。" : "未创建视图血缘任务；可在采集配置中开启。"}</span></div></section>`;
       }
       function runsTable(list) {
         if (!list.length)
           return `<div class="empty">${icon("activity")}<h3>暂无运行记录</h3><p class="small">调整筛选，或点击当前任务的“立即运行”。</p></div>`;
-        return `<div class="table-scroll"><table><thead><tr><th>运行编号</th><th>状态</th><th>触发方式</th><th>开始时间</th><th>耗时</th><th>操作</th></tr></thead><tbody>${list.map((r) => `<tr><td><button class="link mono" data-action="run-detail" data-value="${r.id}">${esc(r.id)}</button><div class="cell-sub">${esc(source(r.source).name)}</div></td><td>${status(r.state)}</td><td style="color:#8695a9">${esc(r.trigger)}</td><td style="color:#75859b">${esc(r.time)}</td><td style="color:#8896a9">${esc(r.duration)}</td><td>${btn("查看运行", "run-detail", r.id, "sm")}</td></tr>`).join("")}</tbody></table></div>`;
+        return `<div class="table-scroll"><table><thead><tr><th>开始时间</th><th>状态</th><th>耗时</th><th>运行编号</th><th>操作</th></tr></thead><tbody>${list.map((r) => `<tr><td><button class="link" data-action="run-detail" data-value="${r.id}">${esc(r.time)}</button></td><td>${status(r.state)}</td><td style="color:#8896a9">${esc(r.duration)}</td><td class="mono small muted">${esc(r.id.slice(0, 8))}…</td><td>${btn("查看运行", "run-detail", r.id, "sm")}</td></tr>`).join("")}</tbody></table></div>`;
       }
       function openModal(title, body, foot = "", kind = "info") {
         if (!document.getElementById("dialog").open)
@@ -3760,12 +3892,18 @@
       function showGuide() {
         openModal(
           "源系统元数据采集 · 原型说明",
-          `<div class="stack"><div class="alert">${icon("spark")}<span>这是 Spec 005 的可交互设计原型。所有连接和运行仅发生在当前页面，刷新页面后恢复初始示例。</span></div><p class="small">建议从「数据源」开始：查看目录与字段 → 进入 QMS 采集任务 → 查看运行并处理异常 → 配置 ERP。</p><div class="review-chip">1. 数据源：连接、只读范围与调度计划</div><div class="review-chip">2. 数据源详情 → 采集任务 → 运行：结果、日志与修复后重试</div><p class="help">MES / QMS / Doris 表结构取自 Spec 003 模拟工厂定义。运行结果为示例；ERP 尚无测试设施。当前导航位置为设计提案，资产搜索将在 Spec 006 中实现。</p></div>`,
+          `<div class="stack"><div class="alert">${icon("spark")}<span>这是 Spec 005 的可交互设计原型。所有连接和运行仅发生在当前页面，刷新页面后恢复初始示例。</span></div><p class="small">建议从「数据源」开始：查看目录与字段 → 进入 QMS 采集任务（元数据采集 / 视图血缘）→ 查看运行统计与日志 → 配置 ERP。</p><div class="review-chip">1. 数据源：连接、只读范围与调度计划</div><div class="review-chip">2. 数据源详情 → 采集任务 → 运行：步骤统计、失败对象与日志，处理后立即运行</div><p class="help">MES / QMS / Doris 表结构取自 Spec 003 模拟工厂定义。运行结果为示例；ERP 尚无测试设施。当前导航位置为设计提案，资产搜索将在 Spec 006 中实现。</p></div>`,
           `${btn("恢复初始示例", "reset-confirm", "", "sm", "refresh")}${btn("开始体验", "close", "", "primary")}`,
         );
       }
       function beginWizard(id) {
         const s = id ? source(id) : null;
+        const sched = (t, fallback) => ({
+          mode: t?.schedule === "手动触发" ? "manual" : "daily",
+          time: t?.schedule?.startsWith("每天 ") ? t.schedule.slice(3) : fallback,
+        });
+        const meta = sched(s?.state === "draft" ? null : s, "02:00"),
+          lin = sched(s?.lineageTask, "03:00");
         wizard = {
           id: id || "",
           step: 1,
@@ -3779,14 +3917,14 @@
           password: s?.password || "",
           tested: false,
           testFailure: false,
-          scopeMode: s?.scopeMode || "all",
-          selected: [...(s?.selected || [])],
-          viewLineage: s?.viewLineage !== false,
-          schedule: s?.schedule === "手动触发" ? "manual" : "daily",
-          time: s?.schedule?.startsWith("每天 ")
-            ? s.schedule.slice(3)
-            : "02:00",
-          tableFilter: "",
+          testResult: null,
+          filters: JSON.parse(JSON.stringify(s?.filters || emptyFilters())),
+          includeViews: s ? s.includeViews !== false : true,
+          lineage: s ? Boolean(s.lineageTask) || s.state === "draft" : true,
+          schedule: meta.mode,
+          time: meta.time,
+          lineageSchedule: lin.mode,
+          lineageTime: lin.time,
           tls: s?.tls !== false,
         };
         renderWizard();
@@ -3798,58 +3936,56 @@
         ["SQL Server", "MS", "purple", 1433],
         ["Doris", "Do", "teal", 9030],
       ];
+      // OM 2.0.3 testConnections/database/<connector>.json 的步骤定义（名称、是否必需）
+      const TEST_STEPS = {
+        MySQL: [["CheckAccess", 1], ["GetSchemas", 1], ["GetTables", 1], ["GetViews", 0], ["GetQueries", 0]],
+        PostgreSQL: [["CheckAccess", 1], ["GetDatabases", 1], ["GetSchemas", 1], ["GetTables", 1], ["GetViews", 0], ["GetTags", 0], ["GetQueries", 0], ["GetColumnMetadata", 0], ["GetTableComments", 0], ["GetInformationSchemaColumns", 0]],
+        Oracle: [["CheckAccess", 1], ["PackageAccess", 0], ["GetSchemas", 1], ["GetTables", 1], ["GetViews", 0], ["GetMaterializedViews", 0], ["GetQueryHistory", 0]],
+        "SQL Server": [["CheckAccess", 1], ["GetDatabases", 1], ["GetSchemas", 1], ["GetTables", 1], ["GetViews", 0], ["GetQueries", 0]],
+        Doris: [["CheckAccess", 1], ["GetSchemas", 1], ["GetTables", 1], ["GetViews", 0]],
+      };
+      function testResultMarkup(result) {
+        if (!result) return "";
+        const ok = result.every((x) => x.passed || !x.mandatory);
+        return `<div class="alert ${ok ? "green" : "red"}" style="margin-bottom:10px">${icon(ok ? "check" : "warning")}${ok ? "模拟测试通过：必需步骤全部成功。" : "模拟测试失败：必需步骤未通过，无法继续。"}</div><div class="table-scroll"><table><thead><tr><th>检查步骤</th><th>类型</th><th>结果</th></tr></thead><tbody>${result.map((x) => `<tr><td class="mono">${esc(x.name)}</td><td class="small muted">${x.mandatory ? "必需" : "可选"}</td><td>${x.passed === null ? '<span class="muted">未执行</span>' : x.passed ? badge("通过", "green") : badge("失败", "red")}${x.message ? `<div class="cell-sub">${esc(x.message)}</div>` : ""}</td></tr>`).join("")}</tbody></table></div>`;
+      }
       function wizardBody() {
         const w = wizard;
         if (w.step === 1)
           return `<div class="fields"><label class="field full"><span>显示名称 *</span><input class="input" data-w="name" placeholder="例如：华东工厂 MES" maxlength="60" value="${esc(w.name)}" /></label><label class="field full"><span>服务标识 *</span><input class="input mono" data-w="service" placeholder="例如：plant-mes" maxlength="50" value="${esc(w.service)}" ${w.id && source(w.id)?.state !== "draft" ? "readonly" : ""}/><span class="help">用于稳定识别数据源，只能包含小写字母、数字和连字符。</span></label></div><h3 style="margin-top:22px">选择数据库连接器</h3><div class="connector-grid">${connectionTypes.map(([type, abbr, color]) => `<button class="connector ${w.type === type ? "active" : ""}" data-action="connector" data-value="${type}">${dbIcon({ type, abbr, color })}<span><b>${type}</b><small>数据库元数据</small></span></button>`).join("")}</div>`;
         if (w.step === 2)
-          return `<div class="fields"><label class="field"><span>主机地址 *</span><input class="input mono" data-w="host" placeholder="db.example.invalid" value="${esc(w.host)}" /></label><label class="field"><span>端口 *</span><input class="input mono" type="number" min="1" max="65535" data-w="port" value="${esc(w.port)}" /></label><label class="field"><span>${w.type === "Oracle" ? "Service Name" : "数据库"} *</span><input class="input mono" data-w="database" placeholder="例如：${w.type === "Doris" ? "mock_dw" : "production"}" value="${esc(w.database)}" /></label><label class="field"><span>用户名 *</span><input class="input mono" data-w="username" placeholder="例如：mes_ro" value="${esc(w.username)}" /></label><label class="field full"><span>密码 *</span><input class="input mono" type="password" data-w="password" placeholder="只读数据库账号密码（由 OpenMetadata SecretsManager 加密存储）" value="${esc(w.password)}" /><span class="help">对齐 OpenMetadata 原生连接配置；密码经 SecretsManager 加密存储并在读取时脱敏。</span></label></div><label class="checkrow" style="margin:10px 0"><input type="checkbox" data-w="tls" ${w.tls ? "checked" : ""}/>启用 TLS 加密连接</label><div class="alert">${icon("shield")}连接测试仅检查网络、身份与元数据访问权限。不会读取业务记录。</div><div class="row between" style="margin-top:18px"><label class="checkrow small muted"><input type="checkbox" data-w="testFailure" ${w.testFailure ? "checked" : ""}/>原型演示：连接不可达</label>${btn("测试连接", "test-connection", "", "", "plug")}</div><div id="connection-result" style="margin-top:12px">${w.tested ? `<div class="alert green">${icon("check")}模拟连接成功：网络、身份与目录访问检查通过。</div>` : ""}</div>`;
+          return `<div class="fields"><label class="field"><span>主机地址 *</span><input class="input mono" data-w="host" placeholder="db.example.invalid" value="${esc(w.host)}" /></label><label class="field"><span>端口 *</span><input class="input mono" type="number" min="1" max="65535" data-w="port" value="${esc(w.port)}" /></label><label class="field"><span>${w.type === "Oracle" ? "Service Name *" : dbOptional(w.type) ? "数据库（选填）" : "数据库 *"}</span><input class="input mono" data-w="database" placeholder="${dbOptional(w.type) ? "留空表示全部库，例如：" + (w.type === "Doris" ? "mock_dw" : "mes") : "例如：" + (w.type === "Oracle" ? "ERP" : "production")}" value="${esc(w.database)}" />${dbOptional(w.type) ? '<span class="help">对应 OpenMetadata <span class="mono">databaseSchema</span>，限定单个库；范围也可在下一步用过滤规则设置。</span>' : w.type === "Oracle" ? "" : '<span class="help">对应 OpenMetadata <span class="mono">database</span>；只采集该库。</span>'}</label><label class="field"><span>用户名 *</span><input class="input mono" data-w="username" placeholder="例如：mes_ro" value="${esc(w.username)}" /></label><label class="field full"><span>密码 *</span><input class="input mono" type="password" data-w="password" placeholder="只读数据库账号密码（由 OpenMetadata SecretsManager 加密存储）" value="${esc(w.password)}" /><span class="help">对齐 OpenMetadata 原生连接配置；密码经 SecretsManager 加密存储并在读取时脱敏。</span></label></div><label class="checkrow" style="margin:10px 0"><input type="checkbox" data-w="tls" ${w.tls ? "checked" : ""}/>启用 TLS 加密连接</label><div class="alert">${icon("shield")}测试连接由 OpenMetadata 在采集执行环境中逐步检查，只读取元数据目录，不读取业务记录。</div><div class="row between" style="margin-top:18px"><label class="checkrow small muted"><input type="checkbox" data-w="testFailure" ${w.testFailure ? "checked" : ""}/>原型演示：连接不可达</label>${btn("测试连接", "test-connection", "", "", "plug")}</div><div id="connection-result" style="margin-top:12px">${testResultMarkup(w.testResult)}</div>`;
         if (w.step === 3) {
-          const available = wizardTables();
-          return `<div class="alert" style="margin-bottom:18px">${icon("database")}<span>示例库 <b>${esc(w.database)}</b>：${available.length} 张表。这里只预览表名与结构，业务数据留在源系统。</span></div><label class="field"><span>表采集范围</span><select data-w="scopeMode"><option value="all" ${w.scopeMode === "all" ? "selected" : ""}>全部表（包含后续新增表）</option><option value="selected" ${w.scopeMode === "selected" ? "selected" : ""}>仅采集选中的表</option></select></label><div class="selection-box" style="margin-top:14px;max-height:190px;overflow:auto">${available.map((t) => `<label class="checkrow" style="padding:6px 0"><input type="checkbox" data-table-check="${esc(t.name)}" ${w.scopeMode === "all" || w.selected.includes(t.name) ? "checked" : ""} ${w.scopeMode === "all" ? "disabled" : ""}/><span class="mono">${esc(t.name)}</span><span class="help" style="margin-left:auto">${esc(t.comment)}</span></label>`).join("")}</div><label class="checkrow" style="margin-top:10px"><input type="checkbox" data-w="viewLineage" ${w.viewLineage ? "checked" : ""}/>采集视图定义，补充视图血缘</label><p class="help">按连接器与只读权限支持情况执行；不能获取的血缘须记录原因。SQL 查询日志采集策略在后续方案中确认。</p><div class="row wrap" style="margin-top:15px">${badge("表与字段元数据", "blue")}${badge("无数据采样")}${badge("无数据剖析")}${badge("不自动删除历史元数据")}</div>`;
+          const row = (level) =>
+            `<div class="fields" style="margin-bottom:6px"><label class="field"><span>${FILTER_LABEL[level]} · 包含</span><input class="input mono" data-filter="${level}.includes" placeholder="${level === "table" ? "例如：^ncr.*, ^inspection_lot$" : "留空表示全部"}" value="${esc(w.filters[level].includes)}" /></label><label class="field"><span>${FILTER_LABEL[level]} · 排除</span><input class="input mono" data-filter="${level}.excludes" placeholder="例如：^tmp_.*" value="${esc(w.filters[level].excludes)}" /></label></div>`;
+          return `<div class="alert" style="margin-bottom:18px">${icon("database")}<span>按 OpenMetadata 原生过滤规则（正则表达式，多个用逗号分隔）限定采集范围；全部留空即采集全部，后续新增的表也会被采集。</span></div>${["database", "schema", "table"].map(row).join("")}<label class="checkrow" style="margin-top:12px"><input type="checkbox" data-w="includeViews" ${w.includeViews ? "checked" : ""}/>采集视图（视图元数据与视图定义）</label><label class="checkrow" style="margin-top:8px"><input type="checkbox" data-w="lineage" ${w.lineage && w.includeViews ? "checked" : ""} ${w.includeViews ? "" : "disabled"}/>创建视图血缘任务（OpenMetadata lineage 采集）</label><p class="help">视图血缘任务依据已采集的视图定义生成血缘，需同时采集视图；不处理查询日志血缘。</p><div class="row wrap" style="margin-top:15px">${badge("表与字段元数据", "blue")}${badge("无数据采样")}${badge("无数据剖析")}${badge("不自动删除历史元数据")}</div>`;
         }
-        return `<div class="fields"><label class="field"><span>调度方式</span><select data-w="schedule"><option value="daily" ${w.schedule === "daily" ? "selected" : ""}>每天定时采集</option><option value="manual" ${w.schedule === "manual" ? "selected" : ""}>仅手动触发</option></select></label><label class="field"><span>执行时间 · Asia/Shanghai</span><input type="time" class="input" data-w="time" value="${esc(w.time)}" ${w.schedule === "manual" ? "disabled" : ""}/></label></div><div class="panel" style="margin-top:20px"><div class="panel-head"><h3>配置确认</h3>${badge("仅元数据", "blue")}</div><dl class="kv"><dt>数据源</dt><dd>${esc(w.name)} · ${esc(w.type)}</dd><dt>目标数据库</dt><dd class="mono">${esc(w.database)}</dd><dt>采集范围</dt><dd>${w.scopeMode === "all" ? "全部表" : w.selected.length + " 张选中表"} · ${w.viewLineage ? "包含视图定义" : "不采集视图定义"}</dd><dt>调度执行</dt><dd>独立部署的 Airflow</dd><dt>结果写入</dt><dd>OpenMetadata 元数据目录</dd></dl></div><p class="help" style="margin-top:16px">保存后可手动发起首次采集。原型只模拟配置保存；正式调度部署流程需在技术方案中验证。</p>`;
+        const schedRow = (label, modeKey, timeKey) =>
+          `<div class="fields" style="margin-bottom:14px"><label class="field"><span>${label} · 调度方式</span><select data-w="${modeKey}"><option value="daily" ${w[modeKey] === "daily" ? "selected" : ""}>每天定时采集</option><option value="manual" ${w[modeKey] === "manual" ? "selected" : ""}>仅手动触发</option></select></label><label class="field"><span>执行时间 · Asia/Shanghai</span><input type="time" class="input" data-w="${timeKey}" value="${esc(w[timeKey])}" ${w[modeKey] === "manual" ? "disabled" : ""}/></label></div>`;
+        const withLineage = w.lineage && w.includeViews;
+        return `${schedRow("元数据采集", "schedule", "time")}${withLineage ? schedRow("视图血缘", "lineageSchedule", "lineageTime") + '<p class="help">视图血缘依赖已采集的视图定义，建议晚于元数据采集执行。</p>' : ""}<div class="panel" style="margin-top:20px"><div class="panel-head"><h3>配置确认</h3>${badge("仅元数据", "blue")}</div><dl class="kv"><dt>数据源</dt><dd>${esc(w.name)} · ${esc(w.type)}</dd><dt>目标数据库</dt><dd class="mono">${esc(w.database || "全部库")}</dd><dt>采集范围</dt><dd>${esc(filterSummary(w.filters))} · ${w.includeViews ? "包含视图" : "不采集视图"}</dd><dt>采集任务</dt><dd>${withLineage ? "元数据采集、视图血缘（2 个）" : "元数据采集（1 个）"}</dd><dt>调度执行</dt><dd>独立部署的 Airflow</dd><dt>结果写入</dt><dd>OpenMetadata 元数据目录</dd></dl></div><p class="help" style="margin-top:16px">保存后 OpenMetadata 将采集任务部署到 Airflow，可手动发起首次采集。原型只模拟配置保存。</p>`;
       }
-      function wizardTables() {
-        if (wizard.id && CATALOG[wizard.id]) return CATALOG[wizard.id];
-        if (wizard.type === "Doris") return CATALOG.dw;
-        if (wizard.type === "PostgreSQL") return CATALOG.qms;
-        if (wizard.type === "MySQL") return CATALOG.mes;
+      function exampleTables(id, type) {
+        // 原型示例：模拟 OM 采集后会写入的表；生产以实际采集结果为准
+        if (id && CATALOG[id]) return CATALOG[id];
+        if (type === "Doris") return CATALOG.dw;
+        if (type === "PostgreSQL") return CATALOG.qms;
+        if (type === "MySQL") return CATALOG.mes;
         return [
           {
             name: "erp_material",
             comment: "物料主数据（设计示例）",
             columns: [
-              {
-                name: "material_code",
-                type: "VARCHAR(32)",
-                comment: "物料编码",
-                pk: true,
-              },
-              {
-                name: "material_name",
-                type: "VARCHAR(100)",
-                comment: "物料名称",
-                pk: false,
-              },
+              { name: "material_code", type: "VARCHAR(32)", comment: "物料编码", pk: true },
+              { name: "material_name", type: "VARCHAR(100)", comment: "物料名称", pk: false },
             ],
           },
           {
             name: "erp_purchase_order",
             comment: "采购订单（设计示例）",
             columns: [
-              {
-                name: "order_no",
-                type: "VARCHAR(32)",
-                comment: "订单号",
-                pk: true,
-              },
-              {
-                name: "material_code",
-                type: "VARCHAR(32)",
-                comment: "物料编码",
-                pk: false,
-              },
+              { name: "order_no", type: "VARCHAR(32)", comment: "订单号", pk: true },
+              { name: "material_code", type: "VARCHAR(32)", comment: "物料编码", pk: false },
             ],
           },
         ];
@@ -3876,8 +4012,10 @@
           Number(w.port) > 65535
         )
           return "端口必须为 1–65535 的整数。";
-        if (!w.database.trim() || !w.username.trim() || !w.password.trim())
-          return "请填写数据库名称、用户名与密码。";
+        if (!dbOptional(w.type) && !w.database.trim())
+          return w.type === "Oracle" ? "请填写 Service Name。" : "请填写数据库名称。";
+        if (!w.username.trim() || !w.password.trim())
+          return "请填写用户名与密码。";
         return "";
       }
       function nextWizard() {
@@ -3894,22 +4032,41 @@
         if (w.step === 2) {
           const e = validateConnection();
           if (e) return wizardError(e);
-          if (!w.tested) return wizardError("请先完成连接测试。");
+          if (!w.tested) return wizardError("请先完成连接测试，且必需步骤全部通过。");
         }
-        if (w.step === 3 && w.scopeMode === "selected" && !w.selected.length)
-          return wizardError("至少选择一张表。");
+        if (w.step === 3) {
+          for (const level of ["database", "schema", "table"])
+            for (const key of ["includes", "excludes"])
+              for (const p of splitPatterns(w.filters[level][key]))
+                try {
+                  new RegExp(p);
+                } catch {
+                  return wizardError(`${FILTER_LABEL[level]}过滤规则不是有效的正则表达式：${p}`);
+                }
+        }
         w.step++;
         renderWizard();
       }
       function saveWizard() {
         const w = wizard;
+        const withLineage = w.lineage && w.includeViews;
         if (w.schedule === "daily" && !/^\d\d:\d\d$/.test(w.time))
-          return wizardError("请选择每日执行时间。");
+          return wizardError("请选择元数据采集的每日执行时间。");
+        if (withLineage && w.lineageSchedule === "daily" && !/^\d\d:\d\d$/.test(w.lineageTime))
+          return wizardError("请选择视图血缘的每日执行时间。");
         const old = source(w.id);
         const ci = connectionTypes.find((c) => c[0] === w.type);
-        const selected = wizardTables().filter(
-          (t) => w.scopeMode === "all" || w.selected.includes(t.name),
-        );
+        const firstConfig = !old || old.state === "draft";
+        const pending = applyTableFilter(exampleTables(w.id, w.type), w.filters);
+        const lineageTask = withLineage
+          ? {
+              state: old?.lineageTask?.state || "待首次采集",
+              last: old?.lineageTask?.last || "—",
+              duration: old?.lineageTask?.duration || "—",
+              schedule: w.lineageSchedule === "manual" ? "手动触发" : "每天 " + w.lineageTime,
+              active: w.lineageSchedule !== "manual",
+            }
+          : null;
         const s = {
           id: w.id || "new-" + Date.now(),
           name: w.name.trim(),
@@ -3923,61 +4080,61 @@
           username: w.username,
           password: "********",
           tls: w.tls,
-          state: old?.state === "draft" || !old ? "待首次采集" : old.state,
+          suffix: old?.suffix || randomSuffix(),
+          state: firstConfig ? "待首次采集" : old.state,
           last: old?.last || "—",
           duration: old?.duration || "—",
           schedule: w.schedule === "manual" ? "手动触发" : "每天 " + w.time,
           active: w.schedule !== "manual",
-          scope:
-            w.scopeMode === "all" ? "全部表" : selected.length + " 张选中表",
-          scopeMode: w.scopeMode,
-          selected: [...w.selected],
-          viewLineage: w.viewLineage,
-          lineage: old && old.state !== "draft" ? old.lineage : "等待首次采集",
+          filters: JSON.parse(JSON.stringify(w.filters)),
+          includeViews: w.includeViews,
+          lineage: firstConfig ? "等待首次采集" : old.lineage,
+          lineageTask,
           previewTables: old?.previewTables || [],
-          pendingTables: selected,
+          pendingTables: pending,
         };
-        if (old) {
-          Object.assign(old, s);
-          old.previewTables = old.previewTables || [];
-        } else sources.push(s);
+        if (!s.suffix) s.suffix = randomSuffix();
+        if (old) Object.assign(old, s);
+        else sources.push(s);
         selectedSource = s.id;
         detailTab = "overview";
         view = "sources";
         closeModal();
         render();
-        toast("配置已保存（模拟）。请进入采集任务，查看运行或发起首次采集。");
+        toast("配置已保存，采集任务已部署到 Airflow（模拟）。可在采集任务中发起首次采集。");
       }
-      function startRun(id, repair = false) {
-        const s = source(id);
+      function startRun(value, repair = false) {
+        const [id, kind = "metadata"] = value.split("|");
+        const s = source(id),
+          t = task(s, kind);
         selectedSource = id;
         detailTab = "tasks";
-        selectedTask = taskName(s);
+        selectedTask = kind;
         runFilter = "";
         view = "sources";
-        if (["running", "queued"].includes(s.state)) {
-          toast("该数据源已有运行中的采集任务");
+        if (["running", "queued"].includes(t.state)) {
+          toast("该任务已有排队中或运行中的运行");
           return;
         }
         s.permissionFixed = repair || s.permissionFixed;
         const r = {
-          id: "RUN-1103-" + String(runSeq++).padStart(3, "0"),
+          id: uuid(),
           source: id,
+          kind,
           state: "queued",
           time:
             "今天 " + new Date().toLocaleTimeString("zh-CN", { hour12: false }),
-          trigger: "手动",
           duration: "—",
         };
         runs.unshift(r);
-        s.state = "queued";
+        t.state = "queued";
         closeModal();
         render();
-        toast("采集任务已进入 Airflow 队列（模拟）");
+        toast("已触发运行，等待 Airflow 调度（模拟）");
         timers.push(
           setTimeout(() => {
             r.state = "running";
-            s.state = "running";
+            t.state = "running";
             render();
             refreshRunModal(r.id);
           }, 800),
@@ -3985,30 +4142,28 @@
         timers.push(
           setTimeout(() => {
             r.state =
-              id === "qms" && !s.permissionFixed ? "partial" : "success";
-            s.state = r.state;
+              kind === "metadata" && id === "qms" && !s.permissionFixed
+                ? "partial"
+                : "success";
+            t.state = r.state;
             r.duration = "3 秒";
-            s.last = "刚刚";
-            s.duration = r.duration;
-            s.lineage =
-              r.state === "partial"
-                ? "视图定义读取受限"
-                : s.viewLineage === false
-                  ? "未启用视图血缘"
-                  : "本轮元数据采集完成";
-            if (s.pendingTables) {
-              s.previewTables = s.pendingTables;
-              delete s.pendingTables;
-              if (CATALOG[id]) {
-                s.catalogOverride = s.previewTables;
+            t.last = "刚刚";
+            t.duration = r.duration;
+            if (kind === "metadata") {
+              s.lineage =
+                r.state === "partial" ? "部分对象读取失败" : "表与字段元数据已更新";
+              if (s.pendingTables) {
+                s.previewTables = s.pendingTables;
+                delete s.pendingTables;
+                if (CATALOG[id]) s.catalogOverride = s.previewTables;
               }
             }
             render();
             refreshRunModal(r.id);
             toast(
               r.state === "partial"
-                ? "采集部分成功：视图权限仍需处理。"
-                : "采集完成（模拟），表与字段元数据已更新。",
+                ? "运行部分成功：存在读取失败的对象（模拟）。"
+                : "运行成功（模拟），结果已写入 OpenMetadata。",
             );
           }, 3300),
         );
@@ -4022,11 +4177,26 @@
         if (!r) return;
         const s = source(r.source),
           bad = r.state === "partial" || r.state === "failed",
-          working = ["queued", "running"].includes(r.state);
+          working = ["queued", "running"].includes(r.state),
+          latest = runs.find((x) => x.source === r.source && x.kind === r.kind) === r,
+          n = working ? 0 : tables(s).length + 2,
+          views = r.kind === "lineage" ? (working ? 0 : 0) : null;
+        // 原型示例统计：对齐 OM StepSummary 字段（records / updated_records / warnings / errors / filtered）
+        const steps = [
+          { name: OM_TYPE[s.type], records: r.kind === "lineage" ? views : n, updated: 0, warnings: 0, errors: bad ? 1 : 0, filtered: 0 },
+          { name: "OpenMetadata", records: r.kind === "lineage" ? views : n, updated: 0, warnings: 0, errors: 0, filtered: 0 },
+        ];
+        const stepTable = `<div class="table-scroll"><table><thead><tr><th>步骤</th><th>记录</th><th>更新</th><th>警告</th><th>错误</th><th>过滤</th></tr></thead><tbody>${steps.map((x) => `<tr><td class="mono">${esc(x.name)}</td><td>${working ? "—" : x.records}</td><td>${working ? "—" : x.updated}</td><td>${working ? "—" : x.warnings}</td><td>${working ? "—" : x.errors}</td><td>${working ? "—" : x.filtered}</td></tr>`).join("")}</tbody></table></div>`;
+        const failures = bad
+          ? `<div class="alert amber" style="margin:16px 0">${icon("warning")}<div><b>失败对象（示例）</b><br><span class="mono small">示例视图定义 · permission denied（示例错误信息）</span><br>其余对象已写入 OpenMetadata。处理源端权限后点击“立即运行”重新采集；历史运行保留。</div></div>`
+          : "";
+        const logs = latest
+          ? `<div class="log">[${working ? "INFO" : bad ? "WARN" : "OK"}] ${esc(taskName(s, r.kind))}\n${working ? "等待调度 / 运行中……" : "本日志为原型示例，已脱敏，不含凭证与业务行。"}</div>`
+          : `<p class="help" style="margin-top:12px">OpenMetadata 仅提供最近一次运行的日志；本次运行可查看状态与统计。</p>`;
         openModal(
           "运行详情",
-          `<div class="row between" style="margin-bottom:20px"><div><h3>${esc(s.name)}</h3><p class="mono muted" style="margin-top:6px">${r.id}</p></div>${status(r.state)}</div><div class="row small muted" style="margin-bottom:25px"><span>触发：${r.trigger}</span><span>开始：${r.time}</span><span>耗时：${r.duration}</span></div><div class="run-stage"><span class="stage-dot">${r.state === "queued" ? "…" : "✓"}</span><div><h3>${r.state === "queued" ? "等待 Airflow 调度" : "连接与元数据权限检查"}</h3><p>${r.state === "queued" ? "任务排队中，尚未访问源系统。" : "只读凭证有效，数据库元数据目录可访问。"}</p></div></div><div class="run-stage"><span class="stage-dot">${working ? "…" : "✓"}</span><div><h3>表与字段采集</h3><p>${working ? "等待采集完成。" : `已记录 ${tables(s).length} 张表、${totalColumns(s)} 个字段。`}</p></div></div><div class="run-stage"><span class="stage-dot ${bad ? "amber" : ""}">${working ? "…" : bad ? "!" : "✓"}</span><div><h3>视图与血缘</h3><p>${working ? "等待采集完成。" : bad ? "部分视图定义无法读取，相关血缘未更新。" : "本轮可获取的定义已处理；无来源证据的关系不会自动补全。"}</p></div></div><div class="run-stage"><span class="stage-dot">${working ? "…" : "✓"}</span><div><h3>写入元数据目录</h3><p>${working ? "等待上游采集。" : "表与字段元数据已写入；业务行没有被复制。"}</p></div></div>${bad ? `<div class="alert amber" style="margin-bottom:16px">${icon("warning")}<div><b>处理建议</b><br>请源系统管理员核对视图定义的只读访问权限。保留已采集结果，修复后重试以补全血缘。</div></div><div class="log">[WARN] VIEW_DEFINITION_ACCESS_DENIED\nsource=${esc(s.service)} · schema=public\n表与字段阶段完成；视图血缘阶段部分失败。\n本日志为原型示例，不含凭证与业务行。</div><label class="checkrow" style="margin-top:12px"><input type="checkbox" id="permission-fixed"/>原型演示：模拟视图权限已修复</label>` : `<div class="log">[${working ? "INFO" : "OK"}] metadata_${esc(s.service.replaceAll("-", "_"))}\n${working ? "等待调度 / 采集中……" : "本次仅采集元数据；日志已脱敏。"}</div>`}`,
-          `<span class="help">OpenMetadata Ingestion · Airflow</span><div class="row">${btn("关闭", "close")}${bad ? btn("重试采集", "retry", s.id, "primary", "refresh") : ""}</div>`,
+          `<div class="row between" style="margin-bottom:20px"><div><h3>${esc(s.name)} · ${KIND_LABEL[r.kind]}</h3><p class="mono muted" style="margin-top:6px">${esc(taskName(s, r.kind))} · ${esc(r.id)}</p></div>${status(r.state)}</div><div class="row small muted" style="margin-bottom:20px"><span>开始：${esc(r.time)}</span><span>耗时：${esc(r.duration)}</span></div>${working ? `<div class="alert">${icon("clock")}${r.state === "queued" ? "已提交到 Airflow，等待调度。" : "运行中，完成后显示步骤统计。"}</div>` : ""}${stepTable}${failures}${logs}${bad && r.kind === "metadata" && s.id === "qms" ? `<label class="checkrow" style="margin-top:12px"><input type="checkbox" id="permission-fixed"/>原型演示：模拟源端权限已修复</label>` : ""}`,
+          `<span class="help">OpenMetadata Ingestion · Airflow</span><div class="row">${btn("关闭", "close")}${bad ? btn("立即运行", "retry", s.id + "|" + r.kind, "primary", "play") : ""}</div>`,
           "run:" + id,
         );
       }
@@ -4058,9 +4228,10 @@
           return;
         }
         if (a === "open-tasks" || a === "task-runs") {
-          selectedSource = v;
+          const [sid, kind = "metadata"] = v.split("|");
+          selectedSource = sid;
           detailTab = "tasks";
-          selectedTask = a === "task-runs" ? taskName(source(v)) : null;
+          selectedTask = a === "task-runs" ? kind : null;
           runFilter = "";
           catalogSelection = null;
           render();
@@ -4134,7 +4305,7 @@
             wizard.type = v;
             wizard.port = String(connectionTypes.find((c) => c[0] === v)[3]);
             wizard.tested = false;
-            wizard.selected = [];
+            wizard.testResult = null;
           }
           renderWizard();
         } else if (a === "wizard-next") nextWizard();
@@ -4146,13 +4317,22 @@
           const err = validateConnection();
           if (err) return wizardError(err);
           wizardError("");
+          // CheckAccess 为短路步骤：失败时后续步骤不执行
+          wizard.testResult = TEST_STEPS[wizard.type].map(([name, mandatory], i) => ({
+            name,
+            mandatory: Boolean(mandatory),
+            passed: wizard.testFailure ? (i === 0 ? false : null) : true,
+            message:
+              wizard.testFailure && i === 0
+                ? "无法连接到目标地址（示例错误信息）。请检查网络、端口、用户名与密码。"
+                : "",
+          }));
           wizard.tested = !wizard.testFailure;
           document.getElementById("connection-result").innerHTML =
-            wizard.testFailure
-              ? `<div class="alert red">${icon("warning")}模拟连接失败：无法访问目标地址。请检查网络、端口与连接地址后重试。</div>`
-              : `<div class="alert green">${icon("check")}模拟连接成功：网络、身份与目录访问检查通过。</div>`;
+            testResultMarkup(wizard.testResult);
         } else if (a === "schedule-confirm") {
-          const s = source(v);
+          const [sid, kind] = v.split("|");
+          const s = task(source(sid), kind);
           if (s.schedule === "手动触发") {
             toast("此数据源仅手动触发，请在采集配置中设置定时计划。");
             return;
@@ -4163,11 +4343,13 @@
             `${btn("取消", "close")}${btn(s.active ? "确认暂停" : "确认恢复", "schedule-toggle", v, "primary")}`,
           );
         } else if (a === "schedule-toggle") {
-          source(v).active = !source(v).active;
+          const [sid, kind] = v.split("|");
+          const t = task(source(sid), kind);
+          t.active = !t.active;
           closeModal();
           render();
           toast(
-            source(v).active
+            t.active
               ? "定时调度已恢复（模拟）"
               : "定时调度已暂停（模拟）",
           );
@@ -4182,10 +4364,12 @@
           render();
           toast("已刷新本地示例运行状态");
         } else if (a === "dag") {
-          const s = source(v);
+          const [sid, kind] = v.split("|");
+          const src = source(sid),
+            s = task(src, kind);
           openModal(
             "调度任务",
-            `<dl class="kv"><dt>DAG 标识</dt><dd class="mono">metadata_${esc(s.service.replaceAll("-", "_"))}</dd><dt>编排器</dt><dd>独立部署的 Airflow</dd><dt>执行器</dt><dd>OpenMetadata Ingestion</dd><dt>调度计划</dt><dd>${esc(s.schedule)} · Asia/Shanghai</dd><dt>当前调度</dt><dd>${s.active ? "启用" : "未启用"}</dd></dl><div class="alert">${icon("clock")}原型展示任务关联关系。实际 DAG 部署、触发与状态回传将在技术方案中验证。</div>`,
+            `<dl class="kv"><dt>DAG 标识</dt><dd class="mono">${esc(taskName(src, kind))}</dd><dt>任务类型</dt><dd>${KIND_LABEL[kind]}（${kind}）</dd><dt>编排器</dt><dd>独立部署的 Airflow</dd><dt>执行器</dt><dd>OpenMetadata Ingestion</dd><dt>调度计划</dt><dd>${esc(s.schedule)} · Asia/Shanghai</dd><dt>当前调度</dt><dd>${s.schedule === "手动触发" ? "手动触发" : s.active ? "启用" : "已暂停"}</dd></dl><div class="alert">${icon("clock")}DAG 由 OpenMetadata 部署到 Airflow，标识与采集任务名称一致。原型仅展示关联关系。</div>`,
             btn("关闭", "close", "", "primary"),
           );
         } else if (a === "reset-confirm")
@@ -4210,6 +4394,10 @@
           document.getElementById("source-table-wrap").innerHTML =
             sourceTable();
         }
+        if (t.dataset.filter) {
+          const [level, key] = t.dataset.filter.split(".");
+          wizard.filters[level][key] = t.value;
+        }
         if (t.dataset.w) {
           wizard[t.dataset.w] = t.type === "checkbox" ? t.checked : t.value;
           if (
@@ -4224,6 +4412,7 @@
             ].includes(t.dataset.w)
           ) {
             wizard.tested = false;
+            wizard.testResult = null;
             const result = document.getElementById("connection-result");
             if (result) result.innerHTML = "";
           }
@@ -4275,14 +4464,12 @@
           runFilter = t.value;
           render();
         }
-        if (t.dataset.w && ["scopeMode", "schedule"].includes(t.dataset.w)) {
-          wizard[t.dataset.w] = t.value;
+        if (
+          t.dataset.w &&
+          ["schedule", "lineageSchedule", "includeViews"].includes(t.dataset.w)
+        ) {
+          wizard[t.dataset.w] = t.type === "checkbox" ? t.checked : t.value;
           renderWizard();
-        }
-        if (t.dataset.tableCheck) {
-          wizard.selected = Array.from(
-            document.querySelectorAll("[data-table-check]:checked"),
-          ).map((x) => x.dataset.tableCheck);
         }
       });
       document.getElementById("dialog").addEventListener("cancel", () => {

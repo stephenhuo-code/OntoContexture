@@ -256,3 +256,25 @@ MySQL / Doris 在本版本连接器中通常用 `databaseName` 或默认 `defaul
 5. 待后续明确：治理导航与后续特性衔接，不把完整治理能力塞进 005。
 
 原型已确认并据此编写正式 spec；本研究与原型不构成集成验收，尚未开始生产实现。
+
+## 9. 2026-11-06 按 OM 原生能力调整（负责人决定：尽量与 OM 一致，第一期不加功能）
+
+背景：首轮实现偏离了 OM 原生链路（BFF 自行连库采集、伪造运行状态），已整体废弃并回到保存点 1。重新设计前，负责人就原型与 OM 原生能力的三处冲突做出决定，原型据此调整。以下结论均来自锁定源码 `third_party/openmetadata/src`（`ctx/2.0.3`）。
+
+| 调整 | OM 原生依据 | 原型改动 |
+| --- | --- | --- |
+| 测试连接按 OM 步骤展示 | `openmetadata-service/src/main/resources/json/data/testConnections/database/{mysql,postgres,oracle,mssql,doris}.json`：每个连接器有固定步骤、是否必需，`CheckAccess` 为短路步骤；结果只含步骤通过与否，**不返回表清单** | 步骤 2 展示连接器对应的检查步骤与“必需 / 可选”；必需步骤全部通过才能继续；CheckAccess 失败时后续步骤为“未执行” |
+| 采集范围改为过滤规则 | `metadataIngestion/databaseServiceMetadataPipeline.json`：`databaseFilterPattern` / `schemaFilterPattern` / `tableFilterPattern`（`type/filterPattern.json` 的 `includes` / `excludes` 正则数组）与 `includeViews` | 步骤 3 移除候选表勾选，改为数据库 / Schema / 表三级“包含 / 排除”正则；全部留空即全部；保留“采集视图”开关 |
+| 采集任务拆为两条 | 视图血缘在独立的 lineage 管道：`metadataIngestion/databaseServiceQueryLineagePipeline.json` 的 `processViewLineage`（`processQueryLineage` 默认开启，本期关闭，不处理查询日志） | 每个源最多两条任务：元数据采集（metadata）与视图血缘（lineage，可选，需同时采集视图）；各自调度、暂停 / 恢复、立即运行与运行记录 |
+| 任务命名 | OM 前端 `utils/ServicePureUtils.ts` `getIngestionName`：`<服务名>_<类型>_<8 位随机串>`；DAG 标识为管道名（`openmetadata_managed_apis/workflows/ingestion/common.py` `clean_dag_id`） | 任务名如 `mock_qms_metadata_R4kz9TbE`，调度详情的 DAG 标识与之一致 |
+| 运行记录字段 | `entity/services/ingestionPipelines/ingestionPipeline.json` `pipelineStatus`：`runId`（UUID）、`pipelineState`（queued / running / success / partialSuccess / failed / stopped）、`startDate`、`endDate`、`status`；**无触发方式字段** | 运行列表去掉“触发方式”列，运行编号显示 UUID |
+| 运行详情 | `status.json` `stepSummary`：`name`、`records`、`updated_records`、`warnings`、`errors`、`filtered`、`failures`；步骤名为连接器类型（如 `Postgres`，`database_service.py` / `query_parser_source.py`）与 sink `OpenMetadata`（`sink/metadata_rest.py`） | 用步骤统计表与失败对象替换原先自拟的“四阶段”说明 |
+| 日志 | `IngestionPipelineResource` 仅提供 `/logs/{id}/last`（最近一次运行） | 只对任务最近一次运行展示日志，历史运行注明 |
+| 重试 | OM 任务操作为 Run / Pause / Resume / Edit / Deploy / Kill / Delete（`PipelineActions*.tsx`），无单次运行“重试” | 异常运行的“重试采集”改为“立即运行”，即重新运行该任务；历史保留 |
+| Doris 键列 | `source/database/doris/metadata.py` 把 `SHOW FULL COLUMNS` 中 Key=YES 的列记为 `PRIMARY_KEY` 列约束，不区分 UNIQUE / DUPLICATE / AGGREGATE 模型 | Doris 与其他连接器一样显示 PK / PRIMARY_KEY，不再显示 UK / UNIQUE；UNIQUE KEY 识别本期不做 |
+
+其他说明：
+
+- 003 模拟库（`testdata/mockfactory/schema/`）没有定义视图，原型中 QMS“部分成功”与失败对象仅作为 `partialSuccess` 状态示例，不代表模拟库存在视图或权限问题。视图血缘的真实验证需要另行准备含视图的测试库。
+- 运行统计数字与日志为离线示例。
+- 2026-11-07 负责人确认连接表单按连接器使用原生字段（依据各连接器 `entity/services/connections/database/*Connection.json`）：MySQL / Doris 数据库选填（`databaseSchema`，非 required）；PostgreSQL（`database` 为 required）与 SQL Server 数据库必填，`ingestAllDatabases=false`；Oracle 用 Service Name（`oracleConnectionType`）；高级字段不暴露。原型步骤 2 已同步。
