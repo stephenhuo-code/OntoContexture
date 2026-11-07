@@ -34,9 +34,9 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 **Purpose**: 契约先行，生成前端类型
 
-- [ ] T001 将 `specs/005-source-metadata-ingestion/contracts/openapi.yaml` 的 10 个路径与全部 schema 合入 `contracts/openapi/bff.yaml`（`info.version` 升为 0.2.0；`$ref` 改为 `../schemas/error.json`；错误码 `source.name_conflict`、`source.deploy_failed`、`source.pipeline_in_flight`、`source.schedule_not_set`、`source.immutable_field`、`upstream.unavailable` 写入描述）
-- [ ] T002 由 `contracts/openapi/bff.yaml` 重新生成 `packages/ts-api/src/`（沿用该包现有生成命令），并确认 `pnpm --filter @contexture/web build` 通过
-- [ ] T003 [P] 确认审计事件沿用 `contracts/schemas/audit-event.json` 现有结构，不改 schema：005 的写操作一律记 `action=write`、`resource.kind=api`、`resource.ref=<HTTP 方法> <路由模板>`（如 `POST /bff/v1/sources/{name}/pipelines/{kind}/trigger`），目标（数据源名、任务类型或实体 FQN）记入现有描述字段；在 `services/bff/tests/contract/test_audit_contract.py` 增加契约测试，校验 005 审计事件符合该 schema
+- [X] T001 将 `specs/005-source-metadata-ingestion/contracts/openapi.yaml` 的 10 个路径与全部 schema 合入 `contracts/openapi/bff.yaml`（`info.version` 升为 0.2.0；`$ref` 改为 `../schemas/error.json`；错误码 `source.name_conflict`、`source.deploy_failed`、`source.pipeline_in_flight`、`source.schedule_not_set`、`source.immutable_field`、`upstream.unavailable` 写入描述）
+- [X] T002 由 `contracts/openapi/bff.yaml` 重新生成 `packages/ts-api/src/`（沿用该包现有生成命令），并确认 `pnpm --filter @contexture/web build` 通过
+- [X] T003 [P] 确认审计事件沿用 `contracts/schemas/audit-event.json` 现有结构，不改 schema：005 的写操作一律记 `action=write`、`resource.kind=api`、`resource.ref=<HTTP 方法> <实际请求路径>`（如 `POST /bff/v1/sources/mock-mes/pipelines/metadata/trigger`，路径即包含目标；schema 无其他可放目标的字段且 `additionalProperties=false`）；在 `services/bff/tests/contract/test_audit_contract.py` 增加契约测试，校验 005 审计事件符合该 schema
 
 ---
 
@@ -77,7 +77,7 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 - [ ] T021 [P] 在 `services/bff/tests/unit/test_om_client.py` 先写测试：令牌交换受众为 `contexture-openmetadata`；OM 5xx / 连接失败映射为 `upstream.unavailable`（502）且无任何回退数据；OM 403 映射为权限错误；响应中任何 `password` 字段被替换为 `*********`（防御性）
 - [ ] T022 实现 `services/bff/src/contexture_bff/adapters/om_sources.py` 的 OM 客户端基础（复用 `contexture_core.mcp.TokenExchanger.exchange`、httpx、trace 传播、错误映射），并在 `services/bff/src/contexture_bff/settings.py` 增加 OM 受众配置、`deploy/charts/bff/values.yaml` 与模板增加对应项（使 T021 通过）
-- [ ] T023 [P] 在 `services/bff/tests/unit/test_audit.py` 编写测试：写操作审计日志含 `trace_id`、`tenant_id`、`user_id`，`action=write`、`resource.kind=api`、`resource.ref` 为路由模板（先提交、先失败）
+- [ ] T023 [P] 在 `services/bff/tests/unit/test_audit.py` 编写测试：写操作审计日志含 `trace_id`、`tenant_id`、`user_id`，`action=write`、`resource.kind=api`、`resource.ref` 为“方法 + 实际请求路径”（先提交、先失败）
 - [ ] T024 在 `services/bff/src/contexture_bff/api/sources.py` 建立路由模块骨架与审计辅助函数，挂载到 `services/bff/src/contexture_bff/main.py`（仅 admin / ai-engineer 可访问）（使 T023 通过）
 - [ ] T025 [P] 在 `apps/web/src/__tests__/navigation.test.tsx` 编写测试：“数据资产 → 数据源”入口指向 `/sources`（先提交、先失败）
 - [ ] T026 修改 `apps/web/src/layout/navigation.ts`、`apps/web/src/App.tsx` 新增路由与 `apps/web/src/pages/SourcesPage.tsx` 空壳（使 T025 通过）
