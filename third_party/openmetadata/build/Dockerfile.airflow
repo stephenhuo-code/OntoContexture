@@ -1,7 +1,7 @@
 # 织境 Airflow 采集镜像（005，research R2）：平台独立 Airflow 的全部组件与 KubernetesExecutor 任务 Pod 共用。
 # 以上游 ingestion/Dockerfile.ci 为蓝本，从子仓库（ctx/2.0.3）源码安装 openmetadata-managed-apis 与
 # openmetadata-ingestion，使镜像与锁定提交及织境补丁一致（ADR-0011）。与上游的差异：
-#   - 连接器依赖只装本期五类（mysql、postgres、oracle、mssql、doris），不装 all 与 db2；
+#   - 连接器依赖只装本期五类（mysql、postgres、oracle、mssql、doris）及 DAG 加载必需的 pii-processor，不装 all 与 db2；
 #   - 不复制上游示例 / 测试 DAG，不带 sample_data；
 #   - 不使用上游单容器入口脚本（组件由 Helm Chart 分别启动）。
 # 构建上下文为子仓库根目录：third_party/openmetadata/build/build.sh airflow
@@ -77,7 +77,9 @@ RUN wget -q https://repo1.maven.org/maven2/org/antlr/antlr4/4.9.2/antlr4-4.9.2-c
   && touch /home/airflow/ingestion/src/metadata/generated/antlr/__init__.py \
   && rm -f /tmp/antlr.jar
 
-ARG INGESTION_DEPENDENCY="mysql,postgres,oracle,mssql,doris"
+# pii-processor：managed-apis 生成的 DAG 导入工作流注册表时会加载自动分类模块（依赖 presidio-analyzer），
+# 不装则部署 DAG 失败（2026-11-07 实测 “No module named 'presidio_analyzer'”）；本期不启用自动分类
+ARG INGESTION_DEPENDENCY="mysql,postgres,oracle,mssql,doris,pii-processor"
 RUN pip install ".[${INGESTION_DEPENDENCY}]"
 RUN pip install "python-daemon>=3.0.0"
 # 与上游一致：只保留 docker / http / cncf / fab / common / standard 类 provider

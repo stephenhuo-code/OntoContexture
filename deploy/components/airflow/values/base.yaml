@@ -29,6 +29,10 @@ dags:
 env:
   - name: AIRFLOW__OPENMETADATA_AIRFLOW_APIS__DAG_GENERATED_CONFIGS
     value: /opt/airflow/dags/generated_configs
+  # Airflow 3 中 managed-apis 部署后依赖 dag-processor 扫描登记 DAG（deploy.py:159 “relying on scheduler scan”）；
+  # 默认 300 秒才发现新文件，保存后“立即运行”会报 DAG 不存在，缩短为 10 秒（2026-11-07 实测）
+  - name: AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL
+    value: "10"
   # OM 的 AirflowRESTClient 只支持 Basic 认证（AirflowRESTClient.java:85-160）；Chart 默认 FAB 认证管理器
   - name: AIRFLOW__FAB__AUTH_BACKENDS
     value: airflow.providers.fab.auth_manager.api.auth.backend.basic_auth,airflow.providers.fab.auth_manager.api.auth.backend.session
@@ -75,6 +79,14 @@ networkPolicies:
   enabled: true
 
 apiServer:
+  # managed-apis 在 api-server 内写 DAG 与生成配置；Chart 默认不给 api-server 挂 dags 卷（2026-11-07 实测写进了容器临时目录，
+  # 任务 Pod 报 “Dag not found during start up”），显式挂同一个 PVC
+  extraVolumes:
+    - name: dags
+      persistentVolumeClaim: { claimName: airflow-dags }
+  extraVolumeMounts:
+    - name: dags
+      mountPath: /opt/airflow/dags
   networkPolicy:
     ingress:
       from:

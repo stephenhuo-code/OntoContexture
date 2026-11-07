@@ -128,7 +128,7 @@ def test_access_creates_policies_roles_teams_and_service_user() -> None:
     assert all(r["effect"] == "allow" for r in source["rules"])
     provisioner = om.store["policies"]["ContextureUserProvisionerPolicy"]
     rules = {tuple(r["resources"]): set(r["operations"]) for r in provisioner["rules"]}
-    assert rules == {("user",): {"Create", "ViewAll", "EditTeams"}, ("team",): {"ViewAll", "EditUsers"}}
+    assert rules == {("user",): {"Create", "ViewAll"}, ("team",): {"ViewAll", "EditUsers"}}
     assert om.store["roles"]["ContextureSourceManager"]["policies"] == ["ContextureSourcePolicy"]
     for team in ("admin", "ai-engineer"):
         assert om.store["teams"][team]["teamType"] == "Group"

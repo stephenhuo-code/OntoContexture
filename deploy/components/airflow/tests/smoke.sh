@@ -25,8 +25,10 @@ echo "api-server network policy OK"
 dags=$(kubectl -n $NS exec deployment/airflow-api-server -c api-server -- sh -c 'airflow config get-value core dags_folder')
 generated=$(kubectl -n $NS exec deployment/airflow-api-server -c api-server -- sh -c 'echo "$AIRFLOW__OPENMETADATA_AIRFLOW_APIS__DAG_GENERATED_CONFIGS"')
 [[ $generated == "$dags"/* ]] || { echo "DAG_GENERATED_CONFIGS（$generated）不在 dags 卷（$dags）内"; exit 1; }
-mounts=$(kubectl -n $NS get deployment airflow-dag-processor -o jsonpath='{.spec.template.spec.containers[*].volumeMounts[*].mountPath}')
-[[ " $mounts " == *" $dags "* ]] || { echo "dag-processor 未挂载 dags 卷"; exit 1; }
+for d in airflow-api-server airflow-dag-processor; do  # Airflow 3 的 scheduler 不读取 DAG 文件
+  claims=$(kubectl -n $NS get deployment $d -o jsonpath='{.spec.template.spec.volumes[*].persistentVolumeClaim.claimName}')
+  [[ " $claims " == *" airflow-dags "* ]] || { echo "$d 未挂载 airflow-dags 卷"; exit 1; }
+done
 echo "dags volume OK"
 
 if kubectl -n $NS exec deployment/airflow-scheduler -c scheduler -- airflow dags list -o plain 2>/dev/null \

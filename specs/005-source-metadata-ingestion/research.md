@@ -82,6 +82,10 @@
      不生效时的原生替代：用户首次登录 OM 界面完成建档与入组，或由 `tools/om_config.py` 预置团队成员。
   2. 更新已有服务、密码保持 `*********` 时 OM 是否保留原密码（`ServiceEntityResource.unmask`，`:88-98`）。
   3. 对已有服务测试连接（密码为掩码）时 OM 是否按服务名补全凭证。
+- **验证结论（2026-11-07，T020 `tests/e2e/test_om_ingestion_chain.py` 在本地集群通过）**：
+  1. API 调用不建档、不入组（见 R13），改为织境登录时由 BFF 同步；
+  2. 更新服务时密码传 `*********`，OM 保留原密码（之后测试连接与采集均成功）；
+  3. 已有服务以掩码密码并带 `serviceName` 测试连接，OM 按已存凭证测试，结果 Successful。
 
 ## R6：测试连接
 
@@ -153,6 +157,12 @@
 
 ## R11：性能与等待
 
+- **实测（2026-11-07，本地 kind，MES 13 张表）**：测试连接 0.6–0.7 s；部署到可触发约 2 s（dag-processor 刷新间隔 10 s）；
+  首次元数据采集（触发到 success）约 25 s。
+- **实施中发现并修正的部署问题**：① 镜像须含 `pii-processor` 依赖，否则生成的 DAG 导入失败；② Chart 默认不给 api-server 挂 dags 卷，
+  须显式挂载，否则任务 Pod 报 “Dag not found during start up”；③ dag-processor 默认 300 s 才发现新 DAG，缩短为 10 s；
+  ④ managed-apis 在 Airflow 3 下不校验凭证，以网络策略限制访问方（R3）。
+
 - 测试连接在 Airflow api-server 进程内执行，预计秒级；采集运行需拉起任务 Pod，含镜像与 Pod 启动耗时。
   首轮计划“测试连接 p95 ≤ 3s”无依据，改为阶段 A 实测后在 acceptance.md 记录；SC-002（3 分钟完成接入与首采）作为验收目标保留。
 - 前端对测试连接与运行状态采用轮询（OM 原生无推送接口给 BFF 使用），间隔与超时在阶段 A 实测后确定。
@@ -180,8 +190,12 @@
     幂等建档（用户名 = `preferred_username`）并同步其在团队 `admin`、`ai-engineer` 中的成员身份（加入应在的、移出不应在的）。
   - 建档身份：`contexture-bff` 机密客户端开启服务账号（client credentials，无需新密钥），OM 中对应普通（非 bot）用户
     `service-account-contexture-bff` 由 `tools/om_config.py` 预置，只授予角色 `ContextureUserProvisioner`：
-    `user`：`Create`、`ViewAll`、`EditTeams`；`team`：`ViewAll`、`EditUsers`。该身份看不到源库密码，也不能操作数据源。
+    `user`：`Create`、`ViewAll`；`team`：`ViewAll`、`EditUsers`（入组经 PATCH 团队的 `users`；PATCH 用户的 `teams` 需要 `EditAll`，
+    2026-11-07 实测，不采用）。该身份看不到源库密码，也不能操作数据源。
   - 不再使用 OM `jwtTeamClaimMapping`，删除 Keycloak 扁平角色声明 `contexture_roles`。
 - **撤销语义**：BFF 每个请求按 Keycloak 令牌角色校验 admin / ai-engineer，角色撤销后在织境立即失效；OM 中残留的团队
   成员身份在下次登录时清除；浏览器只经 BFF 访问 OM，残留身份不可用。Keycloak 中删除的用户在 OM 中不自动删除（本期不做）。
 - **Alternatives considered**：定时同步（延迟、多一个任务与 Keycloak 管理凭证）；部署时同步（不自动）；专用服务账号（OM 变更不归属到人）。
+- **OM 默认策略（2026-11-07 核实，`OM/openmetadata-service/src/main/resources/json/data/policy/OrganizationPolicy.json`）**：
+  所有 OM 用户对全部资源有 `ViewAll`，实体负责人有 `All`，且任何人可给无负责人的实体设置负责人（`EditOwners` + `noOwner()`）。
+  因此建档服务账号也能查看数据源（密码为掩码）。本期不修改 OM 默认策略，记入 acceptance.md 已知限制。

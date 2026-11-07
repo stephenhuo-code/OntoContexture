@@ -111,7 +111,8 @@ ACCESS: dict[str, Any] = {
                     "name": "user",
                     "effect": "allow",
                     "resources": ["user"],
-                    "operations": ["Create", "ViewAll", "EditTeams"],
+                    # 入组经 PATCH 团队 users（team 的 EditUsers）；PATCH 用户 teams 需要 EditAll，不采用（2026-11-07 实测）
+                    "operations": ["Create", "ViewAll"],
                 },
                 {
                     "name": "team",

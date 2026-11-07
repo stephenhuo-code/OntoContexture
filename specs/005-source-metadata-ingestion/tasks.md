@@ -59,7 +59,7 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 - [X] T011 修改 `deploy/components/openmetadata/values/base.yaml`：`pipelineServiceClientConfig.enabled: true`、`type: airflow`、`airflow.apiEndpoint: http://airflow-api-server:8080`、`metadataApiEndpoint: http://openmetadata:8585/api`、Airflow 用户 `openmetadata` 与 `om-secrets/airflow-password`；删除“OM 不接 Airflow 编排”的注释（使 T006 通过）
 - [X] T012 修改 `tools/up.sh`：构建并 `kind load` 织境 Airflow 镜像（与 OM server 镜像同处）；将该镜像纳入 `tools/offline_package.py` 清单与 `deploy/components/airflow/component.yaml`
 - [X] T013 起草 OM 权限清单：在 `specs/005-source-metadata-ingestion/research.md` 新增 R12，列出团队 `admin`、`ai-engineer` 及其 OM 角色 / 策略所授予的具体操作（DatabaseService、IngestionPipeline 的创建 / 编辑 / 部署 / 触发 / 启停，Workflow 测试连接，Database / DatabaseSchema / Table 治理属性编辑，治理选项读取）。**交负责人确认后**才可进行 T014
-- [X] T014 在 `tools/om_config.py` 幂等创建 R12 的团队、角色与策略，以及 R13 的 OM 用户 `service-account-contexture-bff` 与角色 `ContextureUserProvisioner`（`user`：Create / ViewAll / EditTeams；`team`：ViewAll / EditUsers），重复执行无副作用；先在 `tools/tests/test_om_config.py` 增加对应测试（先写、先失败）
+- [X] T014 在 `tools/om_config.py` 幂等创建 R12 的团队、角色与策略，以及 R13 的 OM 用户 `service-account-contexture-bff` 与角色 `ContextureUserProvisioner`（`user`：Create / ViewAll；`team`：ViewAll / EditUsers），重复执行无副作用；先在 `tools/tests/test_om_config.py` 增加对应测试（先写、先失败）
 - [X] T015 更新 `docs/adr/0006-三域数据治理与管线编排.md`（待定问题 2：OM 2.0.3 支持 Airflow 3 外部编排，已采用）与 `docs/adr/0011-OpenMetadata的构建与部署.md`（镜像表新增织境 Airflow 采集镜像及用途）
 
 ### 阶段 B · 测试数据（先写测试）
@@ -71,7 +71,7 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### 阶段 A 闸门 · 真实链路验证
 
-- [ ] T020 新增 `tests/e2e/test_om_ingestion_chain.py`（`pytest -m cluster`）并跑通：以 `service-account-contexture-bff` 为 `admin1`、`engineer1` 在 OM 建档并同步团队（R13）后，用 `admin1` 的委托令牌（受众 `contexture-openmetadata`）对 MES 只读账号发起 OM 测试连接并读到逐步结果；创建 `DatabaseService` 与 metadata 管道；deploy → trigger → 轮询 `pipelineStatus` 至终态；读取 `logs/{id}/last`；以用户令牌读取服务时密码为 `*********`；`engineer1` 的权限符合 T013；测试结束删除所建实体。把 research R5 验证项 2、3（掩码密码更新保留原值、已有服务掩码密码测试连接）的结论写入 `specs/005-source-metadata-ingestion/research.md`；核对 MySQL / Doris `sslConfig`、PostgreSQL `sslMode`、SQL Server `encrypt` 的具体取值，结论写入 research R9。**本任务通过前不得开始 Phase 3**
+- [X] T020 新增 `tests/e2e/test_om_ingestion_chain.py`（`pytest -m cluster`）并跑通：以 `service-account-contexture-bff` 为 `admin1`、`engineer1` 在 OM 建档并同步团队（R13）后，用 `admin1` 的委托令牌（受众 `contexture-openmetadata`）对 MES 只读账号发起 OM 测试连接并读到逐步结果；创建 `DatabaseService` 与 metadata 管道；deploy → trigger → 轮询 `pipelineStatus` 至终态；读取 `logs/{id}/last`；以用户令牌读取服务时密码为 `*********`；`engineer1` 的权限符合 T013；测试结束删除所建实体。把 research R5 验证项 2、3（掩码密码更新保留原值、已有服务掩码密码测试连接）的结论写入 `specs/005-source-metadata-ingestion/research.md`；核对 MySQL / Doris `sslConfig`、PostgreSQL `sslMode`、SQL Server `encrypt` 的具体取值，结论写入 research R9。**本任务通过前不得开始 Phase 3**
 
 ### 公共骨架（闸门通过后）
 
