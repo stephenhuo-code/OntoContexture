@@ -40,7 +40,7 @@ it("四入口顺序、名称、品牌与首页二级准确，设备和开发页�
     within(nav)
       .getAllByRole("link")
       .map((e) => e.getAttribute("aria-label")),
-  ).toEqual(["新建对话", "首页", "资产搜索", "Agent 工作台"]);
+  ).toEqual(["新建对话", "首页", "资产", "Agent 工作台"]);
   expect(screen.getByRole("link", { name: "织境" })).toHaveAttribute(
     "href",
     "/home",
@@ -67,8 +67,8 @@ it.each([
   ["/home", "概览", "首页"],
   ["/home/", "概览", "首页"],
   ["/approvals", "审批中心", "首页"],
-  ["/assets", "资产搜索", "资产搜索"],
-  ["/assets/", "资产搜索", "资产搜索"],
+  ["/assets", "资产搜索", "资产"],
+  ["/assets/", "资产搜索", "资产"],
   ["/agents", "Agent 工作台", "Agent 工作台"],
   ["/agents/new", "新建对话", "新建对话"],
 ])("深链 %s 的标题和选中入口一致", async (path, title, current) => {
@@ -92,7 +92,7 @@ it("切页保留收起偏好，重复展开操作稳定，重新挂载默认展�
   expect(
     screen.queryByRole("navigation", { name: "首页导航" }),
   ).not.toBeInTheDocument();
-  await userEvent.click(screen.getByRole("link", { name: "资产搜索" }));
+  await userEvent.click(screen.getByRole("link", { name: "资产" }));
   await userEvent.click(screen.getByRole("link", { name: "首页" }));
   expect(
     screen.queryByRole("navigation", { name: "首页导航" }),
@@ -133,3 +133,21 @@ it.each(["/unknown/path", "/objects/a/b"])(
     ).toBeVisible();
   },
 );
+
+// 005：资产工作空间（原型 2026-11-06 确认）：二级为“资产搜索（未开放）”与“数据接入 → 数据源”
+it("资产工作空间的二级导航含数据源入口，指向 /sources", async () => {
+  stubIdentity();
+  await openShell("/assets");
+  const secondary = screen.getByRole("navigation", { name: "数据资产导航" });
+  const links = within(secondary).getAllByRole("link");
+  expect(links.map((e) => e.textContent)).toEqual(["资产搜索", "数据源"]);
+  expect(within(secondary).getByRole("link", { name: "数据源" })).toHaveAttribute(
+    "href",
+    "/sources",
+  );
+  const nav = screen.getByRole("navigation", { name: "一级导航" });
+  expect(within(nav).getByRole("link", { name: "资产" })).toHaveAttribute(
+    "href",
+    "/sources",
+  );
+});
