@@ -1,13 +1,3 @@
-<!--
-Sync Impact Report
-- Version change: 2.0.0 → 2.1.0（MINOR：新增数据模型复用原则）
-- Modified sections: 无；既有原则保持有效
-- Added sections: VII. 数据模型优先复用，非必要不新增实体
-- Removed sections: 无
-- Templates requiring updates: 无（模板运行时读取宪法，不修改模板）
-- Synchronized artifacts: Spec 005 的规格、计划、研究、数据模型与接口契约
-- Follow-up TODOs: 无
--->
 # 织境（OntoContexture）项目宪法
 
 ## Core Principles
@@ -195,6 +185,15 @@ Agent 可能被提示注入或误调工具，限定其范围可控制影响面�
   以该 HTML 为输入编写 spec，spec MUST 用文字写明界面与交互需求，验收与测试以 spec 的文字为准；
   ③ HTML 原型与 spec 一起评审与提交。
   原型中的代码 MUST NOT 作为实现代码复用；原型修改时 MUST 同步更新 HTML 与 spec。
+- 原型与真实数据的职责边界：
+  - 原型只负责页面结构、交互流程、状态种类（如成功、部分成功、失败、待配置）与文案风格；
+    原型中的数字、时间、运行记录与表结构仅为示例，MUST NOT 进入生产实现。
+  - 生产页面上的所有数字、时间、运行记录与表结构 MUST 来自真实来源（OpenMetadata、Airflow、
+    源库等）；没有数据时 MUST 显示空状态或真实的报错，MUST NOT 造数据，MUST NOT 在出错时
+    回退到内置示例数据或伪造的成功结果。
+  - 测试断言 MUST 基于测试夹具或真实环境的数据，MUST NOT 断言原型中的示例数值。
+  - 做不到的部分 MUST 明确告知产品负责人并写入 `acceptance.md` 的已知限制，MUST NOT 用假实现
+    填补。
 - 每个特性 MUST 交付一份手动验收文档 `specs/<编号>-<名称>/acceptance.md`，写明：前置条件与数据准备、预计用时、逐步操作、
   每一步的预期结果、与用户故事和成功标准的对应关系、开发方已执行的验证结果（`make lint`、`make test` 及覆盖率、
   `make e2e` 等自动化验证的结论）、已知限制，以及验收记录（日期、验收人、结果、发现的问题）。每一步的命令 MUST 可直接
@@ -219,4 +218,4 @@ Agent 可能被提示注入或误调工具，限定其范围可控制影响面�
 - 合规检查：每个 plan 执行 Constitution Check；每个 PR 评审核对相关条款；
   每季度复审一次本宪法是否仍符合项目实际。
 
-**Version**: 2.1.0 | **Ratified**: 2026-10-03 | **Last Amended**: 2026-11-04
+**Version**: 2.2.0 | **Ratified**: 2026-10-03 | **Last Amended**: 2026-11-06
