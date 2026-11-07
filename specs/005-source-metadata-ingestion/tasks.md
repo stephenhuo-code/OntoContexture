@@ -103,8 +103,8 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 - [X] T033 [P] [US1] 在 `services/bff/tests/unit/test_pipeline_config.py` 编写管道配置测试：三级过滤规则映射到 `databaseFilterPattern` / `schemaFilterPattern` / `tableFilterPattern` 的 `includes` / `excludes`；非法正则（按 Python `re`）返回 400 并指出规则；强制 `markDeletedTables=false`、`overrideMetadata=false`、`extractJsonSchema=false`、不开启 `includeDDL`，请求不能覆盖；任务名为 `<服务标识中非字母数字替换为 _>_metadata_<8 位字母数字>`；`scheduleInterval` 为 cron 或空、时区 `Asia/Shanghai`；服务标识须匹配 `^[a-z][a-z0-9-]{1,49}$`
 - [X] T034 [P] [US1] 在 `services/bff/tests/unit/test_test_connection.py` 编写测试：创建 `TEST_CONNECTION` workflow → trigger → 轮询返回步骤（名称、必需 / 可选取自 OM `testConnections/database/<connector>.json`）；完成后删除 workflow；OM 失败时返回真实错误
 - [ ] T035 [P] [US1] 在 `services/bff/tests/integration/test_sources_cluster.py`（`-m cluster`）编写测试：用真实 OM / Airflow / 003 模拟库创建 MES（数据库填 `mes`，使范围排除同实例的 `viewlab` 库）、QMS（数据库 `qms`）、Doris（数据库 `mock_dw`）数据源并运行元数据采集，断言表数与字段数等于 003 金标准（13 / 79、7 / 53、8 / 66），主键约束存在，Doris 键列为 `PRIMARY_KEY`；`listSources` 统计与之一致
-- [ ] T036 [P] [US1] 在 `apps/web/src/__tests__/sources-list.test.tsx` 编写组件测试（mock BFF 响应为测试夹具）：4 张统计卡按夹具计算；空列表显示空状态；BFF 错误显示错误与重试，不出现任何示例数据源；搜索与状态筛选（全部 / 采集成功 / 需要关注 / 待配置 / 调度已暂停）
-- [ ] T037 [P] [US1] 在 `apps/web/src/__tests__/source-wizard.test.tsx` 编写向导测试：服务标识规则与重复拦截；按连接器显示数据库必填 / 选填与 Service Name；测试连接逐步展示（必需 / 可选、通过 / 失败 / 未执行），必需步骤失败或参数变更后不能进入下一步；过滤规则非法正则拦截；“创建视图血缘任务”仅在“采集视图”开启时可选；第 4 步按任务分别设置调度；保存失败显示真实错误
+- [X] T036 [P] [US1] 在 `apps/web/src/__tests__/sources-list.test.tsx` 编写组件测试（mock BFF 响应为测试夹具）：4 张统计卡按夹具计算；空列表显示空状态；BFF 错误显示错误与重试，不出现任何示例数据源；搜索与状态筛选（全部 / 采集成功 / 需要关注 / 待配置 / 调度已暂停）
+- [X] T037 [P] [US1] 在 `apps/web/src/__tests__/source-wizard.test.tsx` 编写向导测试：服务标识规则与重复拦截；按连接器显示数据库必填 / 选填与 Service Name；测试连接逐步展示（必需 / 可选、通过 / 失败 / 未执行），必需步骤失败或参数变更后不能进入下一步；过滤规则非法正则拦截；“创建视图血缘任务”仅在“采集视图”开启时可选；第 4 步按任务分别设置调度；保存失败显示真实错误
 
 ### Implementation for User Story 1
 
@@ -112,9 +112,9 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 - [X] T039 [US1] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现测试连接 workflow 的创建、触发、查询与清理（使 T034 通过）
 - [X] T040 [US1] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现数据源列表 / 详情 / 新建 / 修改：保存 `DatabaseService` 与管道后调用 OM `deploy/{id}`，部署失败返回 `source.deploy_failed` 且保留实体；表数 / 字段数按 `tables?service=&fields=columns` 分页实时计算；状态派生按 data-model.md 第 3 节
 - [X] T041 [US1] 在 `services/bff/src/contexture_bff/api/sources.py` 实现 `GET/POST /bff/v1/sources`、`GET/PUT /bff/v1/sources/{name}`、`POST /bff/v1/sources/test-connection`、`GET /bff/v1/sources/test-connection/{workflowId}`，写操作记审计（使 T031、T035 通过）
-- [ ] T042 [P] [US1] 实现 `apps/web/src/features/sources/SourcesWorkspace.tsx` 列表页（页头、4 张统计卡、工具栏、表格、底部提醒卡与采集链路说明）及样式 `apps/web/src/features/sources/sources.css`，结构与文案对齐 `prototype/index.html`，数据全部来自 BFF（使 T036 通过）
-- [ ] T043 [P] [US1] 实现 `apps/web/src/features/sources/SourceWizardModal.tsx` 四步向导（测试连接轮询，等待期间显示“测试中”）（使 T037 通过）
-- [ ] T044 [US1] 实现 `apps/web/src/features/sources/SourceDetailView.tsx` 的页头、概览页签（数据源属性只读展示、异常提示条、3 张指标卡、连接信息与各任务调度 / 最近运行）与采集配置页签（三级过滤、视图、视图血缘任务、采集边界）
+- [X] T042 [P] [US1] 实现 `apps/web/src/features/sources/SourcesWorkspace.tsx` 列表页（页头、4 张统计卡、工具栏、表格、底部提醒卡与采集链路说明）及样式 `apps/web/src/features/sources/sources.css`，结构与文案对齐 `prototype/index.html`，数据全部来自 BFF（使 T036 通过）
+- [X] T043 [P] [US1] 实现 `apps/web/src/features/sources/SourceWizardModal.tsx` 四步向导（测试连接轮询，等待期间显示“测试中”）（使 T037 通过）
+- [X] T044 [US1] 实现 `apps/web/src/features/sources/SourceDetailView.tsx` 的页头、概览页签（数据源属性只读展示、异常提示条、3 张指标卡、连接信息与各任务调度 / 最近运行）与采集配置页签（三级过滤、视图、视图血缘任务、采集边界）
 - [ ] T045 [US1] 在 `tests/e2e/sources.spec.ts` 编写并跑通 US1 端到端：真实环境接入 MES（数据库填 `mes`）并首采，列表与详情统计等于 003 金标准；响应中无密码明文
 
 **Checkpoint**: US1 可独立演示（MVP）。

@@ -33,12 +33,17 @@ async function unwrap<T>(call: Call, ok: number[] = [200]): Promise<T> {
   return data as T;
 }
 
+/** 列表类响应须含 data 数组；结构不符视为服务端错误，不猜测、不回退 */
+function dataArray<T>(body: unknown): T[] {
+  const data = (body as { data?: unknown } | null)?.data;
+  if (!Array.isArray(data)) throw new ApiFailure(500);
+  return data as T[];
+}
 
 export async function listSources(): Promise<SourceSummary[]> {
-  const body = await unwrap<{ data: SourceSummary[] }>(
-    bff.GET("/bff/v1/sources", { cache: "no-store" }),
+  return dataArray<SourceSummary>(
+    await unwrap(bff.GET("/bff/v1/sources", { cache: "no-store" })),
   );
-  return body.data;
 }
 
 export function getSource(name: string): Promise<SourceDetail> {
@@ -64,7 +69,7 @@ export function updateSource(
 }
 
 export function startTestConnection(body: {
-  serviceName?: string;
+  serviceName?: string | null;
   serviceType: ServiceType;
   connection: ConnectionInput;
 }): Promise<TestConnectionResult> {
@@ -87,13 +92,14 @@ export async function listRuns(
   kind: PipelineKind,
   state?: PipelineState,
 ): Promise<PipelineRun[]> {
-  const body = await unwrap<{ data: PipelineRun[] }>(
-    bff.GET("/bff/v1/sources/{name}/pipelines/{kind}/runs", {
-      params: { path: { name, kind }, query: state ? { state } : {} },
-      cache: "no-store",
-    }),
+  return dataArray<PipelineRun>(
+    await unwrap(
+      bff.GET("/bff/v1/sources/{name}/pipelines/{kind}/runs", {
+        params: { path: { name, kind }, query: state ? { state } : {} },
+        cache: "no-store",
+      }),
+    ),
   );
-  return body.data;
 }
 
 export async function triggerPipeline(
@@ -159,7 +165,5 @@ export function patchCatalogEntity(
 }
 
 export function getGovernanceOptions(): Promise<GovernanceOptions> {
-  return unwrap(
-    bff.GET("/bff/v1/governance/options", { cache: "no-store" }),
-  );
+  return unwrap(bff.GET("/bff/v1/governance/options", { cache: "no-store" }));
 }

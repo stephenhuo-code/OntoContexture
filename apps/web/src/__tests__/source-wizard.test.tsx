@@ -103,7 +103,8 @@ it("过滤规则非法正则拦截；视图血缘任务需采集视图；按任�
   await userEvent.click(within(dialog).getByRole("button", { name: "测试连接" }));
   await within(dialog).findByRole("table", { name: "连接检查步骤" });
   await userEvent.click(within(dialog).getByRole("button", { name: "下一步" }));
-  await userEvent.type(within(dialog).getByLabelText("表 · 包含"), "([bad");
+  await userEvent.click(within(dialog).getByLabelText("表 · 包含"));
+  await userEvent.paste("([bad"); // type() 会把 [ 当作按键描述符
   await userEvent.click(within(dialog).getByRole("button", { name: "下一步" }));
   expect(within(dialog).getByRole("alert")).toHaveTextContent("不是有效的正则表达式");
   await userEvent.clear(within(dialog).getByLabelText("表 · 包含"));

@@ -151,8 +151,6 @@ paths:
                 required: [data]
                 properties:
                   data: { type: array, items: { $ref: "#/components/schemas/SourceSummary" } }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
         "502": { $ref: "#/components/responses/Unavailable" }
     post:
       operationId: createSource
@@ -595,7 +593,7 @@ components:
                     error: { type: string }
     SourceSummary:
       type: object
-      required: [name, displayName, serviceType, configured, pipelines]
+      required: [name, displayName, serviceType, configured, tableCount, columnCount, pipelines]
       properties:
         name: { type: string }
         displayName: { type: string }
