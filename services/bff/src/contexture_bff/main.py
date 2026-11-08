@@ -99,7 +99,9 @@ def create_app(settings: BffSettings | None = None, *, services: Services | None
                 token_url=cfg.token_url,
                 client_id=cfg.client_id,
                 client_secret=cfg.client_secret.get_secret_value(),
-            ),
+            )
+            if cfg.om_user_sync
+            else None,
             sources=SourcesService(
                 OmClient(om_url=cfg.om_url, exchanger=exchanger, audience=cfg.om_audience)
             ),

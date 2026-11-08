@@ -93,6 +93,7 @@ def settings(postgres_url: str, identity_env: KeycloakEnv) -> BffSettings:
         keycloak_realm="digital-workforce",
         client_secret=SecretStr("test-bff-secret"),
         database_url=postgres_url,
+        om_user_sync=False,  # 本组测试只验证身份与会话，不部署 OM
     )  # type: ignore[arg-type]
     upgrade(settings.database_url)
     return settings

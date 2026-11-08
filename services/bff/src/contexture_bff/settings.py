@@ -18,6 +18,9 @@ class BffSettings(CoreSettings):
     session_cleanup_interval_seconds: int = 600
     # 005：以用户委托令牌调用 OpenMetadata 的受众（research R5）
     om_audience: str = "contexture-openmetadata"
+    # 005 research R13：登录与会话刷新时在 OM 建档用户并同步团队（OM 不可用则登录失败）。
+    # 仅不涉及 OM 的身份集成测试关闭
+    om_user_sync: bool = True
 
     @property
     def redirect_uri(self) -> str:
