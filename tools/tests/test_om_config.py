@@ -157,3 +157,47 @@ def test_access_does_not_grant_delete_on_database_service() -> None:
         for rule in policy["rules"]:
             if "databaseService" in rule["resources"]:
                 assert "Delete" not in rule["operations"]
+
+
+import re  # noqa: E402
+
+from tools import om_config  # noqa: E402
+
+
+class FakeBots:
+    """OM bots：auth-mechanism 返回令牌；loggedInUser 按令牌是否有效返回 200 / 401；generateToken 签发新令牌。"""
+
+    def __init__(self, valid: set[str]) -> None:
+        self.tokens = {"lineage-bot": "old-lineage", "ingestion-bot": "ok-ingestion"}
+        self.valid = valid
+        self.generated: list[str] = []
+
+    def transport(self) -> httpx.MockTransport:
+        def handler(req: httpx.Request) -> httpx.Response:
+            path = req.url.path
+            if m := re.fullmatch(r"/api/v1/bots/name/(.+)", path):
+                return httpx.Response(200, json={"botUser": {"id": f"id-{m.group(1)}", "name": m.group(1)}})
+            if m := re.fullmatch(r"/api/v1/users/auth-mechanism/id-(.+)", path):
+                return httpx.Response(200, json={"config": {"JWTToken": self.tokens[m.group(1)]}})
+            if path == "/api/v1/users/loggedInUser":
+                token = req.headers["authorization"].removeprefix("Bearer ")
+                return httpx.Response(200 if token in self.valid else 401, json={})
+            if m := re.fullmatch(r"/api/v1/users/generateToken/id-(.+)", path):
+                assert req.method == "PUT" and json.loads(req.content) == {"JWTTokenExpiry": "Unlimited"}
+                bot = m.group(1)
+                self.generated.append(bot)
+                self.tokens[bot] = f"new-{bot}"
+                self.valid.add(self.tokens[bot])
+                return httpx.Response(200, json={"JWTToken": self.tokens[bot]})
+            return httpx.Response(404)
+
+        return httpx.MockTransport(handler)
+
+
+def test_invalid_pipeline_bot_token_is_regenerated_once() -> None:
+    """OM 按管道类型使用不同 bot（lineage 管道用 lineage-bot）；令牌失效时 Airflow 生成 DAG 报 Invalid token。"""
+    fake = FakeBots(valid={"ok-ingestion"})
+    with httpx.Client(base_url="http://om", transport=fake.transport()) as http:
+        assert om_config.ensure_bot_tokens(http) == ["bot lineage-bot 令牌已重新生成"]
+        assert om_config.ensure_bot_tokens(http) == []
+    assert fake.generated == ["lineage-bot"]
