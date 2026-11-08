@@ -151,3 +151,23 @@ it("资产工作空间的二级导航含数据源入口，指向 /sources", asyn
     "/sources",
   );
 });
+
+it("一级与二级导航每个入口带对应图标（2026-11-08 负责人按附图调整配色与图标）", async () => {
+  stubIdentity();
+  await openShell("/assets");
+  const nav = screen.getByRole("navigation", { name: "一级导航" });
+  expect(
+    within(nav)
+      .getAllByRole("link")
+      .map((a) => a.querySelector("svg")?.getAttribute("data-icon")),
+  ).toEqual(["new", "home", "assets", "agents"]);
+  const secondary = screen.getByRole("navigation", { name: "数据资产导航" });
+  expect(
+    within(secondary)
+      .getAllByRole("link")
+      .map((a) => a.querySelector("svg")?.getAttribute("data-icon")),
+  ).toEqual(["search", "database"]);
+  expect(
+    document.querySelector(".module-label svg")?.getAttribute("data-icon"),
+  ).toBe("module-asset");
+});
