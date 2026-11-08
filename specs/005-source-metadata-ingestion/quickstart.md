@@ -32,7 +32,7 @@ make ports              # 转发界面端口
 6. 校验：目录树 `mock-mes → default → mes` 下 13 张表；详情统计 13 张表 / 79 个字段（003 金标准）；表详情显示主键 `PK`。
 7. 浏览器开发者工具中，任何响应都不含 MES 密码明文（连接信息为 `*********`）。
 
-QMS（PostgreSQL，数据库必填 `qms`）与数仓（Doris，数据库 `mock_dw`）同样接入，合计 28 张表、198 个字段（SC-001）；Doris 键列显示为 `PK`。
+QMS（PostgreSQL，数据库必填 `qms`，第 3 步 Schema 包含 `^public$`——OM 2.0.3 的 PostgreSQL 采集默认包含系统 Schema `information_schema`，原生无默认排除）与数仓（Doris，数据库 `mock_dw`）同样接入，合计 28 张表、198 个字段（SC-001）；Doris 键列显示为 `PK`。
 
 ## 场景 C：任务控制（US2）
 

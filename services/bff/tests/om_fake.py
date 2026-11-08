@@ -174,8 +174,17 @@ class FakeOM:
             wf = self.workflows.get(wid)
             return self._ok(wf) if wf else httpx.Response(404, json={"message": "not found"})
 
+        if path == "/databases" and m == "GET":
+            # OM：DatabaseResource 支持 service 过滤
+            fqns = sorted({".".join(t["fullyQualifiedName"].split(".")[:2]) for t in self.tables
+                           if t["service"]["name"] == q.get("service")})
+            data = [{"name": f.split(".")[1], "fullyQualifiedName": f} for f in fqns]
+            return self._ok({"data": data, "paging": {"total": len(data)}})
         if path == "/tables" and m == "GET":
-            data = [t for t in self.tables if t["service"]["name"] == q.get("service")]
+            # OM：TableResource 只支持 database / databaseSchema 过滤，不支持 service
+            assert "service" not in q, "OM /tables 不支持 service 过滤"
+            db = q.get("database")
+            data = [t for t in self.tables if t["fullyQualifiedName"].startswith(f"{db}.")]
             return self._ok({"data": data, "paging": {"total": len(data)}})
         return httpx.Response(404, json={"message": f"fake OM: {m} {path}"})
 
@@ -188,7 +197,7 @@ class FakeOM:
         out = json.loads(json.dumps(p))
         runs = self.statuses.get(p["fullyQualifiedName"]) or []
         if runs:
-            out["pipelineStatuses"] = runs[0]
+            out["pipelineStatuses"] = runs[:5]  # OM：最近执行记录数组
         return out
 
     @staticmethod

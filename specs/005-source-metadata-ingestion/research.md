@@ -199,3 +199,10 @@
 - **OM 默认策略（2026-11-07 核实，`OM/openmetadata-service/src/main/resources/json/data/policy/OrganizationPolicy.json`）**：
   所有 OM 用户对全部资源有 `ViewAll`，实体负责人有 `All`，且任何人可给无负责人的实体设置负责人（`EditOwners` + `noOwner()`）。
   因此建档服务账号也能查看数据源（密码为掩码）。本期不修改 OM 默认策略，记入 acceptance.md 已知限制。
+
+## R14：实施中核实的 OM 接口行为（2026-11-08）
+
+- `IngestionPipeline.pipelineStatuses` 为“最近执行记录”数组（`ingestionPipeline.json:175`），BFF 取开始时间最新的一条作为最近运行。
+- `GET /tables` 只支持 `database` / `databaseSchema` 过滤（`TableResource`），不支持 `service`；按服务统计须先 `GET /databases?service=` 再逐库计数。
+- OM 2.0.3 的 PostgreSQL 元数据采集默认包含 `information_schema`（原生配置与界面均无默认排除；连接器仅在连接检查中识别系统 Schema，
+  `postgres/connection.py:149`）。按“与 OM 一致”，BFF 不加默认排除；验收时 QMS 用 Schema 包含 `^public$`（原型示例同此），并在 acceptance.md 注明。

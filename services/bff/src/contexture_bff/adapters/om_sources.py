@@ -180,9 +180,15 @@ def run_view(status: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def latest_status(p: dict[str, Any]) -> dict[str, Any] | None:
+    """OM 的 pipelineStatuses 是“最近执行记录”数组（ingestionPipeline.json:175），取开始时间最新的一条。"""
+    runs = [r for r in p.get("pipelineStatuses") or [] if isinstance(r, dict) and r.get("runId")]
+    return max(runs, key=lambda r: r.get("startDate") or r.get("timestamp") or 0) if runs else None
+
+
 def _pipeline_view(p: dict[str, Any]) -> dict[str, Any]:
     cron = (p.get("airflowConfig") or {}).get("scheduleInterval")
-    last = p.get("pipelineStatuses")
+    last = latest_status(p)
     return {
         "kind": p["pipelineType"],
         "name": p["name"],
@@ -191,7 +197,7 @@ def _pipeline_view(p: dict[str, Any]) -> dict[str, Any]:
         "schedule": {"cron": cron or None},
         # 手动任务无调度可启停；有 cron 时以 OM enabled 为准（toggleIngestion）
         "scheduleEnabled": bool(cron) and bool(p.get("enabled", True)),
-        "lastRun": run_view(last) if isinstance(last, dict) and last.get("runId") else None,
+        "lastRun": run_view(last) if last else None,
     }
 
 
@@ -226,7 +232,13 @@ class SourcesService:
         return [by_kind[k] for k in KINDS if k in by_kind]
 
     async def _counts(self, ctx: RequestContext, service: str) -> tuple[int, int]:
-        tables = await self._paged(ctx, "/tables", {"service": service, "fields": "columns"})
+        """OM /tables 只能按 database / databaseSchema 过滤（TableResource），先按服务列出数据库再计数。"""
+        databases = await self._paged(ctx, "/databases", {"service": service})
+        tables: list[dict[str, Any]] = []
+        for db in databases:
+            tables += await self._paged(
+                ctx, "/tables", {"database": db["fullyQualifiedName"], "fields": "columns"}
+            )
         return len(tables), sum(len(t.get("columns") or []) for t in tables)
 
     async def _summary(self, ctx: RequestContext, svc: dict[str, Any]) -> dict[str, Any]:
@@ -453,7 +465,7 @@ class SourcesService:
         deadline = time.monotonic() + timeout
         while True:
             pipe = await self._pipeline(ctx, name, kind)
-            last = pipe.get("pipelineStatuses") or {}
+            last = latest_status(pipe) or {}
             if last.get("pipelineState") in ("success", "partialSuccess", "failed", "stopped"):
                 return run_view(last)
             if time.monotonic() >= deadline:
