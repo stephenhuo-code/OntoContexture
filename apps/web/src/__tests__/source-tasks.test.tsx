@@ -81,6 +81,7 @@ function open(path: string) {
 
 function routes(extra: Parameters<typeof stubBff>[0] = []) {
   return stubBff([
+    ...extra,
     { path: "/bff/v1/sources", body: { data: sourcesFixture } },
     { path: "/bff/v1/sources/fixture-mes", body: detail },
     { path: `${base}/metadata/runs`, body: { data: runs } },
@@ -89,7 +90,6 @@ function routes(extra: Parameters<typeof stubBff>[0] = []) {
       path: `${base}/metadata/logs/last`,
       body: { runId: NEW, logs: "INFO 采集完成（夹具）" },
     },
-    ...extra,
   ]);
 }
 
@@ -227,4 +227,25 @@ it("排队中的运行禁用立即运行", async () => {
   open("/sources/fixture-mes?tab=tasks&task=metadata");
   await screen.findByRole("table", { name: "运行记录" });
   expect(screen.getByRole("button", { name: "立即运行" })).toBeDisabled();
+});
+
+it("运行未结束时运行详情不请求日志，提示运行结束后显示（Airflow 运行中读不到实时日志）", async () => {
+  const running = {
+    ...runs[0]!,
+    pipelineState: "running",
+    endDate: null,
+    steps: [],
+  };
+  const calls = routes([
+    { path: `${base}/metadata/runs`, body: { data: [running] } },
+  ]);
+  open("/sources/fixture-mes?tab=tasks&task=metadata");
+  const table = await screen.findByRole("table", { name: "运行记录" });
+  await userEvent.click(
+    within(table).getByRole("button", { name: "查看运行" }),
+  );
+  const dialog = screen.getByRole("dialog", { name: "运行详情" });
+  expect(dialog).toHaveTextContent("运行结束后显示日志");
+  expect(within(dialog).queryByLabelText("运行日志")).not.toBeInTheDocument();
+  expect(calls.some((c) => c.path.endsWith("/logs/last"))).toBe(false);
 });

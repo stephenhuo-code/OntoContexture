@@ -117,6 +117,7 @@ class FakeOM:
         self.calls: list[tuple[str, str]] = []
         self.fail_deploy = False
         self.test_connection_ok = True
+        self.test_steps_override: list[dict[str, Any]] | None = None
         self.down = False
 
     # ---------- 测试辅助 ----------
@@ -301,7 +302,10 @@ class FakeOM:
             wf = self.workflows[mm.group(1)]
             ctype = wf["request"]["connectionType"]
             steps = TEST_STEPS[ctype]
-            if self.test_connection_ok:
+            if self.test_steps_override is not None:
+                result = self.test_steps_override
+                wf["status"] = "Successful"
+            elif self.test_connection_ok:
                 result = [{"name": n, "mandatory": mand, "passed": True} for n, mand in steps]
                 wf["status"] = "Successful"
             else:

@@ -162,6 +162,14 @@ it("过滤规则非法正则拦截；视图血缘任务需采集视图；按任�
   );
   await within(dialog).findByRole("table", { name: "连接检查步骤" });
   await userEvent.click(within(dialog).getByRole("button", { name: "下一步" }));
+  // 第 3 步逐层说明（MySQL：数据库层固定为 default，Schema 为物理库）与写法规则
+  expect(
+    within(dialog).getByLabelText("数据库 · 包含"),
+  ).toHaveAccessibleDescription(/固定为 default/);
+  expect(
+    within(dialog).getByLabelText("Schema · 包含"),
+  ).toHaveAccessibleDescription(/物理库/);
+  expect(dialog).toHaveTextContent(/从名称开头匹配/);
   await userEvent.click(within(dialog).getByLabelText("表 · 包含"));
   await userEvent.paste("([bad"); // type() 会把 [ 当作按键描述符
   await userEvent.click(within(dialog).getByRole("button", { name: "下一步" }));
@@ -276,4 +284,32 @@ it("连接器卡片显示缩写图标与连接器名称（按原型）", async (
   expect(
     within(dialog).getByRole("button", { name: /^PostgreSQL/ }),
   ).toHaveAttribute("aria-pressed", "false");
+});
+
+it("MySQL 数据库留空的提示；采集范围逐层说明含义与写法（层级按 OpenMetadata 连接器核实）", async () => {
+  stubBff([{ path: "/bff/v1/sources", body: { data: [] } }]);
+  open();
+  const dialog = await stepOne("mes", "plant-mes", "MySQL");
+  expect(
+    within(dialog).getByLabelText("数据库（选填）"),
+  ).toHaveAccessibleDescription(
+    /留空会采集账号可见的全部库，包括 information_schema 等系统库；建议填写业务库名/,
+  );
+  // 第 3 步各层说明由 scopeHelp 生成（渲染见“过滤规则非法正则拦截”用例进入第 3 步时的断言）
+  const { scopeHelp } = await import("../features/sources/format");
+  expect(scopeHelp("Mysql")).toEqual({
+    rule: expect.stringMatching(/从名称开头匹配.*不区分大小写.*\^名称\$/),
+    databaseFilterPattern: expect.stringMatching(/固定为 default/),
+    schemaFilterPattern: expect.stringMatching(/物理库/),
+    tableFilterPattern: expect.stringMatching(/表或视图名/),
+  });
+  expect(scopeHelp("Postgres").databaseFilterPattern).toMatch(
+    /连接时填写的数据库/,
+  );
+  expect(scopeHelp("Postgres").schemaFilterPattern).toMatch(/public/);
+  expect(scopeHelp("Postgres").schemaFilterPattern).toMatch(
+    /information_schema/,
+  );
+  expect(scopeHelp("Oracle").databaseFilterPattern).toMatch(/固定为 default/);
+  expect(scopeHelp("Mssql").schemaFilterPattern).toMatch(/dbo/);
 });
