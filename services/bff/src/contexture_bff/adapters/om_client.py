@@ -1,9 +1,11 @@
 """以登录用户的委托令牌调用 OpenMetadata（005，research R5）。
 
-- 令牌：用户令牌经 Keycloak 令牌交换收窄到受众 ``contexture-openmetadata``；OM 对非 bot 身份自动把密码脱敏，
+- 令牌：用户令牌经 Keycloak 令牌交换收窄到受众 ``contexture-openmetadata``；OM 对非 bot
+身份自动把密码脱敏，
   BFF 因此拿不到源库明文密码（FR-010）。
 - 错误如实映射，不回退任何数据（宪法 v2.2.0）：连接失败与 5xx → ``upstream.unavailable``（502）；
-  403 → ``auth.om_forbidden``；404 → ``upstream.not_found``（或 ``allow_404`` 时返回 None）；其他 4xx → ``upstream.rejected``，
+  403 → ``auth.om_forbidden``；404 → ``upstream.not_found``（或 ``allow_404`` 时返回 None）；其他
+  4xx → ``upstream.rejected``，
   消息取 OM 原文。
 - 防御：响应中任何 ``password`` 字段一律替换为掩码。
 """

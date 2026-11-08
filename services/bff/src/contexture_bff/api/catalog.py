@@ -1,4 +1,5 @@
-"""/bff/v1/catalog/{entityType}/{fqn} 与 /bff/v1/governance/options（005 US3 / US4）：实时读写 OpenMetadata。"""
+"""/bff/v1/catalog/{entityType}/{fqn} 与 /bff/v1/governance/options（005 US3 / US4）：实时读写
+OpenMetadata。"""
 
 from typing import Annotated, Any, Literal
 
@@ -25,7 +26,9 @@ class Ref(BaseModel):
 
 
 class GovernancePatch(BaseModel):
-    """contracts/openapi/bff.yaml：GovernancePatch；未出现的字段不修改，null 表示清空（恢复继承）。"""
+    """contracts/openapi/bff.yaml：GovernancePatch。
+
+    未出现的字段不修改，null 表示清空（恢复继承）。"""
 
     model_config = ConfigDict(extra="forbid", strict=True)
     columnName: str | None = Field(default=None, min_length=1)  # noqa: N815

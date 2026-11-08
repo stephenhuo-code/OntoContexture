@@ -1,4 +1,5 @@
-"""写操作审计（FR-010）：结构化日志含 trace_id、tenant_id、user_id，action=write、resource=api + 方法与实际路径。"""
+"""写操作审计（FR-010）：结构化日志含 trace_id、tenant_id、user_id，action=write、resource=api +
+方法与实际路径。"""
 
 import json
 import logging

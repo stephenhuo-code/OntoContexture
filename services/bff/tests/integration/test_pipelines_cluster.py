@@ -1,5 +1,7 @@
-"""US2 集成（真实 OM / Airflow，-m cluster）：暂停 / 恢复同步到 Airflow DAG；立即运行产生新的 PipelineStatus；最近日志可读。
-以 engineer1 的委托令牌操作（验证 R12 权限含 toggleIngestion 所需的 EditIngestionPipelineStatus）。"""
+"""US2 集成（真实 OM / Airflow，-m cluster）：暂停 / 恢复同步到 Airflow DAG；立即运行产生新的
+PipelineStatus；最近日志可读。
+以 engineer1 的委托令牌操作（验证 R12 权限含 toggleIngestion 所需的 EditIngestionPipelineStatus）。
+"""
 
 import asyncio
 import base64
@@ -11,11 +13,11 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "tests"))
-from support.cluster import exchange, port_forward, user_token  # noqa: E402
+from support.cluster import exchange, port_forward, user_token
 
-from contexture_bff.adapters.om_client import OmClient  # noqa: E402
-from contexture_bff.adapters.om_sources import SourcesService  # noqa: E402
-from contexture_core.auth import RequestContext  # noqa: E402
+from contexture_bff.adapters.om_client import OmClient
+from contexture_bff.adapters.om_sources import SourcesService
+from contexture_core.auth import RequestContext
 
 pytestmark = pytest.mark.cluster
 NAME = "ctx005-it-runs"
@@ -37,11 +39,12 @@ class UserExchanger:
 _PAUSED_PY = """
 import json, os, sys, urllib.request
 base = "http://localhost:8080"
+cred = {"username": "openmetadata", "password": os.environ["OM_AIRFLOW_PASSWORD"]}
 req = urllib.request.Request(base + "/auth/token", method="POST",
-    data=json.dumps({"username": "openmetadata", "password": os.environ["OM_AIRFLOW_PASSWORD"]}).encode(),
-    headers={"Content-Type": "application/json"})
+    data=json.dumps(cred).encode(), headers={"Content-Type": "application/json"})
 token = json.load(urllib.request.urlopen(req))["access_token"]
-dag = urllib.request.Request(base + "/api/v2/dags/" + sys.argv[1], headers={"Authorization": "Bearer " + token})
+auth = {"Authorization": "Bearer " + token}
+dag = urllib.request.Request(base + "/api/v2/dags/" + sys.argv[1], headers=auth)
 print(json.load(urllib.request.urlopen(dag))["is_paused"])
 """
 

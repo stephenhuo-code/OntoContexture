@@ -1,14 +1,16 @@
-"""US3：四层目录（服务 → 数据库 → Schema → 表）按 OM 实体层级读取；表的类型、约束与字段只读展示，不伪造。"""
+"""US3：四层目录（服务 → 数据库 → Schema → 表）按 OM 实体层级读取；表的类型、约束与字段只读展示，
+不伪造。"""
 
 import pytest
 from bff_fakes import user_context
 from om_fake import FakeOM
 from sources_helpers import service, upsert
 
+from contexture_bff.adapters.om_sources import SourcesService
 from contexture_core.errors import ContextureError
 
 
-async def catalog() -> tuple[FakeOM, object]:
+async def catalog() -> tuple[FakeOM, SourcesService]:
     om = FakeOM()
     svc = service(om)
     await svc.create_source(user_context(), upsert())

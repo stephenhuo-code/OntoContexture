@@ -3,14 +3,12 @@
 import asyncio
 import contextlib
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
 
-from collections.abc import Awaitable, Callable
-
 from fastapi import FastAPI, Request, Response
-from starlette.routing import Match
 from sqlalchemy.ext.asyncio import create_async_engine
+from starlette.routing import Match
 
 from contexture_bff.adapters.data import McpObjectData, ObjectData
 from contexture_bff.adapters.keycloak import KeycloakOidc, Oidc

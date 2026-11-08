@@ -1,6 +1,8 @@
-"""005 测试数据：只读元数据账号与 viewlab 视图测试库（spec Clarification 2026-11-07，research R10）。
+"""005 测试数据：只读元数据账号与 viewlab 视图测试库（spec Clarification 2026-11-07，research R10）
+。
 
-- 只读账号：`mes_meta_ro`（mock-mes 的 MySQL，库 mes）、`qms_meta_ro`（mock-qms 的 PostgreSQL，库 qms），
+- 只读账号：`mes_meta_ro`（mock-mes 的 MySQL，库 mes）、`qms_meta_ro`（mock-qms 的 PostgreSQL，库
+qms），
   供织境以 OpenMetadata 原生采集读取元数据；不改动 003 的表与数据。
 - viewlab：在同一两个实例内各建独立数据库 `viewlab`（基表 + 引用基表的视图），以及
   `viewlab_ro`（可读视图定义）与 `viewlab_noview`（MySQL 不授予 SHOW VIEW，读不到视图定义）。
@@ -21,7 +23,7 @@ import pymysql
 
 DATABASE = "viewlab"
 ACCOUNTS = ("mes_meta_ro", "qms_meta_ro", "viewlab_ro", "viewlab_noview")
-SECRET = "mock-readonly"  # 命名空间 mock-sources；键与 ACCOUNTS 相同（下划线换为连字符）
+SECRET = "mock-readonly"  # noqa: S105 -- Kubernetes Secret 名称，不是密码；命名空间 mock-sources；键与 ACCOUNTS 相同（下划线换为连字符）
 
 TABLES = {
     "supplier": [
@@ -107,7 +109,9 @@ def provision_mysql(admin: dict[str, Any], passwords: dict[str, str]) -> None:
                 cols = ", ".join(f"`{c[0]}`" for c in TABLES[table])
                 marks = ", ".join(["%s"] * len(TABLES[table]))
                 cur.executemany(
-                    f"INSERT IGNORE INTO `{table}` ({cols}) VALUES ({marks})", ROWS[table]
+                    # 表名与列名取自本模块常量，值经参数绑定
+                    f"INSERT IGNORE INTO `{table}` ({cols}) VALUES ({marks})",  # noqa: S608
+                    ROWS[table],
                 )
             for view, sql in VIEWS.items():
                 cur.execute(f"CREATE OR REPLACE VIEW `{view}` AS {sql}")
@@ -158,12 +162,13 @@ async def _provision_postgres(admin_dsn: str, passwords: dict[str, str]) -> None
             cols = ", ".join(f'"{c[0]}"' for c in TABLES[table])
             marks = ", ".join(f"${i + 1}" for i in range(len(TABLES[table])))
             await lab.executemany(
-                f'INSERT INTO "{table}" ({cols}) VALUES ({marks}) ON CONFLICT DO NOTHING',
+                f'INSERT INTO "{table}" ({cols}) VALUES ({marks}) ON CONFLICT DO NOTHING',  # noqa: S608
                 ROWS[table],
             )
         for view, sql in VIEWS.items():
             await lab.execute(f'CREATE OR REPLACE VIEW "{view}" AS {sql}')
-        # PostgreSQL 的 pg_get_viewdef 对所有可连接角色可读，无法用权限复现“视图定义不可读”（research R10）；
+        # PostgreSQL 的 pg_get_viewdef 对所有可连接角色可读，
+        # 无法用权限复现“视图定义不可读”（research R10）；
         # viewlab_noview 在 PostgreSQL 上与 viewlab_ro 同权，仅为保持账号集合一致
         for user in ("viewlab_ro", "viewlab_noview"):
             await lab.execute(f'GRANT CONNECT ON DATABASE "{DATABASE}" TO "{user}"')
@@ -194,7 +199,7 @@ def local_passwords(context: str = "kind-contexture") -> dict[str, str]:
     for user in ACCOUNTS:
         key = user.replace("_", "-")
         raw = subprocess.run(  # noqa: S603
-            [
+            [  # noqa: S607
                 "kubectl",
                 "--context",
                 context,
@@ -202,7 +207,7 @@ def local_passwords(context: str = "kind-contexture") -> dict[str, str]:
                 "mock-sources",
                 "get",
                 "secret",
-                SECRET,  # noqa: S607
+                SECRET,
                 "-o",
                 f"jsonpath={{.data.{key}}}",
             ],

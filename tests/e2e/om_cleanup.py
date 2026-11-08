@@ -6,7 +6,7 @@ from pathlib import Path
 import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from support.cluster import exchange, port_forward, user_token  # noqa: E402
+from support.cluster import exchange, port_forward, user_token
 
 token = exchange(user_token("admin1", "admin1"), "contexture-openmetadata")
 with port_forward("svc/openmetadata", 8585) as url:

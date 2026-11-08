@@ -10,10 +10,10 @@ import httpx
 import schemathesis
 import yaml
 from bff_fakes import FakeObjectData, FakeObjectTypes, FakeOidc, FakeSessions
-from om_fake import FakeOM
-from sources_helpers import service as sources_service
 from hypothesis import HealthCheck, settings
+from om_fake import FakeOM
 from schemathesis.specs.openapi.checks import positive_data_acceptance
+from sources_helpers import service as sources_service
 from support.jwt import ISSUER, JWKS_URL, LocalIssuer
 
 from contexture_bff.main import Services, create_app
@@ -79,9 +79,12 @@ class BearerAuth:
     deadline=None,
 )
 def test_bff_matches_contract(case: schemathesis.Case) -> None:
-    # 005 的连接器级业务规则（如 MySQL 不提供 TLS、PostgreSQL 须填数据库、过滤规则须为合法正则）无法用 JSON Schema
-    # 表达，按设计返回 400 source.invalid_request；由 test_sources_contract.py 与单元测试覆盖，此处不做“合法数据必被接受”检查
-    # 治理属性 PATCH 同理：Tier 取值、ISO 8601 周期、互斥分类、域与产品一致性返回 400，由 test_governance*.py 覆盖
+    # 005 的连接器级业务规则（如 MySQL 不提供 TLS、PostgreSQL 须填数据库、过滤规则须为合法正则）
+    # 无法用 JSON Schema
+    # 表达，按设计返回 400 source.invalid_request；由 test_sources_contract.py 与单元测试覆盖，
+    # 此处不做“合法数据必被接受”检查
+    # 治理属性 PATCH 同理：Tier 取值、ISO 8601 周期、互斥分类、域与产品一致性返回 400，由
+    # test_governance*.py 覆盖
     business_rules = case.path.startswith("/bff/v1/sources") or (
         case.method == "PATCH" and case.path.startswith("/bff/v1/catalog")
     )

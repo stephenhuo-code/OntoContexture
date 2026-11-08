@@ -1,7 +1,9 @@
-"""005 测试数据（真实 MySQL 8.4 / PostgreSQL 17，Testcontainers）：只读元数据账号与 viewlab 视图测试库。
+"""005 测试数据（真实 MySQL 8.4 / PostgreSQL 17，Testcontainers）：只读元数据账号与 viewlab
+视图测试库。
 
 - 只读账号能看到库 / 表 / 字段，不能写；003 的 mes、qms 不受影响（本模块不重建它们）。
-- viewlab：可读账号能读视图定义；MySQL 受限账号（无 SHOW VIEW）读不到；视图与基表关系与标准答案一致。
+- viewlab：可读账号能读视图定义；MySQL 受限账号（无 SHOW VIEW）读不到；
+视图与基表关系与标准答案一致。
 """
 
 import asyncio
@@ -31,7 +33,7 @@ def _mysql(dsn: str, user: str | None = None, database: str | None = None) -> "p
     params = parse_mysql_dsn(dsn)
     if user:
         params = {**params, "user": user, "password": PASSWORDS[user]}
-    return pymysql.connect(**params, database=database, autocommit=True)
+    return pymysql.connect(**params, database=database, autocommit=True)  # pyright: ignore[reportCallIssue, reportArgumentType]
 
 
 def _pg_dsn(dsn: str, database: str, user: str | None = None) -> str:
@@ -80,7 +82,8 @@ def test_mysql_readonly_and_viewlab(mysql_dsn: str) -> None:
         found = dict(cur.fetchall())
         assert {t: "BASE TABLE" for t in TABLES} | {v: "VIEW" for v in VIEWS} == found
         cur.execute(
-            "SELECT table_name, view_definition FROM information_schema.views WHERE table_schema=%s",
+            "SELECT table_name, view_definition FROM information_schema.views "
+            "WHERE table_schema=%s",
             (DATABASE,),
         )
         definitions = dict(cur.fetchall())
@@ -133,7 +136,9 @@ def test_postgres_readonly_and_viewlab(postgres_dsn: str) -> None:
         "SELECT table_name, table_type FROM information_schema.tables "
         "WHERE table_schema='public' ORDER BY table_name",
     )
-    assert dict(rows) == {t: "BASE TABLE" for t in TABLES} | {v: "VIEW" for v in VIEWS}
+    assert {str(r[0]): r[1] for r in rows} == {t: "BASE TABLE" for t in TABLES} | {
+        v: "VIEW" for v in VIEWS
+    }
     for view, upstream in LINEAGE.items():
         definition = str(pg_fetch(lab, f"SELECT pg_get_viewdef('{view}'::regclass)")[0][0])
         for table in upstream["tables"]:

@@ -1,4 +1,5 @@
-"""US4 集成（真实 OM，-m cluster）：engineer1 在五个层级写入治理属性，重新采集（overrideMetadata=false）
+"""US4 集成（真实 OM，-m cluster）：engineer1 在五个层级写入治理属性，
+重新采集（overrideMetadata=false）
 与修改连接配置后属性保持不变；继承来源与 OM 返回一致。"""
 
 import asyncio
@@ -12,11 +13,11 @@ from typing import Any
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "tests"))
-from support.cluster import exchange, port_forward, user_token  # noqa: E402
+from support.cluster import exchange, port_forward, user_token
 
-from contexture_bff.adapters.om_client import OmClient  # noqa: E402
-from contexture_bff.adapters.om_sources import SourcesService  # noqa: E402
-from contexture_core.auth import RequestContext  # noqa: E402
+from contexture_bff.adapters.om_client import OmClient
+from contexture_bff.adapters.om_sources import SourcesService
+from contexture_core.auth import RequestContext
 
 pytestmark = pytest.mark.cluster
 NAME = "ctx005-it-governance"

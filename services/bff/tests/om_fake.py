@@ -265,7 +265,8 @@ class FakeOM:
                 return httpx.Response(
                     400,
                     json={
-                        "message": "Failed to deploy Ingestion Pipeline due to airflow API returned Internal Server Error"
+                        "message": "Failed to deploy Ingestion Pipeline due to airflow API "
+                        "returned Internal Server Error"
                     },
                 )
             self.pipelines[mm.group(1)]["deployed"] = True
@@ -282,10 +283,9 @@ class FakeOM:
             return self._ok({"ingestion_task": "INFO 采集完成（测试夹具日志）", "total": "1"})
         if mm := re.fullmatch(r"/services/ingestionPipelines/(.+)/pipelineStatus", path):
             return self._ok({"data": list(self.statuses.get(mm.group(1), []))})
-        if mm := re.fullmatch(r"/services/ingestionPipelines/(.+)", path):
-            if m == "DELETE":
-                self.pipelines.pop(mm.group(1), None)
-                return self._ok({})
+        if (mm := re.fullmatch(r"/services/ingestionPipelines/(.+)", path)) and m == "DELETE":
+            self.pipelines.pop(mm.group(1), None)
+            return self._ok({})
         if mm := re.fullmatch(
             r"/services/testConnectionDefinitions/name/(\w+)\.testConnectionDefinition", path
         ):
@@ -330,18 +330,20 @@ class FakeOM:
             if hit is None or (kind == "tables") != (hit in self.tables):
                 return httpx.Response(404, json={"message": "not found"})
             return self._ok(self._inherited(hit))
-        if mm := re.fullmatch(
-            r"/(databases|databaseSchemas|tables|services/databaseServices)/([0-9a-f-]{36})", path
-        ):
-            if m == "PATCH":
-                assert req.headers["content-type"] == "application/json-patch+json"
-                target = self._by_id(mm.group(2))
-                if target is None:
-                    return httpx.Response(404, json={"message": "not found"})
-                ops = json.loads(req.content)
-                self.patches.append((target["fullyQualifiedName"], ops))
-                _apply(target, ops)
-                return self._ok(self._inherited(target))
+        if (
+            mm := re.fullmatch(
+                r"/(databases|databaseSchemas|tables|services/databaseServices)/([0-9a-f-]{36})",
+                path,
+            )
+        ) and m == "PATCH":
+            assert req.headers["content-type"] == "application/json-patch+json"
+            target = self._by_id(mm.group(2))
+            if target is None:
+                return httpx.Response(404, json={"message": "not found"})
+            ops = json.loads(req.content)
+            self.patches.append((target["fullyQualifiedName"], ops))
+            _apply(target, ops)
+            return self._ok(self._inherited(target))
         if path == "/databaseSchemas" and m == "GET":
             db = q.get("database")
             data = [

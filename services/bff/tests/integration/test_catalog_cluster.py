@@ -1,4 +1,5 @@
-"""US3 集成（真实 OM，-m cluster）：采集 MES 后逐层读取，层级与数量等于 OM 实体与 003 金标准；MySQL 为 default → mes → 表。"""
+"""US3 集成（真实 OM，-m cluster）：采集 MES 后逐层读取，层级与数量等于 OM 实体与 003 金标准；MySQL
+为 default → mes → 表。"""
 
 import asyncio
 import base64
@@ -10,11 +11,11 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "tests"))
-from support.cluster import exchange, port_forward, user_token  # noqa: E402
+from support.cluster import exchange, port_forward, user_token
 
-from contexture_bff.adapters.om_client import OmClient  # noqa: E402
-from contexture_bff.adapters.om_sources import SourcesService  # noqa: E402
-from contexture_core.auth import RequestContext  # noqa: E402
+from contexture_bff.adapters.om_client import OmClient
+from contexture_bff.adapters.om_sources import SourcesService
+from contexture_core.auth import RequestContext
 
 pytestmark = pytest.mark.cluster
 NAME = "ctx005-it-catalog"

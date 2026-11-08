@@ -111,7 +111,8 @@ ACCESS: dict[str, Any] = {
                     "name": "user",
                     "effect": "allow",
                     "resources": ["user"],
-                    # 入组经 PATCH 团队 users（team 的 EditUsers）；PATCH 用户 teams 需要 EditAll，不采用（2026-11-07 实测）
+                    # 入组经 PATCH 团队 users（team 的 EditUsers）；PATCH 用户 teams 需要 EditAll，
+                    # 不采用（2026-11-07 实测）
                     "operations": ["Create", "ViewAll"],
                 },
                 {
@@ -174,7 +175,8 @@ def apply_access(http: httpx.Client, access: dict[str, Any] = ACCESS) -> list[st
 
 
 # OM 按管道类型选用 bot：lineage 管道用 lineage-bot（metadata 管道用 ingestion-bot，由 OM 维护）。
-# 本地环境实测 lineage-bot 存量令牌失效，Airflow 生成血缘 DAG 时报 “Not Authorized! Invalid token”（005 research R14）。
+# 本地环境实测 lineage-bot 存量令牌失效，Airflow 生成血缘 DAG 时报 “Not Authorized! Invalid
+# token”（005 research R14）。
 PIPELINE_BOTS = ("lineage-bot",)
 
 

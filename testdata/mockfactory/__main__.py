@@ -151,12 +151,13 @@ def verify_cases(args: argparse.Namespace) -> int:
 
 def provision_005() -> int:
     """在本地集群的 mock-mes / mock-qms 实例内建只读元数据账号与 viewlab（不改动 003 数据）。"""
-    from mockfactory import viewlab  # noqa: PLC0415
+    from mockfactory import viewlab
 
     passwords = viewlab.local_passwords()
     with local_targets() as t:
         check_ready(t, 0)
-        assert t.mes is not None and t.qms is not None
+        if t.mes is None or t.qms is None:
+            raise SystemExit("provision-005 需要本地集群中的 mock-mes 与 mock-qms")
         viewlab.provision_mysql(t.mes, passwords)
         viewlab.provision_postgres(t.qms, passwords)
     print("provision-005: mes_meta_ro、qms_meta_ro、viewlab（MySQL / PostgreSQL）就绪")

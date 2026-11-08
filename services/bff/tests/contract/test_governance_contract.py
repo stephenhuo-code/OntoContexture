@@ -1,6 +1,7 @@
 """US4 契约：PATCH /bff/v1/catalog/{entityType}/{fqn} 与 GET /bff/v1/governance/options。"""
 
 from contract_helpers import check, make
+from fastapi.testclient import TestClient
 from om_fake import FakeOM
 from sources_helpers import upsert
 
@@ -8,7 +9,7 @@ TABLE = "mock-mes.default.mes.work_order"
 D1 = {"id": "d1000000-0000-4000-8000-000000000001", "type": "domain", "name": "Production"}
 
 
-def client() -> tuple[FakeOM, object]:
+def client() -> tuple[FakeOM, TestClient]:
     om = FakeOM()
     om.options.update(
         domains=[D1],

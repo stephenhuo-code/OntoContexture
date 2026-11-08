@@ -1,4 +1,5 @@
-"""e2e 核对：以 admin1 读取 OM 血缘接口，输出各视图的上游表与字段映射（JSON），供端到端对照 viewlab 标准答案。"""
+"""e2e 核对：以 admin1 读取 OM 血缘接口，输出各视图的上游表与字段映射（JSON），供端到端对照 viewlab
+标准答案。"""
 
 import json
 import sys
@@ -7,7 +8,7 @@ from pathlib import Path
 import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from support.cluster import exchange, port_forward, user_token  # noqa: E402
+from support.cluster import exchange, port_forward, user_token
 
 schema_fqn, *views = sys.argv[1:]
 token = exchange(user_token("admin1", "admin1"), "contexture-openmetadata")

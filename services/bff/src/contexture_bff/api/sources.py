@@ -3,14 +3,13 @@
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Request
+from starlette.convertors import Convertor, register_url_convertor
 
 from contexture_bff.adapters.om_sources import SourcesService
 from contexture_bff.api.deps import require_web_context, services
 from contexture_bff.audit import audit_write
 from contexture_core.auth import RequestContext
 from contexture_core.errors import UpstreamUnavailable
-
-from starlette.convertors import Convertor, register_url_convertor  # noqa: E402
 
 
 class SourceNameConvertor(Convertor[str]):

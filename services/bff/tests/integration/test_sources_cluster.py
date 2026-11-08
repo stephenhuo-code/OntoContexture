@@ -1,4 +1,5 @@
-"""US1 集成（真实 OM / Airflow / 003 模拟库，-m cluster）：经 SourcesService 接入 MES、QMS、Doris 并首采，
+"""US1 集成（真实 OM / Airflow / 003 模拟库，-m cluster）：经 SourcesService 接入 MES、QMS、Doris
+并首采，
 表数与字段数等于 003 金标准（MES 13/79、QMS 7/53、Doris 8/66），Doris 键列为 PRIMARY_KEY。"""
 
 import asyncio
@@ -12,11 +13,11 @@ from typing import Any
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "tests"))
-from support.cluster import exchange, port_forward, user_token  # noqa: E402
+from support.cluster import exchange, port_forward, user_token
 
-from contexture_bff.adapters.om_client import OmClient  # noqa: E402
-from contexture_bff.adapters.om_sources import SourcesService  # noqa: E402
-from contexture_core.auth import RequestContext  # noqa: E402
+from contexture_bff.adapters.om_client import OmClient
+from contexture_bff.adapters.om_sources import SourcesService
+from contexture_core.auth import RequestContext
 
 pytestmark = pytest.mark.cluster
 
@@ -84,7 +85,8 @@ def _sources() -> list[dict[str, Any]]:
             "Postgres",
             "mock-qms-rw.mock-sources.svc:5432",
             "qms_meta_ro",
-            # OM 2.0.3 的 PostgreSQL 采集默认包含 information_schema（原生无默认排除），按原型以 Schema 过滤限定 public
+            # OM 2.0.3 的 PostgreSQL 采集默认包含 information_schema（原生无默认排除），按原型以
+            # Schema 过滤限定 public
             _secret("mock-sources", "mock-readonly", "qms-meta-ro"),
             "qms",
             "^public$",

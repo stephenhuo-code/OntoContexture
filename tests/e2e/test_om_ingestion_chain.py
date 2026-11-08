@@ -1,7 +1,9 @@
 """005 阶段 A 闸门（T020）：在真实集群上走通 OM 原生采集链路，BFF 不参与、不连源库。
 
-1. BFF 服务账号（contexture-bff client credentials）为 admin1、engineer1 在 OM 建档并同步团队（research R13）；
-2. engineer1 的委托令牌（受众 contexture-openmetadata）：测试连接 → 保存服务与 metadata 管道 → 部署 → 触发 →
+1. BFF 服务账号（contexture-bff client credentials）为 admin1、engineer1 在 OM
+建档并同步团队（research R13）；
+2. engineer1 的委托令牌（受众 contexture-openmetadata）：测试连接 → 保存服务与 metadata 管道 → 部署
+→ 触发 →
    PipelineStatus 回写 → 最近日志；读取服务时密码为掩码；
 3. research R5 验证项 2、3：掩码密码更新保留原值、已有服务掩码密码测试连接；
 4. 全部断言基于 003 金标准（MES 13 张表 / 79 个字段），不断言原型示例值。
@@ -128,9 +130,11 @@ def _test_connection(
 
 @pytest.fixture(scope="module")
 def om() -> Iterator[httpx.Client]:
-    with port_forward("svc/openmetadata", 8585) as url:
-        with httpx.Client(base_url=f"{url}/api/v1", timeout=120) as client:
-            yield client
+    with (
+        port_forward("svc/openmetadata", 8585) as url,
+        httpx.Client(base_url=f"{url}/api/v1", timeout=120) as client,
+    ):
+        yield client
 
 
 @pytest.fixture(scope="module")
@@ -153,7 +157,8 @@ def tokens(om: httpx.Client) -> Iterator[dict[str, str]]:
 def test_service_account_cannot_create_source_services(
     om: httpx.Client, tokens: dict[str, str]
 ) -> None:
-    """建档身份只能建用户、改团队成员，不能创建数据源（OM 默认 Organization 策略允许其查看，密码仍为掩码）。"""
+    """建档身份只能建用户、改团队成员，不能创建数据源（OM 默认 Organization 策略允许其查看，
+    密码仍为掩码）。"""
     resp = om.put(
         "/services/databaseServices",
         headers=_bearer(tokens["sa"]),
@@ -206,11 +211,12 @@ def test_native_ingestion_chain(om: httpx.Client, tokens: dict[str, str]) -> Non
     om.post(f"/services/ingestionPipelines/deploy/{pid}", headers=_bearer(eng)).raise_for_status()
     # Airflow 3 由 dag-processor 扫描登记新 DAG（刷新间隔 10 秒），登记前触发返回 400，按此重试
     deployed_at = time.monotonic()
+    trig = om.post(f"/services/ingestionPipelines/trigger/{pid}", headers=_bearer(eng))
     for _ in range(30):
-        trig = om.post(f"/services/ingestionPipelines/trigger/{pid}", headers=_bearer(eng))
         if trig.status_code == 200:
             break
         time.sleep(2)
+        trig = om.post(f"/services/ingestionPipelines/trigger/{pid}", headers=_bearer(eng))
     trig.raise_for_status()
     print(f"部署到可触发耗时 {time.monotonic() - deployed_at:.0f}s")
 

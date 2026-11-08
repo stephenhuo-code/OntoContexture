@@ -1,6 +1,7 @@
 """写操作审计（FR-010，宪法 IV）：结构化 JSON 日志，符合 contracts/schemas/audit-event.json。
 
-005 的写操作记 action=write、resource.kind=api、resource.ref=“<方法> <实际请求路径>”（路径即包含目标；
+005 的写操作记 action=write、resource.kind=api、resource.ref=“<方法>
+<实际请求路径>”（路径即包含目标；
 schema 无其他可放目标的字段且 additionalProperties=false）。日志经 OTel Collector 进入可观测体系。
 """
 

@@ -1,4 +1,5 @@
-"""US2：运行记录（PipelineStatus 原样投影）、在途防重入、暂停 / 恢复（toggleIngestion）、最近日志。"""
+"""US2：运行记录（PipelineStatus 原样投影）、在途防重入、暂停 / 恢复（toggleIngestion）、
+最近日志。"""
 
 import pytest
 from bff_fakes import user_context
@@ -92,7 +93,8 @@ async def test_unknown_task_is_not_found() -> None:
 
 
 async def test_trigger_waits_for_dag_settle_after_recent_deploy() -> None:
-    """Airflow 3 下部署后立即触发会产生“无任务即成功”的空运行（2026-11-08 实测 2/4），触发前等待部署满 settle 秒。"""
+    """Airflow 3 下部署后立即触发会产生“无任务即成功”的空运行（2026-11-08 实测 2/4），
+    触发前等待部署满 settle 秒。"""
     import time
 
     om = FakeOM()

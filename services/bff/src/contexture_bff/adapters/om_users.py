@@ -1,7 +1,9 @@
 """织境登录时在 OpenMetadata 建档用户并同步团队成员（005，research R13）。
 
-OM 的 API 调用不建档、不按令牌声明入组（只有 OM 自身界面登录才会），因此由 BFF 在织境登录回调与会话刷新时：
-- 以 ``contexture-bff`` 服务账号（client credentials；OM 中为普通用户，角色 ContextureUserProvisioner）调用 OM；
+OM 的 API 调用不建档、不按令牌声明入组（只有 OM 自身界面登录才会），因此由 BFF
+在织境登录回调与会话刷新时：
+- 以 ``contexture-bff`` 服务账号（client credentials；OM 中为普通用户，角色
+ContextureUserProvisioner）调用 OM；
 - 用户不存在则创建（用户名 = preferred_username）；
 - 按令牌中的织境角色计算应在的团队（admin、ai-engineer），加入应在的、移出不应在的；已一致时不写。
 OM 或 Keycloak 不可用时抛出 ``upstream.unavailable``，登录失败，不静默跳过。

@@ -42,7 +42,7 @@ async def session_or_bearer(request: Request) -> str | None:
         authenticator = services(request).authenticator
         if authenticator is not None:
             # 005：会话刷新时按最新角色同步 OM 团队（research R13）
-            from contexture_bff.api.auth import sync_om_user  # noqa: PLC0415
+            from contexture_bff.api.auth import sync_om_user
 
             await sync_om_user(services(request), await authenticator.verify(tokens.access_token))
         record = replace(

@@ -1,4 +1,5 @@
-"""005 契约：/bff/v1/sources* 的状态码与响应结构（contracts/openapi/bff.yaml），以内存 OM 夹具运行真实代码。"""
+"""005 契约：/bff/v1/sources* 的状态码与响应结构（contracts/openapi/bff.yaml），以内存 OM
+夹具运行真实代码。"""
 
 import jsonschema
 import pytest

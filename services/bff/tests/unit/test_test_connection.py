@@ -1,4 +1,7 @@
-"""测试连接（FR-003，research R6）：OM automation workflow；步骤以 OM testConnectionDefinition 为准，未执行的为 null。"""
+"""测试连接（FR-003，research R6）：OM automation workflow；步骤以 OM testConnectionDefinition
+为准，未执行的为 null。"""
+
+from typing import Any
 
 import pytest
 from bff_fakes import user_context
@@ -7,7 +10,7 @@ from sources_helpers import service
 
 from contexture_core.errors import ContextureError
 
-REQ = {
+REQ: dict[str, Any] = {
     "serviceType": "Mysql",
     "connection": {
         "hostPort": "h:3306",

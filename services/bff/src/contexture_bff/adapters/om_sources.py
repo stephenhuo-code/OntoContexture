@@ -1,6 +1,7 @@
 """005 源系统元数据采集：数据源、采集任务、运行、测试连接的 OM 适配（research R6–R9）。
 
-全部经 OpenMetadata 公开 API、以登录用户的委托令牌调用（OmClient）；BFF 不连源库、不调 Airflow、不写运行状态，
+全部经 OpenMetadata 公开 API、以登录用户的委托令牌调用（OmClient）；BFF 不连源库、不调 Airflow、
+不写运行状态，
 不内置任何示例数据（宪法 v2.2.0）。实体映射见 specs/005-source-metadata-ingestion/data-model.md。
 """
 
@@ -194,9 +195,16 @@ def run_view(status: dict[str, Any]) -> dict[str, Any]:
 
 
 def latest_status(p: dict[str, Any]) -> dict[str, Any] | None:
-    """OM 的 pipelineStatuses 是“最近执行记录”数组（ingestionPipeline.json:175），取开始时间最新的一条。"""
-    runs = [r for r in p.get("pipelineStatuses") or [] if isinstance(r, dict) and r.get("runId")]
-    return max(runs, key=lambda r: r.get("startDate") or r.get("timestamp") or 0) if runs else None
+    """OM 的 pipelineStatuses 是“最近执行记录”数组（ingestionPipeline.json:175），
+    取开始时间最新的一条。"""
+    runs: list[dict[str, Any]] = [
+        r for r in p.get("pipelineStatuses") or [] if isinstance(r, dict) and r.get("runId")
+    ]
+
+    def started(r: dict[str, Any]) -> int:
+        return int(r.get("startDate") or r.get("timestamp") or 0)
+
+    return max(runs, key=started) if runs else None
 
 
 def _pipeline_view(p: dict[str, Any]) -> dict[str, Any]:
@@ -220,8 +228,10 @@ class SourcesService:
     ) -> None:
         self.om = om
         self.poll_interval = poll_interval
-        # Airflow 3 + managed-apis：部署后 DAG 先出现、任务稍后才由 dag-processor 登记；其间触发会得到
-        # “无任务即成功”的空运行，OM 收不到任何状态（2026-11-08 实测，research R14）。触发前等待部署满此秒数
+        # Airflow 3 + managed-apis：部署后 DAG 先出现、任务稍后才由 dag-processor 登记；
+        # 其间触发会得到
+        # “无任务即成功”的空运行，OM 收不到任何状态（2026-11-08 实测，research R14）。
+        # 触发前等待部署满此秒数
         self.settle_seconds = settle_seconds
 
     # ---------- 读取 ----------
@@ -252,7 +262,8 @@ class SourcesService:
         return [by_kind[k] for k in KINDS if k in by_kind]
 
     async def _counts(self, ctx: RequestContext, service: str) -> tuple[int, int]:
-        """OM /tables 只能按 database / databaseSchema 过滤（TableResource），先按服务列出数据库再计数。"""
+        """OM /tables 只能按 database / databaseSchema 过滤（TableResource），
+        先按服务列出数据库再计数。"""
         databases = await self._paged(ctx, "/databases", {"service": service})
         tables: list[dict[str, Any]] = []
         for db in databases:
@@ -528,7 +539,8 @@ class SourcesService:
                 "该任务为手动触发，请先在采集配置中设置定时计划",
                 status_code=400,
             )
-        # 刚保存的任务在 Airflow 登记 DAG 前，OM 的 toggle 会因 Airflow 404 而不改状态（2026-11-08 实测）；
+        # 刚保存的任务在 Airflow 登记 DAG 前，OM 的 toggle 会因 Airflow 404 而不改状态（2026-11-08
+        # 实测）；
         # 切换后以 OM 回读结果为准，未生效则在超时内重试，超时如实返回，不伪造已切换
         deadline = time.monotonic() + 20
         while bool(pipe.get("enabled", True)) != enabled:
@@ -615,7 +627,8 @@ class SourcesService:
                 )
             await asyncio.sleep(self.poll_interval)
 
-    # ---------- US3 目录（OM 实体层级 DatabaseService → Database → DatabaseSchema → Table） ----------
+    # ---------- US3 目录（OM 实体层级 DatabaseService → Database → DatabaseSchema → Table）
+    # ----------
     async def _total(self, ctx: RequestContext, path: str, params: dict[str, Any]) -> int:
         page = await self.om.request(ctx, "GET", path, params={**params, "limit": 1})
         total = (page.get("paging") or {}).get("total")
@@ -639,7 +652,8 @@ class SourcesService:
     async def _governance(
         self, ctx: RequestContext, entity_type: str, raw: dict[str, Any]
     ) -> dict[str, Any]:
-        """本级单独设置的值优先；未设置时按 OM 继承规则（INHERIT）取最近一个单独设置的上级，并标注来源。"""
+        """本级单独设置的值优先；未设置时按 OM 继承规则（INHERIT）取最近一个单独设置的上级，
+        并标注来源。"""
         g = governance_view(raw)
         g["inheritedFrom"] = {}
         missing = [f for f in INHERIT.get(entity_type, {}) if not g[f]]
@@ -663,7 +677,8 @@ class SourcesService:
         return g
 
     async def governance_options(self, ctx: RequestContext) -> dict[str, Any]:
-        """治理选项实时读取 OM；本期不创建治理实体。Tier / Certification 在 OM 中是独立属性，不列入分类标签。"""
+        """治理选项实时读取 OM；本期不创建治理实体。Tier / Certification 在 OM 中是独立属性，
+        不列入分类标签。"""
         users, teams, domains, products, classes, terms = await asyncio.gather(
             self._paged(ctx, "/users", {"isBot": "false"}),
             self._paged(ctx, "/teams", {}),
@@ -910,7 +925,8 @@ def _ref(r: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-# 继承规则（OM 2.0.3 DatabaseRepository / DatabaseSchemaRepository / TableRepository.setInheritedFields）：
+# 继承规则（OM 2.0.3 DatabaseRepository / DatabaseSchemaRepository /
+# TableRepository.setInheritedFields）：
 # 域 服务 → 库 → Schema → 表；负责人与保留周期 库 → Schema → 表（数据库不继承服务负责人）
 _UP_TO_SERVICE = ("databaseService", "database", "databaseSchema")
 _UP_TO_DATABASE = ("database", "databaseSchema")
@@ -994,7 +1010,8 @@ def governance_view(e: dict[str, Any]) -> dict[str, Any]:
     return {
         "displayName": e.get("displayName"),
         "description": e.get("description"),
-        # OM 把继承得到的引用标为 inherited；这里只取本级单独设置的值，继承由 _governance 计算并标注来源
+        # OM 把继承得到的引用标为 inherited；这里只取本级单独设置的值，继承由 _governance
+        # 计算并标注来源
         "owners": [_ref(r) for r in e.get("owners") or [] if not r.get("inherited")],
         "domains": [_ref(r) for r in e.get("domains") or [] if not r.get("inherited")],
         "tier": tier,

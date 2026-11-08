@@ -1,6 +1,8 @@
-"""US5 集成（真实 OM，-m cluster）：viewlab 先元数据采集、再视图血缘；OM 血缘接口中每个视图的上游表与
+"""US5 集成（真实 OM，-m cluster）：viewlab 先元数据采集、再视图血缘；OM
+血缘接口中每个视图的上游表与
 columnsLineage 与 testdata/mockfactory/viewlab.py 标准答案完全一致、无多余边。
-MySQL 受限账号（无 SHOW VIEW）：表与字段仍入库、不产生血缘边、运行结果以 OM 实际状态为准（research R10；
+MySQL 受限账号（无 SHOW VIEW）：表与字段仍入库、不产生血缘边、运行结果以 OM 实际状态为准（research
+R10；
 PostgreSQL 无法用权限复现“视图定义不可读”，只验证有权限时的血缘）。"""
 
 import asyncio
@@ -17,12 +19,12 @@ import pytest
 ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT / "tests"))
 sys.path.insert(0, str(ROOT / "testdata"))
-from mockfactory.viewlab import LINEAGE, TABLES, VIEWS  # noqa: E402
 from support.cluster import exchange, port_forward, user_token  # noqa: E402
 
 from contexture_bff.adapters.om_client import OmClient  # noqa: E402
 from contexture_bff.adapters.om_sources import SourcesService  # noqa: E402
 from contexture_core.auth import RequestContext  # noqa: E402
+from mockfactory.viewlab import LINEAGE, TABLES, VIEWS  # noqa: E402
 
 pytestmark = pytest.mark.cluster
 VERBOSE = bool(os.environ.get("CTX_VERBOSE"))
@@ -213,7 +215,8 @@ def test_view_lineage_matches_viewlab_gold_standard() -> None:
             **{v: len(LINEAGE[v]["columns"]) for v in VIEWS},
         }
         assert o["views"] == gold, name
-    # 受限账号（OM 2.0.3 实测）：元数据采集如实为 failed，失败对象为两个视图、原因为 SHOW VIEW 被拒；
+    # 受限账号（OM 2.0.3 实测）：元数据采集如实为 failed，失败对象为两个视图、原因为 SHOW VIEW
+    # 被拒；
     # 表与字段仍入库，视图不入库；视图血缘运行成功但处理 0 条记录，不产生任何血缘边
     o = observed["ctx005-it-vl-noview"]
     assert o["meta"]["pipelineState"] == "failed", o["meta"]

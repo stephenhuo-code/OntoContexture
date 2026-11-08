@@ -90,7 +90,9 @@ async def login(request: Request, return_to: str | None = None) -> RedirectRespo
 
 
 async def sync_om_user(svc: "Services", claims: dict[str, Any]) -> None:
-    """005：按令牌中的织境角色在 OpenMetadata 建档并同步团队（research R13）；OM 不可用则登录失败。"""
+    """005：按令牌中的织境角色在 OpenMetadata 建档并同步团队（research R13）。
+
+    OM 不可用则登录失败。"""
     if svc.om_users is None:
         return
     username = claims.get("preferred_username")

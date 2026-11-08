@@ -36,7 +36,7 @@ dev = [
 target-version = "py312"
 line-length = 100
 # docs/ 下的脚本为文档素材（如架构图生成脚本），不做代码检查
-extend-exclude = ["third_party", "docs"]
+extend-exclude = ["third_party", "docs", ".specify"]  # .specify：Spec Kit 工具脚本（第三方）
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S", "N", "SIM", "RUF"]
@@ -66,7 +66,7 @@ reportUnknownArgumentType = "warning"
 reportDeprecated = "warning"
 include = ["packages", "services", "tools", "deploy/components", "tests", "testdata"]
 extraPaths = ["tests", "services/bff/tests", "testdata", "testdata/tests"]
-exclude = ["**/node_modules", "**/.venv", "third_party"]
+exclude = ["**/node_modules", "**/.venv", "third_party", ".specify"]
 
 [tool.pytest.ini_options]
 testpaths = ["packages/py-core/tests", "services/bff/tests", "tools/tests", "testdata/tests", "deploy/components"]

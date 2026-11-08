@@ -1,4 +1,5 @@
-"""织境登录时在 OM 建档并同步团队（research R13）：按令牌角色入组 admin / ai-engineer，其余角色忽略；
+"""织境登录时在 OM 建档并同步团队（research R13）：按令牌角色入组 admin / ai-engineer，
+其余角色忽略；
 已一致时不写；OM 不可用时登录失败，不静默跳过。"""
 
 import json
