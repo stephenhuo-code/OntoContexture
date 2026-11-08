@@ -421,3 +421,29 @@ it("单列主键只在 OM 列级约束中时，表约束据列约束显示", asy
   const info = await screen.findByRole("region", { name: "结构信息" });
   expect(info).toHaveTextContent("PRIMARY_KEY (code)；UNIQUE (sn)");
 });
+
+it("目录读取失败时如实显示错误码并可重试", async () => {
+  stubBff([
+    {
+      path: "/bff/v1/sources",
+      status: 502,
+      body: {
+        code: "upstream.unavailable",
+        message: "OpenMetadata 不可用",
+        trace_id: "t-2",
+      },
+    },
+  ]);
+  render(
+    <MemoryRouter initialEntries={["/sources"]}>
+      <CatalogTree />
+    </MemoryRouter>,
+  );
+  const tree = screen.getByRole("navigation", { name: "数据源目录" });
+  expect(await within(tree).findByText(/upstream.unavailable/)).toBeVisible();
+  stubBff(routes);
+  await userEvent.click(within(tree).getByRole("button", { name: "重试" }));
+  expect(
+    await within(tree).findByRole("button", { name: /^fixture-mes/ }),
+  ).toBeVisible();
+});

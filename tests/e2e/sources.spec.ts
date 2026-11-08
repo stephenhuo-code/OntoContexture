@@ -445,3 +445,118 @@ test("US5：viewlab 接入并创建视图血缘任务，两条任务依次运行
   );
   expect(observed).toEqual(gold);
 });
+
+test("SC-007：1280 / 768 / 390 视口下列表、详情四页签、向导、资产页与属性弹窗无整页横向溢出", async ({
+  page,
+}) => {
+  test.setTimeout(240_000);
+  const enc = encodeURIComponent;
+  const overflow = () =>
+    page.evaluate(
+      () =>
+        document.documentElement.scrollWidth -
+        document.documentElement.clientWidth,
+    );
+  await login(page, "engineer1", "/sources");
+  for (const width of [1280, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    const check = async (where: string) =>
+      expect(await overflow(), `${width}px · ${where}`).toBeLessThanOrEqual(0);
+    await page.goto("/sources");
+    await expect(page.getByRole("table", { name: "数据源列表" })).toBeVisible();
+    await check("数据源列表");
+    // “目录”抽屉入口只在窄屏（≤ 850px）出现；宽屏目录在二级栏
+    const drawerToggle = page.getByRole("button", {
+      name: "目录",
+      exact: true,
+    });
+    if (width > 850) await expect(drawerToggle).toBeHidden();
+    else await expect(drawerToggle).toBeVisible();
+    await page.getByRole("button", { name: "添加数据源" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "添加数据源" }),
+    ).toBeVisible();
+    await check("接入向导");
+    await page.keyboard.press("Escape");
+    for (const tab of ["overview", "metadata", "scope", "tasks"]) {
+      await page.goto(`/sources/${SERVICE}?tab=${tab}`);
+      await expect(page.getByRole("tab", { selected: true })).toBeVisible();
+      await page.waitForLoadState("networkidle");
+      await check(`详情 ${tab}`);
+    }
+    await page.goto(
+      `/sources/${SERVICE}/assets/databaseSchema/${enc(`${SERVICE}.default.mes`)}`,
+    );
+    await page
+      .getByRole("table", { name: "数据表列表" })
+      .getByRole("link")
+      .first()
+      .click();
+    await expect(page.getByRole("table", { name: "字段元数据" })).toBeVisible();
+    await check("表资产页");
+    await page
+      .getByRole("region", { name: "数据表属性" })
+      .getByRole("button", { name: "编辑属性" })
+      .click();
+    await expect(
+      page.getByRole("dialog", { name: "编辑数据表属性" }),
+    ).toBeVisible();
+    await check("属性弹窗");
+    if (width === 390) {
+      await page.getByRole("button", { name: "取消" }).click();
+      await page.getByRole("button", { name: "目录" }).click();
+      await expect(
+        page.getByRole("dialog", { name: "数据源目录" }),
+      ).toBeVisible();
+      await check("目录抽屉");
+    }
+  }
+});
+
+test("场景 F：OpenMetadata 不可用时 /sources 显示真实错误与重试，不显示示例数据；恢复后正常", async ({
+  page,
+}) => {
+  test.setTimeout(600_000);
+  const kubectl = (...args: string[]) =>
+    execFileSync("kubectl", ["-n", "contexture", ...args], { stdio: "pipe" });
+  await login(page, "engineer1", "/sources");
+  await expect(page.getByRole("table", { name: "数据源列表" })).toBeVisible();
+  kubectl("scale", "deploy/openmetadata", "--replicas=0");
+  try {
+    kubectl(
+      "wait",
+      "--for=delete",
+      "pod",
+      "-l",
+      "app.kubernetes.io/name=openmetadata",
+      "--timeout=180s",
+    );
+    await page.reload();
+    await expect(page.getByText("错误码 upstream.unavailable")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.getByRole("button", { name: "重试" })).toBeVisible();
+    await expect(page.getByRole("table", { name: "数据源列表" })).toHaveCount(
+      0,
+    );
+    await expect(page.getByText(/mock-|MES 生产执行系统|采集成功/)).toHaveCount(
+      0,
+    );
+  } finally {
+    kubectl("scale", "deploy/openmetadata", "--replicas=1");
+    kubectl("rollout", "status", "deploy/openmetadata", "--timeout=480s");
+  }
+  await expect
+    .poll(
+      async () => {
+        await page
+          .getByRole("button", { name: "重试" })
+          .first()
+          .click({ timeout: 1000 })
+          .catch(() => undefined);
+        return page.getByRole("table", { name: "数据源列表" }).count();
+      },
+      { timeout: 240_000, intervals: [5000] },
+    )
+    .toBe(1);
+});
