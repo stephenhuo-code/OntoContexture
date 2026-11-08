@@ -32,10 +32,17 @@ cat <<INFO
   Jaeger（服务追踪）     http://localhost:16686
   Prometheus（指标）     http://localhost:9090
   OpenSearch Dashboards  http://localhost:5601          日志索引 ctx-logs
-  Airflow                http://localhost:8081          admin / admin（Chart 默认，仅本地）
+  Airflow                http://localhost:8081          openmetadata / $(secret om-secrets airflow-password)（OM 调用 Airflow 的账号）
   AI 网关（agentgateway）http://localhost:15000/ui/     只读
   模拟 MES（MySQL）      localhost:13306                root / $(msecret mock-mes root-password)（database mes）
   模拟 QMS（PostgreSQL） localhost:15432                postgres / $(msecret mock-qms-superuser password)（database qms）
+
+005 数据源接入用的只读账号（在织境“添加数据源”中填写；集群内地址见下）
+  MES 只读（MySQL）      mock-mes.mock-sources.svc:3306      mes_meta_ro / $(msecret mock-readonly mes-meta-ro)（数据库 mes）
+  QMS 只读（PostgreSQL） mock-qms-rw.mock-sources.svc:5432   qms_meta_ro / $(msecret mock-readonly qms-meta-ro)（数据库 qms）
+  viewlab 可读视图定义   同上两个实例                         viewlab_ro / $(msecret mock-readonly viewlab-ro)（数据库 viewlab）
+  viewlab 受限（MySQL）  mock-mes.mock-sources.svc:3306      viewlab_noview / $(msecret mock-readonly viewlab-noview)（无 SHOW VIEW）
+  数仓只读（Doris）      doris-fe-service.contexture.svc:9030 mock_dw_reader / $(msecret mock-dw-reader password)（数据库 mock_dw）
 
 按 Ctrl+C 结束端口转发。
 INFO

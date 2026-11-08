@@ -11,6 +11,8 @@ spec:
   rules:
     - matches:
         - path: { type: PathPrefix, value: /bff/ }
+      timeouts:
+        request: {{ .Values.route.requestTimeout }}
       backendRefs:
         - name: {{ .Release.Name }}-bff
           port: 8080

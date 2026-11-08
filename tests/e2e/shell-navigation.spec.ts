@@ -25,10 +25,24 @@ for (const viewport of [
     await expect(
       page.getByRole("button", { name: "展开二级菜单" }),
     ).toBeVisible();
-    await nav.getByRole("link", { name: "资产搜索" }).click();
+    // 005：一级“资产”进入数据源；二级“资产搜索”（006）尚未开放
+    await nav.getByRole("link", { name: "资产" }).click();
+    await expect(
+      page.getByRole("heading", { name: "数据源", level: 1 }),
+    ).toBeVisible();
+    // 切页时保留收起状态；展开后进入二级“资产搜索”，再收起以延续后续断言
+    const expand = page.getByRole("button", { name: "展开二级菜单" });
+    await expect(expand).toBeVisible();
+    await expand.click();
+    await page
+      .getByRole("navigation", { name: "数据资产导航" })
+      .getByRole("link", { name: "资产搜索" })
+      .click();
     await expect(
       page.getByRole("heading", { name: "资产搜索尚未开放" }),
     ).toBeVisible();
+    await page.getByRole("button", { name: "收起二级菜单" }).click();
+    await page.goBack();
     await page.goBack();
     await expect(
       page.getByRole("heading", { name: "审批中心", level: 1 }),
@@ -37,8 +51,9 @@ for (const viewport of [
       page.getByRole("button", { name: "展开二级菜单" }),
     ).toBeVisible();
     await page.goForward();
+    await page.goForward();
     await page.reload();
-    await expect(nav.getByRole("link", { name: "资产搜索" })).toHaveAttribute(
+    await expect(nav.getByRole("link", { name: "资产" })).toHaveAttribute(
       "aria-current",
       "page",
     );
@@ -120,4 +135,27 @@ test("生产示例路由不存在，未知地址可恢复且占位不请求业�
     ).toBeVisible();
   }
   expect(requests.every((p) => p === "/bff/v1/me")).toBe(true);
+});
+
+test("二级栏可用鼠标拖动调整宽度，刷新后保持（负责人 2026-11-08 反馈）", async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem("ctx.e2e.widthReset")) {
+      localStorage.removeItem("ctx.secondaryWidth");
+      sessionStorage.setItem("ctx.e2e.widthReset", "1");
+    }
+  });
+  await login(page, "engineer1", "/sources");
+  const sep = page.getByRole("separator", { name: "调整二级栏宽度" });
+  const b = (await sep.boundingBox())!;
+  await page.mouse.move(b.x + 3, b.y + 300);
+  await page.mouse.down();
+  await page.mouse.move(b.x + 123, b.y + 300, { steps: 6 });
+  await page.mouse.up();
+  await expect(sep).toHaveAttribute("aria-valuenow", "356");
+  await page.reload();
+  await expect(
+    page.getByRole("separator", { name: "调整二级栏宽度" }),
+  ).toHaveAttribute("aria-valuenow", "356");
 });

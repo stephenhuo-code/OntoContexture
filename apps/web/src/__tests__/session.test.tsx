@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
@@ -137,7 +138,7 @@ it("退出失败保留可重试动作，204 后清除旧用户且不自动 SSO",
   fireEvent.focus(window);
   expect(calls.filter((p) => p === "/bff/v1/me")).toHaveLength(1);
 });
-it("重新聚焦时先隐藏旧用户，核验后显示新身份", async () => {
+it("重新聚焦时后台核验：页面保留但不可操作，换用户后旧页面状态清除", async () => {
   let finish: (r: Response) => void = () => {};
   const fetch = vi
     .fn()
@@ -150,12 +151,12 @@ it("重新聚焦时先隐藏旧用户，核验后显示新身份", async () => {
     );
   vi.stubGlobal("fetch", fetch);
   open();
-  await screen.findByRole("heading", { name: /你好，真实工程师/ });
+  const old = await screen.findByRole("heading", { name: /你好，真实工程师/ });
   fireEvent.focus(window);
   await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-  expect(
-    screen.queryByRole("heading", { name: /你好，真实工程师/ }),
-  ).not.toBeInTheDocument();
+  // 核验期间：提示正在确认身份，旧用户页面不可操作（inert），不切换为整页加载
+  expect(screen.getByRole("status", { name: "正在确认身份" })).toBeVisible();
+  expect(old.closest("[inert]")).not.toBeNull();
   await act(async () =>
     finish(
       response(200, {
@@ -165,9 +166,46 @@ it("重新聚焦时先隐藏旧用户，核验后显示新身份", async () => {
       }),
     ),
   );
-  expect(
-    await screen.findByRole("heading", { name: /你好，下一位工程师/ }),
-  ).toBeVisible();
+  const next = await screen.findByRole("heading", {
+    name: /你好，下一位工程师/,
+  });
+  expect(next.closest("[inert]")).toBeNull();
+  expect(old).not.toBeInTheDocument();
+});
+it("同一用户重新聚焦：核验后页面状态保留（打开的弹窗与已填内容不丢）", async () => {
+  let finish: (r: Response) => void = () => {};
+  let meCalls = 0;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (req: Request) => {
+      const path = new URL(req.url, "http://localhost").pathname;
+      if (path === "/bff/v1/me") {
+        meCalls += 1;
+        if (meCalls === 1) return response(200);
+        return new Promise<Response>((resolve) => {
+          finish = resolve;
+        });
+      }
+      return response(200, { data: [] });
+    }),
+  );
+  open("/sources");
+  await userEvent.click(
+    await screen.findByRole("button", { name: "添加数据源" }),
+  );
+  const dialog = screen.getByRole("dialog", { name: "添加数据源" });
+  await userEvent.type(within(dialog).getByLabelText("显示名称 *"), "华东 MES");
+  fireEvent.focus(window);
+  await waitFor(() => expect(meCalls).toBe(2));
+  await act(async () => finish(response(200)));
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("status", { name: "正在确认身份" }),
+    ).not.toBeInTheDocument(),
+  );
+  const still = screen.getByRole("dialog", { name: "添加数据源" });
+  expect(within(still).getByLabelText("显示名称 *")).toHaveValue("华东 MES");
+  expect(still.closest("[inert]")).toBeNull();
 });
 it("页面卸载取消身份请求，迟到响应不能污染下一次身份", async () => {
   let signal: AbortSignal | undefined;

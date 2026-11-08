@@ -9,6 +9,7 @@
 make mock-data                      # 部署模拟 MES、QMS（make up 不部署它们），生成并写入 12 个月数据（约 104 万行），核对 3 个案例
 make mock-data MONTHS=1 SEED=7      # 规模（1–12 个月）与种子；2026-09 的数据与 3 个案例在任何规模下都相同
 make ports                          # 转发 MES localhost:13306、QMS localhost:15432，并打印密码
+uv run python -m mockfactory provision-005             # 005：只读元数据账号与 viewlab 视图测试库（make mock-data 已包含）
 
 uv run python -m mockfactory verify-cases --target local   # 按 cases/*.yaml 核对案例
 uv run python -m mockfactory checksum --target local       # 逐表摘要，两次生成应一致

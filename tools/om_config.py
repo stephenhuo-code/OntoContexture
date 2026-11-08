@@ -1,4 +1,5 @@
-"""把本体的共用字段与关系类型写入 OpenMetadata（T046，ADR-0008）。幂等：只新增缺失项。
+"""把本体的共用字段与关系类型写入 OpenMetadata（T046，ADR-0008）；005 起同时写入采集管理权限与
+BFF 建档服务账号（research R12、R13）。幂等：只新增缺失项。
 
 配置：deploy/components/openmetadata/config/ontology-schema.yaml
 用法：python -m tools.om_config --om-url http://localhost:8585
@@ -75,6 +76,127 @@ def apply_schema(http: httpx.Client, schema: dict[str, Any]) -> list[str]:
     return changes
 
 
+# 005：采集管理权限（R12，负责人 2026-11-07 确认）与 BFF 建档服务账号（R13）
+ACCESS: dict[str, Any] = {
+    "policies": [
+        {
+            "name": "ContextureSourcePolicy",
+            "description": "织境 005：数据源、采集任务、测试连接与目录治理属性",
+            "rules": [
+                {
+                    "name": "database-service",
+                    "effect": "allow",
+                    "resources": ["databaseService"],
+                    "operations": ["Create", "ViewAll", "EditAll", "Deploy", "Trigger"],
+                },
+                {
+                    "name": "ingestion-pipeline-and-workflow",
+                    "effect": "allow",
+                    "resources": ["ingestionPipeline", "workflow"],
+                    "operations": ["Create", "ViewAll", "EditAll", "Deploy", "Trigger", "Delete"],
+                },
+                {
+                    "name": "catalog-governance",
+                    "effect": "allow",
+                    "resources": ["database", "databaseSchema", "table"],
+                    "operations": ["ViewAll", "EditAll"],
+                },
+            ],
+        },
+        {
+            "name": "ContextureUserProvisionerPolicy",
+            "description": "织境 005：BFF 在织境登录时建档用户并同步团队成员",
+            "rules": [
+                {
+                    "name": "user",
+                    "effect": "allow",
+                    "resources": ["user"],
+                    # 入组经 PATCH 团队 users（team 的 EditUsers）；PATCH 用户 teams 需要 EditAll，
+                    # 不采用（2026-11-07 实测）
+                    "operations": ["Create", "ViewAll"],
+                },
+                {
+                    "name": "team",
+                    "effect": "allow",
+                    "resources": ["team"],
+                    "operations": ["ViewAll", "EditUsers"],
+                },
+            ],
+        },
+    ],
+    "roles": [
+        {"name": "ContextureSourceManager", "policies": ["ContextureSourcePolicy"]},
+        {"name": "ContextureUserProvisioner", "policies": ["ContextureUserProvisionerPolicy"]},
+    ],
+    # 团队名与织境 realm 角色同名；成员由 BFF 在织境登录时按令牌角色同步（R13）
+    "teams": [
+        {"name": "admin", "teamType": "Group", "defaultRoles": ["ContextureSourceManager"]},
+        {"name": "ai-engineer", "teamType": "Group", "defaultRoles": ["ContextureSourceManager"]},
+    ],
+    "users": [
+        {
+            "name": "service-account-contexture-bff",
+            "email": "service-account-contexture-bff@contexture.local",
+            "isBot": False,
+            "roles": ["ContextureUserProvisioner"],
+        }
+    ],
+}
+
+
+def _get_by_name(http: httpx.Client, kind: str, name: str) -> dict[str, Any] | None:
+    resp = http.get(f"/api/v1/{kind}/name/{name}")
+    if resp.status_code == 404:
+        return None
+    resp.raise_for_status()
+    return cast(dict[str, Any], resp.json())
+
+
+def apply_access(http: httpx.Client, access: dict[str, Any] = ACCESS) -> list[str]:
+    """创建缺失的策略、角色、团队与服务账号用户；已存在的不改。返回变更说明。"""
+    changes: list[str] = []
+    role_ids: dict[str, str] = {}
+    for kind in ("policies", "roles", "teams", "users"):
+        for item in access[kind]:
+            existing = _get_by_name(http, kind, item["name"])
+            if existing is None:
+                body = dict(item)
+                if kind == "teams":
+                    body["defaultRoles"] = [role_ids[r] for r in item["defaultRoles"]]
+                if kind == "users":
+                    body["roles"] = [role_ids[r] for r in item["roles"]]
+                resp = http.post(f"/api/v1/{kind}", json=body)
+                resp.raise_for_status()
+                existing = cast(dict[str, Any], resp.json())
+                changes.append(f"{kind} {item['name']}")
+            if kind == "roles":
+                role_ids[item["name"]] = str(existing["id"])
+    return changes
+
+
+# OM 按管道类型选用 bot：lineage 管道用 lineage-bot（metadata 管道用 ingestion-bot，由 OM 维护）。
+# 本地环境实测 lineage-bot 存量令牌失效，Airflow 生成血缘 DAG 时报 “Not Authorized! Invalid
+# token”（005 research R14）。
+PIPELINE_BOTS = ("lineage-bot",)
+
+
+def ensure_bot_tokens(http: httpx.Client, bots: tuple[str, ...] = PIPELINE_BOTS) -> list[str]:
+    """令牌无效时经 OM 原生接口重新生成（不限期，与 ingestion-bot 一致）；有效的不动。"""
+    changes: list[str] = []
+    for bot in bots:
+        user = http.get(f"/api/v1/bots/name/{bot}").raise_for_status().json()["botUser"]
+        auth = http.get(f"/api/v1/users/auth-mechanism/{user['id']}").raise_for_status().json()
+        token = (auth.get("config") or {}).get("JWTToken") or ""
+        probe = http.get("/api/v1/users/loggedInUser", headers={"Authorization": f"Bearer {token}"})
+        if probe.status_code == 200:
+            continue
+        http.put(
+            f"/api/v1/users/generateToken/{user['id']}", json={"JWTTokenExpiry": "Unlimited"}
+        ).raise_for_status()
+        changes.append(f"bot {bot} 令牌已重新生成")
+    return changes
+
+
 def provisioner_token() -> str:
     """以导入服务账号（client credentials）向 Keycloak 换取令牌。"""
     issuer = f"{os.environ['KEYCLOAK_URL']}/realms/{os.environ['KEYCLOAK_REALM']}"
@@ -98,7 +220,7 @@ def main(argv: list[str]) -> int:
     token = os.environ.get("OM_TOKEN") or provisioner_token()
     with httpx.Client(base_url=args.om_url, timeout=30) as http:
         http.headers["Authorization"] = f"Bearer {token}"
-        changes = apply_schema(http, load_schema())
+        changes = apply_schema(http, load_schema()) + apply_access(http) + ensure_bot_tokens(http)
     print("om-config: " + ("；".join(changes) if changes else "无变更"))
     return 0
 

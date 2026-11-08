@@ -48,7 +48,8 @@ function Controller({ children }: { children: ReactNode }) {
   });
   let state: SessionView;
   if (anonymous) state = { status: "anonymous" };
-  else if (me.isFetching || me.isPending) state = { status: "checking" };
+  else if (me.isPending || (me.isFetching && !me.isSuccess))
+    state = { status: "checking" };
   else if (me.isError) {
     const error = me.error instanceof ApiFailure ? me.error : new ApiFailure(0);
     state =
@@ -57,7 +58,13 @@ function Controller({ children }: { children: ReactNode }) {
         : error.status === 403
           ? { status: "forbidden" }
           : { status: "unavailable", error };
-  } else state = { status: "authenticated", user: normalizeUser(me.data) };
+  } else
+    // 已登录时的重新核验在后台进行：保留页面状态，核验结果为退出 / 无权限时再切换（005 负责人确认）
+    state = {
+      status: "authenticated",
+      user: normalizeUser(me.data),
+      rechecking: me.isFetching,
+    };
   const userId = state.status === "authenticated" ? state.user.user_id : null;
   useEffect(() => {
     if (previousUser.current && previousUser.current !== userId) {

@@ -1,0 +1,4482 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>数据接入 · 织境 — Spec 005 交互原型</title>
+    <style>
+      :root {
+        --blue: #2563eb;
+        --blue-soft: #edf3ff;
+        --ink: #172338;
+        --muted: #748198;
+        --line: #e5eaf2;
+        --canvas: #f5f7fb;
+        --green: #188568;
+        --amber: #b77917;
+        --red: #c34e50;
+        --shadow: 0 12px 40px #162d5110;
+        font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+        color: var(--ink);
+        font-size: 14px;
+        font-synthesis: none;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--canvas);
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.45;
+      }
+      button,
+      a,
+      input,
+      select,
+      textarea {
+        outline-offset: 3px;
+      }
+      button:focus-visible,
+      a:focus-visible {
+        outline: 3px solid #7aa6ff;
+      }
+      a {
+        color: var(--blue);
+      }
+      button {
+        color: inherit;
+      }
+      svg {
+        flex-shrink: 0;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 26px;
+        letter-spacing: -0.6px;
+        font-weight: 650;
+      }
+      h2 {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      h3 {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      p {
+        line-height: 1.8;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .small {
+        font-size: 12px;
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 12px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .between {
+        justify-content: space-between;
+      }
+      .wrap {
+        flex-wrap: wrap;
+      }
+      .grow {
+        flex: 1;
+        min-width: 0;
+      }
+      .stack {
+        display: grid;
+        gap: 16px;
+      }
+      .hidden {
+        display: none !important;
+      }
+      .spacer {
+        flex: 1;
+      }
+      .icon {
+        width: 18px;
+        height: 18px;
+        vertical-align: middle;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 36px;
+        padding: 8px 14px;
+        border: 1px solid #dfe5ee;
+        background: white;
+        border-radius: 7px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .btn:hover:not(:disabled) {
+        background: #f4f7fc;
+        border-color: #b9c9e1;
+      }
+      .btn.primary {
+        background: var(--blue);
+        color: white;
+        border-color: var(--blue);
+        box-shadow: 0 3px 6px #2563eb12;
+      }
+      .btn.primary:hover:not(:disabled) {
+        background: #1d4ed8;
+      }
+      .btn.ghost {
+        border-color: transparent;
+        background: transparent;
+        color: var(--muted);
+      }
+      .btn.sm {
+        min-height: 30px;
+        padding: 5px 10px;
+        font-size: 12px;
+      }
+      .link {
+        border: 0;
+        background: transparent;
+        color: var(--blue);
+        padding: 3px 0;
+        text-align: left;
+        font-weight: 500;
+      }
+      .link:hover {
+        text-decoration: underline;
+      }
+      .close {
+        padding: 8px;
+        border: 0;
+        background: transparent;
+        border-radius: 6px;
+      }
+      .close:hover {
+        background: #edf1f8;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+        border-radius: 5px;
+        padding: 4px 7px;
+        line-height: 1.2;
+        font-size: 11px;
+        font-weight: 500;
+        background: #eef1f6;
+        color: #69758a;
+      }
+      .badge.green {
+        color: var(--green);
+        background: #ecf8f2;
+      }
+      .badge.amber {
+        color: var(--amber);
+        background: #fff6e6;
+      }
+      .badge.blue {
+        color: var(--blue);
+        background: var(--blue-soft);
+      }
+      .badge.red {
+        color: var(--red);
+        background: #fff0f0;
+      }
+      .dot {
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        background: currentColor;
+        border-radius: 50%;
+      }
+      .rail {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: 72px;
+        background: white;
+        border-right: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        z-index: 20;
+        padding: 19px 10px;
+        gap: 15px;
+      }
+      .brand {
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
+        background: var(--blue);
+        color: white;
+        display: grid;
+        place-items: center;
+        font-size: 23px;
+        font-weight: 650;
+        margin-bottom: 25px;
+        box-shadow: 0 5px 12px #2563eb25;
+      }
+      .rail-item {
+        border: 0;
+        background: none;
+        width: 52px;
+        min-height: 58px;
+        border-radius: 9px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        color: #8a95a8;
+        font-size: 10px;
+      }
+      .rail-item .icon {
+        width: 21px;
+        height: 21px;
+      }
+      .rail-item.active {
+        color: var(--blue);
+        background: var(--blue-soft);
+      }
+      .rail-item:hover {
+        background: #f4f7fc;
+      }
+      .avatar {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        color: #4d6592;
+        background: #e9effb;
+        font-size: 12px;
+      }
+      .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 72px;
+        width: 208px;
+        background: #fff;
+        border-right: 1px solid var(--line);
+        padding: 25px 14px;
+        display: flex;
+        flex-direction: column;
+        z-index: 10;
+      }
+      .side-title {
+        padding: 0 12px 26px;
+        font-size: 18px;
+        font-weight: 650;
+        letter-spacing: 0.5px;
+      }
+      .side-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: #a0a9b8;
+        letter-spacing: 1.5px;
+        padding: 16px 12px 10px;
+      }
+      .nav-item {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        width: 100%;
+        padding: 12px;
+        border: 0;
+        border-radius: 7px;
+        background: transparent;
+        margin-bottom: 5px;
+        color: #67768b;
+        font-size: 13px;
+        text-align: left;
+      }
+      .nav-item.active {
+        background: #edf3ff;
+        color: var(--blue);
+        font-weight: 600;
+      }
+      .nav-item:hover {
+        background: #f3f6fc;
+      }
+      .nav-count {
+        margin-left: auto;
+        border-radius: 4px;
+        font-size: 10px;
+        padding: 2px 6px;
+        background: #fff;
+        color: #8b98ad;
+      }
+      .side-bottom {
+        margin-top: auto;
+        padding: 14px 12px;
+        background: #f7f9fc;
+        border: 1px solid #edf0f5;
+        border-radius: 8px;
+      }
+      .side-bottom p {
+        font-size: 11px;
+        color: #8b97aa;
+        line-height: 1.8;
+        margin-top: 7px;
+      }
+      .frame {
+        margin-left: 280px;
+      }
+      .topbar {
+        height: 64px;
+        border-bottom: 1px solid var(--line);
+        background: #ffffffec;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 32px;
+        gap: 15px;
+      }
+      .breadcrumb {
+        font-size: 12px;
+        color: #94a0b2;
+      }
+      .breadcrumb b {
+        font-weight: 500;
+        color: #58677e;
+      }
+      .divider {
+        height: 20px;
+        width: 1px;
+        background: var(--line);
+        margin: 0 5px;
+      }
+      .prototype {
+        font-size: 10px;
+        color: #6e809b;
+        background: #f3f6fc;
+        border: 1px solid #e3eaf4;
+        padding: 4px 8px;
+        border-radius: 5px;
+      }
+      .main {
+        max-width: 1500px;
+        margin: 0 auto;
+        padding: 30px 32px 32px;
+      }
+      .page-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        gap: 20px;
+      }
+      .eyebrow {
+        color: #8e9bb0;
+        font-size: 10px;
+        font-weight: 650;
+        letter-spacing: 1.6px;
+        margin-bottom: 7px;
+      }
+      .subtitle {
+        font-size: 12px;
+        color: #8490a2;
+        margin-top: 8px;
+        line-height: 1.7;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
+      }
+      .stat {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 17px 20px;
+        position: relative;
+      }
+      .stat-label {
+        font-size: 12px;
+        color: #77859a;
+      }
+      .stat-value {
+        font-size: 28px;
+        line-height: 1.4;
+        font-weight: 600;
+        letter-spacing: -0.8px;
+        margin: 7px 0 5px;
+      }
+      .stat-value small {
+        font-size: 12px;
+        font-weight: 400;
+        color: #9ba5b5;
+        letter-spacing: 0;
+        margin-left: 6px;
+      }
+      .stat-note {
+        font-size: 10px;
+        color: #99a4b4;
+      }
+      .stat-symbol {
+        position: absolute;
+        right: 17px;
+        top: 17px;
+        color: #7e9dda;
+        background: #f1f5fd;
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        border-radius: 8px;
+      }
+      .panel {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .panel-head {
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .panel-body {
+        padding: 22px;
+      }
+      .toolbar {
+        padding: 18px 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .input,
+      select,
+      textarea {
+        border: 1px solid #dfe5ee;
+        border-radius: 6px;
+        padding: 9px 11px;
+        background: #fff;
+        color: var(--ink);
+        width: 100%;
+        min-height: 36px;
+      }
+      .input::placeholder,
+      textarea::placeholder {
+        color: #a1acbc;
+      }
+      .input:focus,
+      select:focus,
+      textarea:focus {
+        outline: 2px solid #bfd3ff;
+        outline-offset: 1px;
+        border-color: #80a7f4;
+      }
+      .searchbox {
+        position: relative;
+        width: 260px;
+      }
+      .searchbox .icon {
+        position: absolute;
+        top: 10px;
+        left: 11px;
+        color: #9aa7b9;
+        width: 16px;
+        height: 16px;
+      }
+      .searchbox input {
+        padding-left: 35px;
+        font-size: 12px;
+      }
+      .filter {
+        width: 135px;
+        font-size: 12px;
+      }
+      .table-scroll {
+        overflow-x: auto;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        text-align: left;
+      }
+      th {
+        background: #fafbfd;
+        color: #8b97aa;
+        font-size: 11px;
+        font-weight: 500;
+        padding: 11px 18px;
+        white-space: nowrap;
+        border-top: 1px solid #f0f3f7;
+        border-bottom: 1px solid var(--line);
+      }
+      td {
+        padding: 18px;
+        font-size: 12px;
+        border-bottom: 1px solid #edf0f5;
+        vertical-align: middle;
+      }
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+      tbody tr:hover {
+        background: #fbfcff;
+      }
+      .source-name {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+      .source-sub {
+        font-size: 10px;
+        color: #9aa6b7;
+      }
+      .dbicon {
+        width: 38px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        border: 1px solid #e3edf9;
+        background: #f3f7ff;
+        border-radius: 8px;
+        color: #5885ce;
+        font-size: 11px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .dbicon.purple {
+        color: #8078bd;
+        background: #f5f3fc;
+        border-color: #eeebf8;
+      }
+      .dbicon.teal {
+        color: #489c9a;
+        background: #eef8f7;
+        border-color: #dcefed;
+      }
+      .dbicon.orange {
+        color: #b88f57;
+        background: #fcf7ef;
+        border-color: #f2e8d9;
+      }
+      .cell-sub {
+        font-size: 10px;
+        color: #a2acbb;
+        margin-top: 6px;
+      }
+      .count-cell {
+        color: #4f607a;
+        font-size: 13px;
+        font-weight: 550;
+      }
+      .panel-foot {
+        padding: 13px 20px;
+        border-top: 1px solid var(--line);
+        font-size: 11px;
+        color: #98a3b3;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .bottom-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 18px;
+        margin-top: 20px;
+      }
+      .notice-card {
+        border: 1px solid var(--line);
+        background: white;
+        border-radius: 9px;
+        padding: 20px;
+        display: flex;
+        gap: 15px;
+        align-items: flex-start;
+      }
+      .notice-card .icon-block {
+        background: #fff5e3;
+        color: #be9145;
+        border-radius: 8px;
+        padding: 10px;
+        display: flex;
+      }
+      .notice-card p {
+        font-size: 11px;
+        color: #92a0b3;
+        margin: 7px 0 10px;
+        line-height: 1.8;
+      }
+      .pipeline-strip {
+        background: linear-gradient(110deg, #f1f6ff, #fbfcff);
+        border: 1px solid #e0e9f9;
+        border-radius: 9px;
+        padding: 20px;
+      }
+      .pipeline-strip .flow {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 16px 0 7px;
+        font-size: 11px;
+        color: #597395;
+        gap: 6px;
+      }
+      .flow i {
+        font-style: normal;
+        color: #9fb7db;
+      }
+      .footer-note {
+        font-size: 10px;
+        color: #a1adbf;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 21px;
+      }
+      .alert {
+        padding: 12px 14px;
+        border-radius: 7px;
+        font-size: 12px;
+        line-height: 1.8;
+        display: flex;
+        gap: 9px;
+        align-items: flex-start;
+        background: #f0f5ff;
+        color: #5874a0;
+        border: 1px solid #dee8fb;
+      }
+      .alert.amber {
+        background: #fff9ee;
+        border-color: #f3e8cd;
+        color: #927037;
+      }
+      .alert.red {
+        background: #fff4f3;
+        border-color: #f4d9d6;
+        color: #aa5651;
+      }
+      .alert.green {
+        background: #f0faf5;
+        border-color: #d9eee3;
+        color: #427e62;
+      }
+      .empty {
+        padding: 60px 20px;
+        text-align: center;
+        color: #95a2b5;
+      }
+      .empty .icon {
+        height: 30px;
+        width: 30px;
+        color: #b4c6e0;
+        margin-bottom: 14px;
+      }
+      .empty h3 {
+        color: #536782;
+        margin-bottom: 8px;
+      }
+      .tabs {
+        display: flex;
+        gap: 24px;
+        border-bottom: 1px solid var(--line);
+        margin: 20px 0;
+      }
+      .tab {
+        border: 0;
+        background: none;
+        padding: 12px 2px;
+        color: #8793a5;
+        font-size: 13px;
+        border-bottom: 2px solid transparent;
+      }
+      .tab.active {
+        color: var(--blue);
+        border-bottom-color: var(--blue);
+        font-weight: 600;
+      }
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: 115px 1fr;
+        gap: 18px;
+        padding: 21px;
+        font-size: 12px;
+      }
+      .kv dt {
+        color: #8a97aa;
+      }
+      .kv dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      .metric-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+      .metric {
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: white;
+      }
+      .metric b {
+        font-size: 25px;
+        font-weight: 600;
+        display: block;
+        margin: 8px 0;
+      }
+      .metric span {
+        font-size: 11px;
+        color: #8996a9;
+      }
+      .table-picker {
+        display: grid;
+        grid-template-columns: 265px 1fr;
+        min-height: 390px;
+      }
+      .table-list {
+        border-right: 1px solid var(--line);
+        max-height: 500px;
+        overflow: auto;
+        background: #fbfcfe;
+        padding: 12px;
+      }
+      .table-item {
+        display: block;
+        border: 0;
+        background: transparent;
+        text-align: left;
+        padding: 12px 10px;
+        width: 100%;
+        border-radius: 6px;
+        font-size: 11px;
+        margin: 3px 0;
+        color: #657891;
+      }
+      .table-item.active {
+        background: #eaf1ff;
+        color: var(--blue);
+      }
+      .table-item:hover {
+        background: #f0f4fb;
+      }
+      .table-item span {
+        display: block;
+        color: #9aa6b8;
+        font-size: 10px;
+        margin-top: 5px;
+      }
+      .steps {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        margin: 2px 0 26px;
+      }
+      .step {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 12px;
+        color: #a4aebe;
+      }
+      .step:after {
+        content: "";
+        height: 1px;
+        background: #e3e9f2;
+        flex: 1;
+        margin: 0 12px;
+      }
+      .step:last-child:after {
+        display: none;
+      }
+      .step b {
+        font-size: 11px;
+        width: 25px;
+        height: 25px;
+        background: #f1f4f9;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-weight: 500;
+      }
+      .step.active {
+        color: var(--blue);
+      }
+      .step.active b {
+        color: white;
+        background: var(--blue);
+      }
+      .step.done b {
+        background: #edf3ff;
+        color: var(--blue);
+      }
+      dialog {
+        padding: 0;
+        border: 1px solid #e2e8f1;
+        border-radius: 13px;
+        width: 760px;
+        max-width: calc(100vw - 32px);
+        max-height: calc(100dvh - 48px);
+        box-shadow: 0 24px 100px #142e4a36;
+        color: var(--ink);
+      }
+      dialog::backdrop {
+        background: #14243a55;
+        backdrop-filter: blur(3px);
+      }
+      .modal-head {
+        padding: 22px 26px;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .modal-head h2 {
+        font-size: 18px;
+      }
+      .modal-body {
+        padding: 25px 26px;
+        max-height: calc(100dvh - 223px);
+        overflow: auto;
+      }
+      .modal-foot {
+        padding: 16px 26px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: #fafbfd;
+        gap: 12px;
+      }
+      .fields {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      .field {
+        display: grid;
+        gap: 8px;
+        font-size: 12px;
+        align-content: start;
+      }
+      .property-choices {
+        margin: 0;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        min-width: 0;
+      }
+      .property-choices legend {
+        padding: 0 6px;
+        font-size: 12px;
+        color: #5e6e85;
+      }
+      .property-choices label {
+        padding: 7px 0;
+        flex-wrap: wrap;
+        overflow-wrap: anywhere;
+      }
+      .property-choices input {
+        accent-color: var(--blue);
+      }
+      #source-properties .detail-grid {
+        gap: 0;
+      }
+      .asset-properties .kv,
+      #source-properties .kv {
+        min-width: 0;
+      }
+      .asset-properties .detail-grid {
+        gap: 0;
+      }
+      .column-metadata {
+        min-width: 850px;
+      }
+      .column-metadata td {
+        max-width: 280px;
+        overflow-wrap: anywhere;
+      }
+      .column-metadata td:nth-child(1),
+      .column-metadata td:nth-child(2) {
+        white-space: nowrap;
+      }
+      .column-metadata td:nth-child(3) {
+        min-width: 220px;
+      }
+      #metadata-table-select {
+        max-width: 100%;
+      }
+      .field > span {
+        color: #5e6e85;
+        font-weight: 500;
+      }
+      .field.full {
+        grid-column: 1/-1;
+      }
+      .help {
+        font-size: 11px;
+        color: #9ba6b5;
+        line-height: 1.7;
+      }
+      .connector-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-top: 18px;
+      }
+      .connector {
+        padding: 16px;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        text-align: left;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        position: relative;
+      }
+      .connector.active {
+        background: #f7faff;
+        border-color: #5789ed;
+        box-shadow: 0 0 0 1px #5789ed;
+      }
+      .connector b {
+        font-size: 12px;
+        font-weight: 550;
+      }
+      .connector small {
+        display: block;
+        color: #9aa6b7;
+        font-size: 10px;
+        margin-top: 5px;
+      }
+      .checkrow {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        font-size: 12px;
+        line-height: 1.7;
+        padding: 10px 0;
+      }
+      .checkrow input {
+        accent-color: var(--blue);
+        width: 15px;
+        height: 15px;
+      }
+      .selection-box {
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        padding: 14px 18px;
+      }
+      .field-error {
+        font-size: 12px;
+        color: var(--red);
+        margin-top: 14px;
+        min-height: 18px;
+      }
+      .run-stage {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 24px;
+        position: relative;
+      }
+      .run-stage:before {
+        content: "";
+        position: absolute;
+        top: 27px;
+        left: 12px;
+        width: 1px;
+        height: calc(100% + 8px);
+        background: #e0e8f4;
+      }
+      .run-stage:last-child:before {
+        display: none;
+      }
+      .stage-dot {
+        width: 25px;
+        height: 25px;
+        display: grid;
+        place-items: center;
+        border-radius: 50%;
+        background: #eff7f3;
+        color: var(--green);
+        font-size: 12px;
+        flex-shrink: 0;
+      }
+      .stage-dot.amber {
+        background: #fff6e7;
+        color: var(--amber);
+      }
+      .run-stage p {
+        font-size: 11px;
+        color: #9aa7ba;
+        margin-top: 5px;
+      }
+      .log {
+        font:
+          11px/1.9 ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+        background: #f6f8fc;
+        border: 1px solid var(--line);
+        padding: 15px;
+        border-radius: 7px;
+        color: #5e738e;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .sql-layout {
+        display: grid;
+        grid-template-columns: minmax(340px, 0.9fr) minmax(400px, 1.2fr);
+        gap: 20px;
+      }
+      .sql-editor {
+        font:
+          12px/1.9 ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+        background: #f8faff;
+        color: #385b8e;
+        padding: 18px;
+        resize: vertical;
+        min-height: 215px;
+        border-color: #e2eaf6;
+        tab-size: 2;
+      }
+      .graph {
+        padding: 30px 22px;
+        min-height: 255px;
+        background-color: #fbfcff;
+        background-image: radial-gradient(#dce5f4 0.7px, transparent 0.7px);
+        background-size: 16px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        overflow: auto;
+      }
+      .graph-node {
+        border: 1px solid #d9e3f3;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 3px 9px #20375e05;
+        min-width: 170px;
+        max-width: 230px;
+        flex: 1;
+      }
+      .graph-node header {
+        padding: 12px;
+        border-bottom: 1px solid #edf1f8;
+        background: #f9fbff;
+        border-radius: 8px 8px 0 0;
+        font-size: 11px;
+        color: #8092ad;
+      }
+      .graph-node strong {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 13px 12px;
+        overflow-wrap: anywhere;
+        line-height: 1.6;
+      }
+      .graph-node .graph-field {
+        padding: 8px 12px;
+        font-size: 10px;
+        border-top: 1px solid #eef2f8;
+        color: #6686b1;
+      }
+      .graph-arrow {
+        width: 42px;
+        min-width: 20px;
+        color: #8aabdf;
+        display: grid;
+        place-items: center;
+        font-size: 20px;
+      }
+      .graph-node.target {
+        border-color: #9cbaf5;
+      }
+      .graph-node.target header {
+        background: #f0f5ff;
+        color: var(--blue);
+      }
+      .segments {
+        display: flex;
+        border: 1px solid var(--line);
+        padding: 3px;
+        border-radius: 6px;
+        background: #f7f9fc;
+      }
+      .segments button {
+        border: 0;
+        padding: 5px 9px;
+        border-radius: 4px;
+        background: transparent;
+        font-size: 11px;
+        color: #93a0b3;
+      }
+      .segments button.active {
+        color: var(--blue);
+        background: #fff;
+        box-shadow: 0 1px 3px #16263e10;
+      }
+      .toast {
+        position: fixed;
+        left: calc(50% + 100px);
+        bottom: 28px;
+        transform: translateX(-50%);
+        padding: 12px 20px;
+        background: #203654;
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 8px 25px #182b4733;
+        z-index: 100;
+        font-size: 12px;
+        max-width: 70vw;
+        line-height: 1.8;
+      }
+      .review-chip {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 13px;
+        background: #f7f9fc;
+        border: 1px solid #e8edf4;
+        border-radius: 6px;
+        font-size: 12px;
+      }
+      .loading {
+        animation: pulse 1s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        50% {
+          opacity: 0.45;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .loading {
+          animation: none;
+        }
+      }
+      @media (min-width: 1700px) {
+        .main {
+          padding-top: 40px;
+        }
+        .stats {
+          margin-bottom: 28px;
+        }
+        .stat {
+          padding: 23px;
+        }
+        .panel td {
+          padding-top: 23px;
+          padding-bottom: 23px;
+        }
+      }
+      @media (max-width: 1200px) {
+        .sidebar {
+          width: 180px;
+        }
+        .frame {
+          margin-left: 252px;
+        }
+        .main {
+          padding: 24px;
+        }
+        .topbar {
+          padding: 0 24px;
+        }
+        .sql-layout {
+          grid-template-columns: 1fr;
+        }
+        .stat {
+          padding: 15px;
+        }
+        .stat-symbol {
+          display: none;
+        }
+        .toolbar {
+          flex-wrap: wrap;
+        }
+        .source-table {
+          min-width: 820px;
+        }
+        .bottom-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .table-picker {
+          grid-template-columns: 225px 1fr;
+        }
+      }
+      @media (max-width: 850px) {
+        .asset-properties .kv {
+          grid-template-columns: 82px minmax(0, 1fr);
+          gap: 16px;
+        }
+        .sidebar {
+          display: none;
+        }
+        .frame {
+          margin-left: 64px;
+        }
+        .rail {
+          width: 64px;
+        }
+        .main {
+          padding: 20px 16px;
+        }
+        .topbar {
+          padding: 0 16px;
+        }
+        .stats {
+          gap: 10px;
+        }
+        .stat-value {
+          font-size: 24px;
+        }
+        .stat-note {
+          font-size: 9px;
+        }
+        .page-head {
+          align-items: flex-start;
+        }
+        .bottom-grid,
+        .detail-grid {
+          grid-template-columns: 1fr;
+        }
+        .workspace {
+          display: none;
+        }
+        .toast {
+          left: 50%;
+        }
+      }
+      @media (max-width: 560px) {
+        .stats {
+          grid-template-columns: 1fr 1fr;
+        }
+        .page-head {
+          flex-wrap: wrap;
+        }
+        .fields {
+          grid-template-columns: 1fr;
+        }
+        .connector-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+        .prototype {
+          font-size: 9px;
+        }
+        .breadcrumb {
+          display: none;
+        }
+        .searchbox {
+          width: 100%;
+        }
+        .step {
+          font-size: 10px;
+          gap: 5px;
+        }
+        .step:after {
+          margin: 0 5px;
+        }
+        .topbar {
+          justify-content: flex-end;
+        }
+        .metric-row {
+          grid-template-columns: 1fr;
+        }
+        .modal-body {
+          padding: 18px;
+        }
+        .sql-layout {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .graph {
+          padding: 20px 12px;
+        }
+        .graph-node {
+          min-width: 110px;
+        }
+        .graph-arrow {
+          width: 22px;
+        }
+        .sidebar {
+          width: 0;
+        }
+        h1 {
+          font-size: 23px;
+        }
+      }
+
+      .table-picker.from-tree {
+        display: block;
+      }
+      .table-picker.from-tree > .table-list {
+        display: none;
+      }
+      .catalog-nav {
+        overflow: auto;
+        min-height: 100px;
+        max-height: calc(100dvh - 370px);
+        margin: 0 -5px 12px;
+        padding: 0 3px;
+        scrollbar-width: thin;
+      }
+      .catalog-nav ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .catalog-row {
+        display: flex;
+        align-items: center;
+        min-height: 33px;
+        border-radius: 5px;
+        padding-left: calc(var(--depth) * 12px);
+      }
+      .catalog-row:hover {
+        background: #f5f8fd;
+      }
+      .catalog-row.selected {
+        background: #edf3ff;
+        color: var(--blue);
+      }
+      .catalog-toggle {
+        width: 23px;
+        min-width: 23px;
+        height: 29px;
+        border: 0;
+        background: none;
+        color: #90a1b8;
+        font-size: 14px;
+      }
+      .catalog-pick {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        width: 100%;
+        padding: 7px 5px 7px 0;
+        background: none;
+        border: 0;
+        text-align: left;
+        color: #6d7e96;
+        font-size: 11px;
+      }
+      .catalog-pick .icon {
+        width: 14px;
+        height: 14px;
+        color: #8da5c7;
+      }
+      .catalog-pick span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .catalog-pick small {
+        margin-left: auto;
+        font-size: 9px;
+        color: #9aa8b9;
+        padding-right: 5px;
+        white-space: nowrap;
+      }
+      .catalog-row.selected .catalog-pick {
+        color: var(--blue);
+      }
+      .catalog-path {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+        font-size: 11px;
+        color: #a0adbd;
+      }
+      .catalog-folder {
+        margin-bottom: 18px;
+      }
+      .tree-mobile {
+        display: none;
+      }
+      @media (min-width: 851px) {
+        .sidebar {
+          width: 248px;
+        }
+        .frame {
+          margin-left: 320px;
+        }
+      }
+      @media (max-width: 850px) {
+        .asset-properties .kv {
+          grid-template-columns: 82px minmax(0, 1fr);
+          gap: 16px;
+        }
+        .tree-mobile {
+          display: inline-flex;
+        }
+        .catalogue-open .sidebar {
+          display: flex;
+          left: 64px;
+          width: 260px;
+          z-index: 30;
+          box-shadow: 10px 0 40px #18305225;
+        }
+        .catalog-nav {
+          max-height: calc(100dvh - 390px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <aside class="rail" aria-label="工作空间导航">
+      <div class="brand" aria-label="织境">织</div>
+      <button class="rail-item" data-action="outside" data-value="新建对话">
+        <span data-icon="plus"></span><span>新建</span>
+      </button>
+      <button class="rail-item" data-action="outside" data-value="首页">
+        <span data-icon="home"></span><span>首页</span>
+      </button>
+      <button class="rail-item active" data-action="nav" data-value="sources">
+        <span data-icon="database"></span><span>资产</span>
+      </button>
+      <button class="rail-item" data-action="outside" data-value="Agent 工作台">
+        <span data-icon="spark"></span><span>Agent</span>
+      </button>
+      <div class="spacer"></div>
+      <button class="rail-item" data-action="guide">
+        <span data-icon="help"></span><span>帮助</span>
+      </button>
+      <div class="avatar" aria-label="示例用户 林">林</div>
+    </aside>
+    <aside class="sidebar" aria-label="数据接入导航">
+      <div class="side-title">数据资产</div>
+      <button class="nav-item" data-action="outside" data-value="资产搜索">
+        <span data-icon="search"></span>资产搜索<span class="nav-count"
+          >006</span
+        >
+      </button>
+      <div class="side-label">数据接入</div>
+      <button class="nav-item active" data-action="nav" data-value="sources">
+        <span data-icon="database"></span>数据源
+      </button>
+      <nav id="catalog-tree" class="catalog-nav" aria-label="数据源目录"></nav>
+      <div class="side-bottom">
+        <div class="row" style="gap: 7px">
+          <span class="dot" style="color: #6b9ce8"></span
+          ><span class="small" style="color: #6c7f9e">元数据工作空间</span>
+        </div>
+        <p>表结构 · 字段说明 · 数据血缘<br />只采集元数据，不复制业务数据</p>
+      </div>
+    </aside>
+    <div class="frame">
+      <header class="topbar">
+        <button
+          class="btn sm tree-mobile"
+          data-action="toggle-catalog"
+          aria-expanded="false"
+        >
+          目录
+        </button>
+        <div class="breadcrumb">
+          数据资产 <span style="margin: 0 10px">/</span> 数据接入
+          <span style="margin: 0 10px">/</span> <b id="crumb">数据源</b>
+        </div>
+        <div class="row">
+          <span class="prototype">005 交互原型 · 示例元数据</span
+          ><button
+            class="btn ghost sm"
+            data-action="guide"
+            aria-label="查看原型说明"
+          >
+            <span data-icon="help"></span></button
+          ><span class="divider"></span
+          ><span class="small workspace" style="color: #74849b"
+            >默认工作空间</span
+          >
+          <div class="avatar">林</div>
+        </div>
+      </header>
+      <main id="main" class="main"></main>
+    </div>
+    <dialog id="dialog" aria-labelledby="modal-title"></dialog>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+    <script>
+      // This is a self-contained design prototype. It never calls an external service.
+      const CATALOG = {
+        mes: [
+          {
+            name: "production_line",
+            comment: "产线",
+            columns: [
+              {
+                name: "line_code",
+                type: "VARCHAR(32)",
+                comment: "产线编码，如 L1",
+                pk: true,
+              },
+              {
+                name: "name",
+                type: "VARCHAR(100)",
+                comment: "产线名称",
+                pk: false,
+              },
+              {
+                name: "product_family",
+                type: "VARCHAR(100)",
+                comment: "主要产品族",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "operation",
+            comment: "工序定义（工艺路线）",
+            columns: [
+              {
+                name: "op_code",
+                type: "VARCHAR(32)",
+                comment: "工序编码，如 L2-OP30",
+                pk: true,
+              },
+              {
+                name: "line_code",
+                type: "VARCHAR(32)",
+                comment: "所属产线编码",
+                pk: false,
+              },
+              { name: "seq", type: "INT", comment: "工序顺序号", pk: false },
+              {
+                name: "name",
+                type: "VARCHAR(100)",
+                comment: "工序名称",
+                pk: false,
+              },
+              {
+                name: "equip_type",
+                type: "VARCHAR(100)",
+                comment: "所用设备类型",
+                pk: false,
+              },
+              {
+                name: "std_cycle_sec",
+                type: "INT",
+                comment: "单件标准节拍（秒）",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "equipment",
+            comment: "设备",
+            columns: [
+              {
+                name: "equip_code",
+                type: "VARCHAR(32)",
+                comment: "设备编号，如 L2-CNC-03",
+                pk: true,
+              },
+              {
+                name: "name",
+                type: "VARCHAR(100)",
+                comment: "设备名称",
+                pk: false,
+              },
+              {
+                name: "equip_type",
+                type: "VARCHAR(100)",
+                comment: "设备类型",
+                pk: false,
+              },
+              {
+                name: "model",
+                type: "VARCHAR(100)",
+                comment: "设备型号",
+                pk: false,
+              },
+              {
+                name: "line_code",
+                type: "VARCHAR(32)",
+                comment: "所在产线编码",
+                pk: false,
+              },
+              {
+                name: "op_code",
+                type: "VARCHAR(32)",
+                comment: "承担的工序编码",
+                pk: false,
+              },
+              {
+                name: "installed_on",
+                type: "DATE",
+                comment: "投产日期",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "equipment_event",
+            comment: "设备事件（保养、报警、预警、停机、维修）",
+            columns: [
+              {
+                name: "event_id",
+                type: "VARCHAR(32)",
+                comment: "事件编号",
+                pk: true,
+              },
+              {
+                name: "equip_code",
+                type: "VARCHAR(32)",
+                comment: "设备编号",
+                pk: false,
+              },
+              {
+                name: "event_time",
+                type: "DATETIME",
+                comment: "发生时间",
+                pk: false,
+              },
+              {
+                name: "event_type",
+                type: "VARCHAR(100)",
+                comment: "事件类型：计划保养、报警、预警、停机、维修",
+                pk: false,
+              },
+              {
+                name: "alarm_code",
+                type: "VARCHAR(32)",
+                comment: "报警代码（保养与维修为空）",
+                pk: false,
+              },
+              {
+                name: "description",
+                type: "VARCHAR(500)",
+                comment: "事件描述",
+                pk: false,
+              },
+              {
+                name: "handled_by",
+                type: "VARCHAR(32)",
+                comment: "处理人工号",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "material",
+            comment: "物料（毛坯、外购件、成品）",
+            columns: [
+              {
+                name: "material_code",
+                type: "VARCHAR(32)",
+                comment: "物料编码",
+                pk: true,
+              },
+              {
+                name: "name",
+                type: "VARCHAR(100)",
+                comment: "物料名称",
+                pk: false,
+              },
+              {
+                name: "category",
+                type: "VARCHAR(100)",
+                comment: "类别：成品、毛坯、原材料、外购件",
+                pk: false,
+              },
+              {
+                name: "spec",
+                type: "VARCHAR(100)",
+                comment: "规格",
+                pk: false,
+              },
+              {
+                name: "unit",
+                type: "VARCHAR(32)",
+                comment: "计量单位",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "supplier",
+            comment: "供应商",
+            columns: [
+              {
+                name: "supplier_code",
+                type: "VARCHAR(32)",
+                comment: "供应商编码",
+                pk: true,
+              },
+              {
+                name: "name",
+                type: "VARCHAR(100)",
+                comment: "供应商名称",
+                pk: false,
+              },
+              {
+                name: "supplies",
+                type: "VARCHAR(100)",
+                comment: "主要供货物料",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "material_lot",
+            comment: "物料批次（入库）",
+            columns: [
+              {
+                name: "lot_no",
+                type: "VARCHAR(32)",
+                comment: "物料批次号，如 ML260902-901",
+                pk: true,
+              },
+              {
+                name: "material_code",
+                type: "VARCHAR(32)",
+                comment: "物料编码",
+                pk: false,
+              },
+              {
+                name: "supplier_code",
+                type: "VARCHAR(32)",
+                comment: "供应商编码",
+                pk: false,
+              },
+              {
+                name: "supplier_lot_no",
+                type: "VARCHAR(32)",
+                comment: "供应商批次号",
+                pk: false,
+              },
+              {
+                name: "received_at",
+                type: "DATETIME",
+                comment: "入库时间",
+                pk: false,
+              },
+              { name: "qty", type: "INT", comment: "入库数量", pk: false },
+            ],
+          },
+          {
+            name: "team",
+            comment: "班组",
+            columns: [
+              {
+                name: "team_code",
+                type: "VARCHAR(32)",
+                comment: "班组编码，如 L2-B",
+                pk: true,
+              },
+              {
+                name: "name",
+                type: "VARCHAR(100)",
+                comment: "班组名称",
+                pk: false,
+              },
+              {
+                name: "line_code",
+                type: "VARCHAR(32)",
+                comment: "所属产线编码（职能班组为空）",
+                pk: false,
+              },
+              {
+                name: "shift",
+                type: "VARCHAR(100)",
+                comment: "班次：白班、夜班、常日班",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "employee",
+            comment: "人员",
+            columns: [
+              {
+                name: "emp_no",
+                type: "VARCHAR(32)",
+                comment: "工号，如 E0123",
+                pk: true,
+              },
+              {
+                name: "name",
+                type: "VARCHAR(100)",
+                comment: "姓名（合成）",
+                pk: false,
+              },
+              {
+                name: "position",
+                type: "VARCHAR(100)",
+                comment: "岗位",
+                pk: false,
+              },
+              {
+                name: "team_code",
+                type: "VARCHAR(32)",
+                comment: "所属班组编码",
+                pk: false,
+              },
+              {
+                name: "hired_on",
+                type: "DATE",
+                comment: "入职日期",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "work_order",
+            comment: "生产工单",
+            columns: [
+              {
+                name: "wo_no",
+                type: "VARCHAR(32)",
+                comment: "工单号，如 WO2609-0412",
+                pk: true,
+              },
+              {
+                name: "product_code",
+                type: "VARCHAR(32)",
+                comment: "产品物料编码",
+                pk: false,
+              },
+              {
+                name: "line_code",
+                type: "VARCHAR(32)",
+                comment: "产线编码",
+                pk: false,
+              },
+              { name: "plan_qty", type: "INT", comment: "计划数量", pk: false },
+              {
+                name: "planned_start",
+                type: "DATETIME",
+                comment: "计划开工时间",
+                pk: false,
+              },
+              {
+                name: "status",
+                type: "VARCHAR(100)",
+                comment: "状态：已完工",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "production_batch",
+            comment: "成品批次",
+            columns: [
+              {
+                name: "batch_no",
+                type: "VARCHAR(32)",
+                comment: "成品批次号，如 B260911-L2-03",
+                pk: true,
+              },
+              {
+                name: "wo_no",
+                type: "VARCHAR(32)",
+                comment: "工单号",
+                pk: false,
+              },
+              {
+                name: "product_code",
+                type: "VARCHAR(32)",
+                comment: "产品物料编码",
+                pk: false,
+              },
+              {
+                name: "line_code",
+                type: "VARCHAR(32)",
+                comment: "产线编码",
+                pk: false,
+              },
+              { name: "qty", type: "INT", comment: "批次投产数量", pk: false },
+              {
+                name: "started_at",
+                type: "DATETIME",
+                comment: "投产时间",
+                pk: false,
+              },
+              {
+                name: "finished_at",
+                type: "DATETIME",
+                comment: "完工时间",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "operation_report",
+            comment: "工序报工",
+            columns: [
+              {
+                name: "report_id",
+                type: "VARCHAR(32)",
+                comment: "报工编号",
+                pk: true,
+              },
+              {
+                name: "batch_no",
+                type: "VARCHAR(32)",
+                comment: "成品批次号",
+                pk: false,
+              },
+              {
+                name: "op_code",
+                type: "VARCHAR(32)",
+                comment: "工序编码",
+                pk: false,
+              },
+              {
+                name: "equip_code",
+                type: "VARCHAR(32)",
+                comment: "设备编号",
+                pk: false,
+              },
+              {
+                name: "operator_no",
+                type: "VARCHAR(32)",
+                comment: "操作工工号",
+                pk: false,
+              },
+              {
+                name: "team_code",
+                type: "VARCHAR(32)",
+                comment: "当班班组编码",
+                pk: false,
+              },
+              {
+                name: "shift",
+                type: "VARCHAR(100)",
+                comment: "班次：白班、夜班",
+                pk: false,
+              },
+              {
+                name: "started_at",
+                type: "DATETIME",
+                comment: "开工时间",
+                pk: false,
+              },
+              {
+                name: "ended_at",
+                type: "DATETIME",
+                comment: "完工时间",
+                pk: false,
+              },
+              {
+                name: "input_qty",
+                type: "INT",
+                comment: "投入数量",
+                pk: false,
+              },
+              {
+                name: "good_qty",
+                type: "INT",
+                comment: "首次合格数量",
+                pk: false,
+              },
+              {
+                name: "rework_qty",
+                type: "INT",
+                comment: "返工后合格数量",
+                pk: false,
+              },
+              {
+                name: "scrap_qty",
+                type: "INT",
+                comment: "报废数量",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "material_consumption",
+            comment: "投料记录",
+            columns: [
+              {
+                name: "consumption_id",
+                type: "VARCHAR(32)",
+                comment: "投料记录编号",
+                pk: true,
+              },
+              {
+                name: "wo_no",
+                type: "VARCHAR(32)",
+                comment: "工单号",
+                pk: false,
+              },
+              {
+                name: "batch_no",
+                type: "VARCHAR(32)",
+                comment: "成品批次号",
+                pk: false,
+              },
+              {
+                name: "lot_no",
+                type: "VARCHAR(32)",
+                comment: "物料批次号",
+                pk: false,
+              },
+              {
+                name: "material_code",
+                type: "VARCHAR(32)",
+                comment: "物料编码",
+                pk: false,
+              },
+              { name: "qty", type: "INT", comment: "投料数量", pk: false },
+              {
+                name: "consumed_at",
+                type: "DATETIME",
+                comment: "投料时间",
+                pk: false,
+              },
+            ],
+          },
+        ],
+        qms: [
+          {
+            name: "customer",
+            comment: "客户",
+            columns: [
+              {
+                name: "customer_code",
+                type: "VARCHAR(32)",
+                comment: "客户编码",
+                pk: true,
+              },
+              {
+                name: "name",
+                type: "VARCHAR(100)",
+                comment: "客户名称（合成）",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "defect_code",
+            comment: "缺陷码（两级）",
+            columns: [
+              {
+                name: "code",
+                type: "VARCHAR(32)",
+                comment: "缺陷码，如 D101",
+                pk: true,
+              },
+              {
+                name: "name",
+                type: "VARCHAR(100)",
+                comment: "缺陷名称",
+                pk: false,
+              },
+              {
+                name: "category",
+                type: "VARCHAR(100)",
+                comment: "缺陷类别",
+                pk: false,
+              },
+              {
+                name: "parent_code",
+                type: "VARCHAR(32)",
+                comment: "上级缺陷码（一级为空）",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "inspection_item",
+            comment: "检验项（含公差）",
+            columns: [
+              {
+                name: "item_code",
+                type: "VARCHAR(32)",
+                comment: "检验项编码",
+                pk: true,
+              },
+              {
+                name: "name",
+                type: "VARCHAR(100)",
+                comment: "检验项名称",
+                pk: false,
+              },
+              {
+                name: "insp_type",
+                type: "VARCHAR(100)",
+                comment: "检验类型：来料、过程、终检",
+                pk: false,
+              },
+              {
+                name: "op_code",
+                type: "VARCHAR(32)",
+                comment: "适用工序编码（来料检验为空）",
+                pk: false,
+              },
+              {
+                name: "material_code",
+                type: "VARCHAR(32)",
+                comment: "适用物料编码（过程与终检为产品）",
+                pk: false,
+              },
+              {
+                name: "target",
+                type: "NUMERIC(10,4)",
+                comment: "目标值",
+                pk: false,
+              },
+              {
+                name: "lower_limit",
+                type: "NUMERIC(10,4)",
+                comment: "下限",
+                pk: false,
+              },
+              {
+                name: "upper_limit",
+                type: "NUMERIC(10,4)",
+                comment: "上限",
+                pk: false,
+              },
+              { name: "unit", type: "VARCHAR(32)", comment: "单位", pk: false },
+            ],
+          },
+          {
+            name: "inspection_record",
+            comment: "检验单（来料、过程、终检）",
+            columns: [
+              {
+                name: "insp_no",
+                type: "VARCHAR(32)",
+                comment: "检验单号",
+                pk: true,
+              },
+              {
+                name: "insp_type",
+                type: "VARCHAR(100)",
+                comment: "检验类型：来料、过程、终检",
+                pk: false,
+              },
+              {
+                name: "batch_no",
+                type: "VARCHAR(32)",
+                comment: "成品批次号（来料检验为空）",
+                pk: false,
+              },
+              {
+                name: "lot_no",
+                type: "VARCHAR(32)",
+                comment: "物料批次号（仅来料检验）",
+                pk: false,
+              },
+              {
+                name: "op_code",
+                type: "VARCHAR(32)",
+                comment: "工序编码（来料检验为空）",
+                pk: false,
+              },
+              {
+                name: "equip_code",
+                type: "VARCHAR(32)",
+                comment: "加工设备编号（来料检验为空）",
+                pk: false,
+              },
+              {
+                name: "inspected_at",
+                type: "TIMESTAMP",
+                comment: "检验时间",
+                pk: false,
+              },
+              {
+                name: "inspector_no",
+                type: "VARCHAR(32)",
+                comment: "检验员工号",
+                pk: false,
+              },
+              {
+                name: "sample_qty",
+                type: "INTEGER",
+                comment: "抽样数量",
+                pk: false,
+              },
+              {
+                name: "result",
+                type: "VARCHAR(100)",
+                comment: "判定：合格、不合格",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "inspection_value",
+            comment: "检验实测值",
+            columns: [
+              {
+                name: "insp_no",
+                type: "VARCHAR(32)",
+                comment: "检验单号",
+                pk: true,
+              },
+              {
+                name: "item_code",
+                type: "VARCHAR(32)",
+                comment: "检验项编码",
+                pk: true,
+              },
+              {
+                name: "sample_seq",
+                type: "INTEGER",
+                comment: "样本序号",
+                pk: true,
+              },
+              {
+                name: "measured_value",
+                type: "NUMERIC(10,4)",
+                comment: "实测值（探伤类：0 无缺陷，1 有缺陷）",
+                pk: false,
+              },
+              {
+                name: "judgement",
+                type: "VARCHAR(100)",
+                comment: "单值判定：合格、不合格",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "ncr",
+            comment: "不合格报告（客诉、内部、来料）",
+            columns: [
+              {
+                name: "ncr_no",
+                type: "VARCHAR(32)",
+                comment: "NCR 号，如 NCR-2609-0901",
+                pk: true,
+              },
+              {
+                name: "source",
+                type: "VARCHAR(100)",
+                comment: "来源：客诉、内部、来料",
+                pk: false,
+              },
+              {
+                name: "batch_no",
+                type: "VARCHAR(32)",
+                comment: "涉及的成品批次号",
+                pk: false,
+              },
+              {
+                name: "lot_no",
+                type: "VARCHAR(32)",
+                comment: "涉及的物料批次号",
+                pk: false,
+              },
+              {
+                name: "product_code",
+                type: "VARCHAR(32)",
+                comment: "产品物料编码",
+                pk: false,
+              },
+              {
+                name: "defect_code",
+                type: "VARCHAR(32)",
+                comment: "缺陷码",
+                pk: false,
+              },
+              {
+                name: "qty",
+                type: "INTEGER",
+                comment: "不合格数量",
+                pk: false,
+              },
+              {
+                name: "found_at",
+                type: "TIMESTAMP",
+                comment: "发现时间",
+                pk: false,
+              },
+              {
+                name: "reported_by",
+                type: "VARCHAR(32)",
+                comment: "报告人工号",
+                pk: false,
+              },
+              {
+                name: "responsible_op",
+                type: "VARCHAR(32)",
+                comment: "责任工序编码",
+                pk: false,
+              },
+              {
+                name: "customer_code",
+                type: "VARCHAR(32)",
+                comment: "客户编码（客诉时填写）",
+                pk: false,
+              },
+              {
+                name: "status",
+                type: "VARCHAR(100)",
+                comment: "状态：处理中、已关闭",
+                pk: false,
+              },
+              {
+                name: "description",
+                type: "VARCHAR(500)",
+                comment: "问题描述",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "eight_d",
+            comment: "8D 报告",
+            columns: [
+              {
+                name: "report_no",
+                type: "VARCHAR(32)",
+                comment: "8D 报告号",
+                pk: true,
+              },
+              {
+                name: "ncr_no",
+                type: "VARCHAR(32)",
+                comment: "对应 NCR 号",
+                pk: false,
+              },
+              {
+                name: "leader_no",
+                type: "VARCHAR(32)",
+                comment: "8D 组长工号",
+                pk: false,
+              },
+              {
+                name: "root_cause_category",
+                type: "VARCHAR(100)",
+                comment: "根因类别：人、机、料、法、测、环",
+                pk: false,
+              },
+              {
+                name: "root_cause",
+                type: "VARCHAR(500)",
+                comment: "根本原因",
+                pk: false,
+              },
+              {
+                name: "containment",
+                type: "VARCHAR(500)",
+                comment: "围堵措施",
+                pk: false,
+              },
+              {
+                name: "corrective_action",
+                type: "VARCHAR(500)",
+                comment: "纠正措施",
+                pk: false,
+              },
+              {
+                name: "opened_at",
+                type: "TIMESTAMP",
+                comment: "开立时间",
+                pk: false,
+              },
+              {
+                name: "closed_at",
+                type: "TIMESTAMP",
+                comment: "关闭时间（未关闭为空）",
+                pk: false,
+              },
+              {
+                name: "status",
+                type: "VARCHAR(100)",
+                comment: "状态：进行中、已关闭",
+                pk: false,
+              },
+            ],
+          },
+        ],
+        dw: [
+          {
+            name: "dim_line",
+            comment: "产线维度",
+            columns: [
+              {
+                name: "line_code",
+                type: "VARCHAR(32)",
+                comment: "产线编码",
+                pk: true,
+              },
+              {
+                name: "line_name",
+                type: "VARCHAR(300)",
+                comment: "产线名称",
+                pk: false,
+              },
+              {
+                name: "product_family",
+                type: "VARCHAR(300)",
+                comment: "主要产品族",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "dim_equipment",
+            comment: "设备维度",
+            columns: [
+              {
+                name: "equip_code",
+                type: "VARCHAR(32)",
+                comment: "设备编号",
+                pk: true,
+              },
+              {
+                name: "equip_name",
+                type: "VARCHAR(300)",
+                comment: "设备名称",
+                pk: false,
+              },
+              {
+                name: "equip_type",
+                type: "VARCHAR(300)",
+                comment: "设备类型",
+                pk: false,
+              },
+              {
+                name: "line_code",
+                type: "VARCHAR(32)",
+                comment: "所在产线编码",
+                pk: false,
+              },
+              {
+                name: "op_code",
+                type: "VARCHAR(32)",
+                comment: "承担的工序编码",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "dim_product",
+            comment: "产品维度",
+            columns: [
+              {
+                name: "product_code",
+                type: "VARCHAR(32)",
+                comment: "产品物料编码",
+                pk: true,
+              },
+              {
+                name: "product_name",
+                type: "VARCHAR(300)",
+                comment: "产品名称",
+                pk: false,
+              },
+              {
+                name: "line_code",
+                type: "VARCHAR(32)",
+                comment: "生产产线编码",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "dwd_operation_report",
+            comment: "报工明细（带产线、产品、班组冗余字段）",
+            columns: [
+              {
+                name: "report_id",
+                type: "VARCHAR(32)",
+                comment: "报工编号",
+                pk: true,
+              },
+              {
+                name: "report_date",
+                type: "DATE",
+                comment: "报工日期（开工日期）",
+                pk: false,
+              },
+              {
+                name: "line_code",
+                type: "VARCHAR(32)",
+                comment: "产线编码",
+                pk: false,
+              },
+              {
+                name: "product_code",
+                type: "VARCHAR(32)",
+                comment: "产品物料编码",
+                pk: false,
+              },
+              {
+                name: "batch_no",
+                type: "VARCHAR(32)",
+                comment: "成品批次号",
+                pk: false,
+              },
+              {
+                name: "wo_no",
+                type: "VARCHAR(32)",
+                comment: "工单号",
+                pk: false,
+              },
+              {
+                name: "op_code",
+                type: "VARCHAR(32)",
+                comment: "工序编码",
+                pk: false,
+              },
+              {
+                name: "is_final_op",
+                type: "INT",
+                comment: "是否终检工序：1 是，0 否",
+                pk: false,
+              },
+              {
+                name: "equip_code",
+                type: "VARCHAR(32)",
+                comment: "设备编号",
+                pk: false,
+              },
+              {
+                name: "operator_no",
+                type: "VARCHAR(32)",
+                comment: "操作工工号",
+                pk: false,
+              },
+              {
+                name: "team_code",
+                type: "VARCHAR(32)",
+                comment: "当班班组编码",
+                pk: false,
+              },
+              {
+                name: "shift",
+                type: "VARCHAR(300)",
+                comment: "班次",
+                pk: false,
+              },
+              {
+                name: "input_qty",
+                type: "INT",
+                comment: "投入数量",
+                pk: false,
+              },
+              {
+                name: "good_qty",
+                type: "INT",
+                comment: "首次合格数量",
+                pk: false,
+              },
+              {
+                name: "rework_qty",
+                type: "INT",
+                comment: "返工后合格数量",
+                pk: false,
+              },
+              {
+                name: "scrap_qty",
+                type: "INT",
+                comment: "报废数量",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "dwd_inspection_value",
+            comment: "检验实测值明细（带检验类型、批次、工序冗余字段）",
+            columns: [
+              {
+                name: "insp_no",
+                type: "VARCHAR(32)",
+                comment: "检验单号",
+                pk: true,
+              },
+              {
+                name: "item_code",
+                type: "VARCHAR(32)",
+                comment: "检验项编码",
+                pk: true,
+              },
+              {
+                name: "sample_seq",
+                type: "INT",
+                comment: "样本序号",
+                pk: true,
+              },
+              {
+                name: "insp_date",
+                type: "DATE",
+                comment: "检验日期",
+                pk: false,
+              },
+              {
+                name: "insp_type",
+                type: "VARCHAR(300)",
+                comment: "检验类型",
+                pk: false,
+              },
+              {
+                name: "line_code",
+                type: "VARCHAR(32)",
+                comment: "产线编码（来料检验为空）",
+                pk: false,
+              },
+              {
+                name: "batch_no",
+                type: "VARCHAR(32)",
+                comment: "成品批次号",
+                pk: false,
+              },
+              {
+                name: "lot_no",
+                type: "VARCHAR(32)",
+                comment: "物料批次号",
+                pk: false,
+              },
+              {
+                name: "op_code",
+                type: "VARCHAR(32)",
+                comment: "工序编码",
+                pk: false,
+              },
+              {
+                name: "equip_code",
+                type: "VARCHAR(32)",
+                comment: "设备编号",
+                pk: false,
+              },
+              {
+                name: "measured_value",
+                type: "DECIMAL(10,4)",
+                comment: "实测值",
+                pk: false,
+              },
+              {
+                name: "judgement",
+                type: "VARCHAR(300)",
+                comment: "单值判定",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "dwd_ncr",
+            comment: "NCR 明细",
+            columns: [
+              {
+                name: "ncr_no",
+                type: "VARCHAR(32)",
+                comment: "NCR 号",
+                pk: true,
+              },
+              {
+                name: "found_date",
+                type: "DATE",
+                comment: "发现日期",
+                pk: false,
+              },
+              {
+                name: "source",
+                type: "VARCHAR(300)",
+                comment: "来源",
+                pk: false,
+              },
+              {
+                name: "line_code",
+                type: "VARCHAR(32)",
+                comment: "产线编码",
+                pk: false,
+              },
+              {
+                name: "batch_no",
+                type: "VARCHAR(32)",
+                comment: "成品批次号",
+                pk: false,
+              },
+              {
+                name: "lot_no",
+                type: "VARCHAR(32)",
+                comment: "物料批次号",
+                pk: false,
+              },
+              {
+                name: "product_code",
+                type: "VARCHAR(32)",
+                comment: "产品物料编码",
+                pk: false,
+              },
+              {
+                name: "defect_code",
+                type: "VARCHAR(32)",
+                comment: "缺陷码",
+                pk: false,
+              },
+              {
+                name: "responsible_op",
+                type: "VARCHAR(32)",
+                comment: "责任工序编码",
+                pk: false,
+              },
+              {
+                name: "customer_code",
+                type: "VARCHAR(32)",
+                comment: "客户编码",
+                pk: false,
+              },
+              { name: "qty", type: "INT", comment: "不合格数量", pk: false },
+            ],
+          },
+          {
+            name: "dws_line_daily_quality",
+            comment: "产线日质量汇总",
+            columns: [
+              {
+                name: "line_code",
+                type: "VARCHAR(32)",
+                comment: "产线编码",
+                pk: true,
+              },
+              {
+                name: "stat_date",
+                type: "DATE",
+                comment: "统计日期（终检开工日期）",
+                pk: true,
+              },
+              {
+                name: "input_qty",
+                type: "INT",
+                comment: "终检投入数量",
+                pk: false,
+              },
+              {
+                name: "first_pass_qty",
+                type: "INT",
+                comment: "首次合格数量",
+                pk: false,
+              },
+              {
+                name: "rework_ok_qty",
+                type: "INT",
+                comment: "返工后合格数量",
+                pk: false,
+              },
+              {
+                name: "scrap_qty",
+                type: "INT",
+                comment: "报废数量",
+                pk: false,
+              },
+              {
+                name: "fpy_incl_rework",
+                type: "DECIMAL(6,4)",
+                comment: "一次合格率（帆软报表口径：含返工后合格）",
+                pk: false,
+              },
+              {
+                name: "fpy_strict",
+                type: "DECIMAL(6,4)",
+                comment: "一次合格率（严格口径：仅首次合格）",
+                pk: false,
+              },
+            ],
+          },
+          {
+            name: "dws_line_monthly_quality",
+            comment: "产线月质量汇总（帆软现有报表的数据源）",
+            columns: [
+              {
+                name: "line_code",
+                type: "VARCHAR(32)",
+                comment: "产线编码",
+                pk: true,
+              },
+              {
+                name: "stat_month",
+                type: "VARCHAR(32)",
+                comment: "统计月份，如 2026-09",
+                pk: true,
+              },
+              {
+                name: "input_qty",
+                type: "INT",
+                comment: "终检投入数量",
+                pk: false,
+              },
+              {
+                name: "first_pass_qty",
+                type: "INT",
+                comment: "首次合格数量",
+                pk: false,
+              },
+              {
+                name: "rework_ok_qty",
+                type: "INT",
+                comment: "返工后合格数量",
+                pk: false,
+              },
+              {
+                name: "scrap_qty",
+                type: "INT",
+                comment: "报废数量",
+                pk: false,
+              },
+              {
+                name: "fpy_incl_rework",
+                type: "DECIMAL(6,4)",
+                comment: "一次合格率（帆软报表口径：含返工后合格）",
+                pk: false,
+              },
+              {
+                name: "fpy_strict",
+                type: "DECIMAL(6,4)",
+                comment: "一次合格率（严格口径：仅首次合格）",
+                pk: false,
+              },
+            ],
+          },
+        ],
+      };
+      const paths = {
+        plus: "M12 5v14M5 12h14",
+        home: "m3 10 9-7 9 7M5 9v11h5v-6h4v6h5V9",
+        database:
+          "M20 5c0 2-3.6 3-8 3S4 7 4 5s3.6-3 8-3 8 1 8 3ZM4 5v14c0 2 3.6 3 8 3s8-1 8-3V5M4 12c0 2 3.6 3 8 3s8-1 8-3",
+        search: "M10.5 18a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15Zm5.5-2 5 5",
+        activity: "M3 12h4l3-8 4 16 3-8h4",
+        branch: "M6 3v12a4 4 0 0 0 4 4h8M6 7h8a4 4 0 0 0 4-4M18 3v4M18 16v6",
+        plug: "M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0V8Zm6 9v5",
+        spark: "m12 3 2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4L12 3Z",
+        help: "M9.5 8a2.5 2.5 0 0 1 5 .5c0 1.8-2.5 1.8-2.5 4M12 16h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z",
+        clock: "M12 7v5l3 2M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z",
+        check: "m5 12 4 4L19 6",
+        arrow: "M5 12h14m-5-5 5 5-5 5",
+        back: "M19 12H5m5-5-5 5 5 5",
+        close: "m6 6 12 12M6 18 18 6",
+        play: "m8 4 12 8-12 8V4Z",
+        pause: "M8 5v14M16 5v14",
+        refresh: "M20 7a9 9 0 1 0 1 8M20 3v5h-5",
+        shield: "M12 2 3 6v6c0 6 9 10 9 10s9-4 9-10V6L12 2Zm-5 9 3 3 7-7",
+        warning: "m12 3 10 18H2L12 3Zm0 6v5m0 3h.01",
+        file: "M14 2H5v20h14V7l-5-5Zm0 0v5h5M8 12h8M8 16h6",
+        layers: "m12 2 10 5-10 5L2 7l10-5Zm-10 10 10 5 10-5M2 17l10 5 10-5",
+        settings: "M4 7h16M4 17h16M8 4v6M16 14v6",
+        download: "M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4",
+      };
+      const icon = (name) =>
+        `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.file}"/></svg>`;
+      function hydrateIcons(root = document) {
+        root
+          .querySelectorAll("[data-icon]")
+          .forEach((e) => (e.innerHTML = icon(e.dataset.icon)));
+      }
+      const esc = (s) =>
+        String(s ?? "").replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      const btn = (text, action, value = "", cls = "", ico = "") =>
+        `<button class="btn ${cls}" data-action="${action}" data-value="${esc(value)}">${ico ? icon(ico) : ""}${text}</button>`;
+      const badge = (text, tone = "") =>
+        `<span class="badge ${tone}"><span class="dot"></span>${esc(text)}</span>`;
+      const STATUS = {
+        success: ["成功", "green"],
+        partial: ["部分成功", "amber"],
+        failed: ["失败", "red"],
+        draft: ["待配置", ""],
+        queued: ["排队中", "blue"],
+        running: ["采集中", "blue"],
+      };
+      const status = (s) => badge(...(STATUS[s] || [s, ""]));
+      // 原型示例：任务、运行与统计均为离线示例；字段名对齐 OM 2.0.3 IngestionPipeline / PipelineStatus
+      const OM_TYPE = {
+        MySQL: "Mysql",
+        PostgreSQL: "Postgres",
+        Oracle: "Oracle",
+        "SQL Server": "Mssql",
+        Doris: "Doris",
+      };
+      const emptyFilters = () => ({
+        database: { includes: "", excludes: "" },
+        schema: { includes: "", excludes: "" },
+        table: { includes: "", excludes: "" },
+      });
+      const seedSources = () => [
+        {
+          id: "mes",
+          name: "MES 生产执行系统",
+          service: "mock-mes",
+          type: "MySQL",
+          color: "",
+          abbr: "My",
+          database: "mes",
+          host: "mes.example.invalid",
+          port: "3306",
+          username: "mes_ro",
+          password: "********",
+          suffix: "x7Qp2LmA",
+          state: "success",
+          last: "今天 02:00",
+          duration: "48 秒",
+          schedule: "每天 02:00",
+          active: true,
+          filters: emptyFilters(),
+          includeViews: true,
+          lineage: "表与字段元数据已更新",
+          lineageTask: {
+            state: "success",
+            last: "今天 03:00",
+            duration: "6 秒",
+            schedule: "每天 03:00",
+            active: true,
+          },
+        },
+        {
+          id: "qms",
+          name: "QMS 质量管理系统",
+          service: "mock-qms",
+          type: "PostgreSQL",
+          color: "purple",
+          abbr: "Pg",
+          database: "qms",
+          host: "qms.example.invalid",
+          port: "5432",
+          username: "qms_ro",
+          password: "********",
+          suffix: "R4kz9TbE",
+          state: "partial",
+          last: "今天 02:15",
+          duration: "32 秒",
+          schedule: "每天 02:15",
+          active: true,
+          filters: {
+            ...emptyFilters(),
+            schema: { includes: "^public$", excludes: "" },
+          },
+          includeViews: true,
+          lineage: "部分对象读取失败",
+          lineageTask: {
+            state: "success",
+            last: "今天 03:15",
+            duration: "4 秒",
+            schedule: "每天 03:15",
+            active: true,
+          },
+        },
+        {
+          id: "dw",
+          name: "制造主题数仓",
+          service: "mock-dw",
+          type: "Doris",
+          color: "teal",
+          abbr: "Do",
+          database: "mock_dw",
+          host: "warehouse.example.invalid",
+          port: "9030",
+          username: "dw_ro",
+          password: "********",
+          suffix: "c2Wn8HvJ",
+          state: "success",
+          last: "今天 03:00",
+          duration: "1 分 12 秒",
+          schedule: "每天 03:00",
+          active: true,
+          filters: emptyFilters(),
+          includeViews: true,
+          lineage: "表与字段元数据已更新",
+          lineageTask: null,
+        },
+        {
+          id: "erp",
+          name: "ERP 企业资源系统",
+          service: "erp-core",
+          type: "Oracle",
+          color: "orange",
+          abbr: "Or",
+          database: "ERP",
+          host: "",
+          port: "1521",
+          username: "",
+          password: "",
+          suffix: "",
+          state: "draft",
+          last: "—",
+          duration: "—",
+          schedule: "未设置",
+          active: false,
+          filters: emptyFilters(),
+          includeViews: true,
+          lineage: "尚未采集",
+          lineageTask: null,
+        },
+      ];
+      let sources = seedSources();
+      // OM 的 runId 为 UUID；PipelineStatus 不记录触发方式
+      let runs = [
+        {
+          id: "3f0c9a52-6d1e-4b8a-9c27-5e41d7a08b13",
+          source: "qms",
+          kind: "lineage",
+          state: "success",
+          time: "今天 03:15:00",
+          duration: "4 秒",
+        },
+        {
+          id: "b81e47d0-2c95-4f36-a1d8-90e6c3f45a27",
+          source: "mes",
+          kind: "lineage",
+          state: "success",
+          time: "今天 03:00:00",
+          duration: "6 秒",
+        },
+        {
+          id: "9d24e6b1-7a03-4c58-b6f2-1e8a5d37c904",
+          source: "dw",
+          kind: "metadata",
+          state: "success",
+          time: "今天 03:00:00",
+          duration: "1 分 12 秒",
+        },
+        {
+          id: "e5a71c38-04bf-4d92-8e63-2b9f0c6d1a85",
+          source: "qms",
+          kind: "metadata",
+          state: "partial",
+          time: "今天 02:15:00",
+          duration: "32 秒",
+        },
+        {
+          id: "06c3d8f4-91a2-4e7b-bd50-7f4e2a9c6b18",
+          source: "mes",
+          kind: "metadata",
+          state: "success",
+          time: "今天 02:00:00",
+          duration: "48 秒",
+        },
+      ];
+      let view = "sources",
+        selectedSource = null,
+        detailTab = "overview",
+        selectedTable = "",
+        sourceQuery = "",
+        sourceFilter = "",
+        runFilter = "",
+        selectedTask = null,
+        modalKind = "",
+        returnFocus = null,
+        timers = [];
+      let wizard = null,
+        toastTimer;
+      const source = (id) => sources.find((s) => s.id === id);
+      const tables = (s) =>
+        s.catalogOverride || CATALOG[s.id] || s.previewTables || [];
+      const totalColumns = (s) =>
+        tables(s).reduce((n, t) => n + t.columns.length, 0);
+      // OM 原生：MySQL / Doris 的 databaseSchema 为选填；PostgreSQL / SQL Server 的 database 必填；Oracle 用 Service Name
+      const dbOptional = (type) => ["MySQL", "Doris"].includes(type);
+      const KIND_LABEL = { metadata: "元数据采集", lineage: "视图血缘" };
+      // OM 前端命名规则：<服务名>_<类型>_<8 位随机串>（ServicePureUtils.getIngestionName）
+      const taskName = (s, kind = "metadata") =>
+        `${s.service.replace(/[^A-Za-z0-9]/g, "_")}_${kind}_${s.suffix}`;
+      const task = (s, kind) => (kind === "lineage" ? s.lineageTask : s);
+      const tasksOf = (s) =>
+        s.state === "draft"
+          ? []
+          : ["metadata", ...(s.lineageTask ? ["lineage"] : [])];
+      const needsAttention = (s) =>
+        tasksOf(s).some((k) => ["partial", "failed"].includes(task(s, k).state));
+      const schedulePaused = (s) =>
+        tasksOf(s).some((k) => {
+          const t = task(s, k);
+          return t.schedule !== "手动触发" && !t.active;
+        });
+      const randomSuffix = () =>
+        Array.from({ length: 8 }, () =>
+          "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789".charAt(
+            Math.floor(Math.random() * 56),
+          ),
+        ).join("");
+      const uuid = () =>
+        "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+          const r = Math.floor(Math.random() * 16);
+          return (c === "x" ? r : (r & 3) | 8).toString(16);
+        });
+      const splitPatterns = (text) =>
+        text
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean);
+      const FILTER_LABEL = { database: "数据库", schema: "Schema", table: "表" };
+      function filterSummary(f) {
+        const parts = [];
+        for (const level of ["database", "schema", "table"]) {
+          const inc = splitPatterns(f[level].includes),
+            exc = splitPatterns(f[level].excludes);
+          if (inc.length)
+            parts.push(`${FILTER_LABEL[level]}包含 ${inc.join(", ")}`);
+          if (exc.length)
+            parts.push(`${FILTER_LABEL[level]}排除 ${exc.join(", ")}`);
+        }
+        return parts.length ? parts.join("；") : "全部（未设置过滤规则）";
+      }
+      function applyTableFilter(list, f) {
+        const inc = splitPatterns(f.table.includes).map((x) => new RegExp(x)),
+          exc = splitPatterns(f.table.excludes).map((x) => new RegExp(x));
+        return list.filter(
+          (t) =>
+            (!inc.length || inc.some((r) => r.test(t.name))) &&
+            !exc.some((r) => r.test(t.name)),
+        );
+      }
+      const dbIcon = (s) =>
+        `<span class="dbicon ${s.color || ""}">${esc(s.abbr || s.type.slice(0, 2))}</span>`;
+      function toast(text) {
+        clearTimeout(toastTimer);
+        const e = document.getElementById("toast");
+        e.textContent = text;
+        e.classList.remove("hidden");
+        toastTimer = setTimeout(() => e.classList.add("hidden"), 4000);
+      }
+      function pageHead(
+        title,
+        subtitle,
+        action = "",
+        eyebrow = "DATA INGESTION",
+      ) {
+        return `<div class="page-head"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p class="subtitle">${subtitle}</p></div><div class="row">${action}</div></div>`;
+      }
+      function footer() {
+        return `<div class="footer-note">${icon("shield")}仅元数据采集 · 不读取业务行、不执行报表 SQL · 示例日期 2026-11-03</div>`;
+      }
+      function stat(label, value, unit, note, ico) {
+        return `<div class="stat"><div class="stat-symbol">${icon(ico)}</div><div class="stat-label">${label}</div><div class="stat-value">${value}<small>${unit}</small></div><div class="stat-note">${note}</div></div>`;
+      }
+
+      let catalogSelection = null;
+      const treeExpanded = new Set(["qms", "qms/db", "qms/schema"]);
+      let catalogNodes = new Map();
+      function namespace(s) {
+        if (["MySQL", "Doris"].includes(s.type))
+          return {
+            database: s.catalogName || "default",
+            schema: s.databaseSchema || s.database,
+          };
+        return {
+          database: s.database,
+          schema: s.type === "PostgreSQL" ? "public" : "ERP（设计示例）",
+        };
+      }
+      function catalogModel() {
+        return sources.map((s) => {
+          const ns = namespace(s),
+            list = tables(s);
+          return {
+            key: s.id,
+            kind: "service",
+            label: s.service,
+            source: s.id,
+            hint: list.length ? String(list.length) : "未采集",
+            children: list.length
+              ? [
+                  {
+                    key: s.id + "/db",
+                    kind: "database",
+                    label: ns.database,
+                    source: s.id,
+                    children: [
+                      {
+                        key: s.id + "/schema",
+                        kind: "schema",
+                        label: ns.schema,
+                        source: s.id,
+                        children: list.map((t) => ({
+                          key: s.id + "/table/" + t.name,
+                          kind: "table",
+                          label: t.name,
+                          source: s.id,
+                          table: t.name,
+                          description: t.comment,
+                          children: [],
+                        })),
+                      },
+                    ],
+                  },
+                ]
+              : [],
+          };
+        });
+      }
+      function renderCatalog() {
+        const scroll = document.getElementById("catalog-tree").scrollTop;
+        catalogNodes = new Map();
+        const index = (nodes) =>
+          nodes.forEach((n) => {
+            catalogNodes.set(n.key, n);
+            index(n.children);
+          });
+        const roots = catalogModel();
+        index(roots);
+        const rows = (nodes, depth) =>
+          "<ul>" +
+          nodes
+            .map((n) => {
+              const expanded = treeExpanded.has(n.key),
+                has = n.children.length > 0,
+                active =
+                  view === "sources" &&
+                  (catalogSelection === n.key ||
+                    (!catalogSelection &&
+                      n.kind === "service" &&
+                      selectedSource === n.source));
+              return `<li><div class="catalog-row ${active ? "selected" : ""}" style="--depth:${depth}">${has ? `<button class="catalog-toggle" data-action="catalog-toggle" data-value="${esc(n.key)}" aria-label="${expanded ? "收起" : "展开"} ${esc(n.label)}" aria-expanded="${expanded}">${expanded ? "⌄" : "›"}</button>` : '<span class="catalog-toggle"></span>'}<button class="catalog-pick" data-action="catalog-pick" data-value="${esc(n.key)}" title="${esc(n.description || n.label)}" ${active ? 'aria-current="page"' : ""}>${icon(n.kind === "table" ? "file" : n.kind === "schema" ? "layers" : "database")}<span>${esc(n.kind === "service" ? n.label : propertyTarget(n.key).record.displayName || n.label)}</span><small>${esc(n.hint || "")}</small></button></div>${has && expanded ? rows(n.children, depth + 1) : ""}</li>`;
+            })
+            .join("") +
+          "</ul>";
+        document.getElementById("catalog-tree").innerHTML = rows(roots, 0);
+        document.getElementById("catalog-tree").scrollTop = scroll;
+      }
+      function selectCatalog(key) {
+        const n = catalogNodes.get(key);
+        if (!n) return;
+        selectedTask = null;
+        runFilter = "";
+        selectedSource = n.source;
+        catalogSelection = key;
+        view = "sources";
+        detailTab = n.kind === "service" ? "overview" : "metadata";
+        selectedTable = n.table || "";
+        treeExpanded.add(n.source);
+        if (n.kind !== "service") treeExpanded.add(n.source + "/db");
+        if (n.kind === "table") treeExpanded.add(n.source + "/schema");
+        document.body.classList.remove("catalogue-open");
+        render();
+        window.scrollTo(0, 0);
+      }
+      function catalogPath(s, t) {
+        const ns = namespace(s),
+          current = catalogNodes.get(catalogSelection);
+        const parts = [
+          [s.service, s.id],
+          [ns.database, s.id + "/db"],
+        ];
+        if (t || current?.kind !== "database")
+          parts.push([ns.schema, s.id + "/schema"]);
+        if (t) parts.push([t.name, s.id + "/table/" + t.name]);
+        return (
+          '<nav class="catalog-path" aria-label="资产层级">' +
+          parts
+            .map(([name, key], index) =>
+              index === parts.length - 1
+                ? `<span class="mono" aria-current="page">${esc(name)}</span>`
+                : `<button class="link small" data-action="catalog-pick" data-value="${esc(key)}">${esc(name)}</button><span>›</span>`,
+            )
+            .join("") +
+          "</nav>"
+        );
+      }
+      function renderAssetDetail(s, node) {
+        const a = propertyTarget(node.key);
+        return (
+          `<button class="link small row" style="margin-bottom:18px" data-action="catalog-pick" data-value="${s.id}">${icon("back")}返回所属数据源</button>` +
+          pageHead(
+            esc(a.record.displayName || a.physicalName),
+            `${kindNames[a.kind]} <span style="margin:0 8px">·</span><span class="mono">${esc(a.fqn)}</span>`,
+            "",
+            "METADATA CATALOG",
+          ) +
+          sourceMetadata(s) +
+          `<div class="footer-note">${icon("shield")}元数据目录 · 属性修改不写入源系统 · 当前为离线原型</div>`
+        );
+      }
+      function sourceCatalogOverview(s) {
+        const root = catalogNodes.get(s.id),
+          children = root?.children || [];
+        if (!children.length)
+          return `<section class="panel empty"><h3>暂无元数据</h3><p class="small muted">首次采集完成后在这里浏览数据库目录。</p></section>`;
+        return `<section class="panel"><div class="panel-head"><div><h2>数据库目录</h2><p class="subtitle">选择数据库，逐层浏览 Schema、表与字段。</p></div><span class="badge">${children.length} 个数据库</span></div><div class="table-scroll"><table><thead><tr><th>数据库</th><th>描述</th><th>Schema 数</th></tr></thead><tbody>${children
+          .map((n) => {
+            const a = propertyTarget(n.key);
+            return `<tr><td><button class="link" data-action="catalog-pick" data-value="${esc(n.key)}">${esc(a.record.displayName || n.label)}</button><div class="help mono">${esc(a.fqn)}</div></td><td>${esc(a.record.description || "暂无描述")}</td><td>${n.children.length}</td></tr>`;
+          })
+          .join("")}</tbody></table></div></section>`;
+      }
+      function catalogFolder(s, n) {
+        const ns = namespace(s),
+          isDb = n.kind === "database",
+          children = n.children;
+        return (
+          catalogPath(s) +
+          assetProperties(n.key) +
+          `<section class="panel catalog-folder"><div class="panel-head"><h2>${isDb ? "数据库" : "Schema"} · ${esc(n.label)}</h2><span class="badge blue">${children.length} ${isDb ? "个 Schema" : "张表"}</span></div><div class="panel-body"><p class="help">${["MySQL", "Doris"].includes(s.type) ? "default 是此原型采用的 OM 目录数据库名，源系统的库名映射为 Schema。正式页面以采集返回的层级为准。" : "目录保留数据库与 Schema 层级，同名表通过完整路径区分。"}</p></div><div class="table-scroll"><table><thead><tr><th>${isDb ? "Schema" : "表名称"}</th><th>说明</th><th>${isDb ? "表数" : "字段数"}</th></tr></thead><tbody>${children.map((c) => `<tr><td><button class="link mono" data-action="catalog-pick" data-value="${esc(c.key)}">${esc(propertyTarget(c.key).record.displayName || c.label)}</button><div class="help mono">${esc(c.label)}</div></td><td class="muted">${esc(propertyTarget(c.key).record.description || "暂无描述")}</td><td>${isDb ? c.children.length : tables(s).find((t) => t.name === c.table)?.columns.length || 0}</td></tr>`).join("")}</tbody></table></div></section>`
+        );
+      }
+
+      function render() {
+        renderCatalog();
+        const toggle = document.querySelector('[data-action="toggle-catalog"]');
+        toggle.setAttribute(
+          "aria-expanded",
+          String(document.body.classList.contains("catalogue-open")),
+        );
+        document
+          .querySelectorAll('.nav-item[data-action="nav"]')
+          .forEach((b) =>
+            b.classList.toggle("active", b.dataset.value === view),
+          );
+        const assetNode = catalogNodes.get(catalogSelection);
+        document.getElementById("crumb").textContent =
+          selectedSource && assetNode && assetNode.kind !== "service"
+            ? `数据资产 / ${kindNames[assetNode.kind]}`
+            : selectedSource && detailTab === "tasks"
+              ? selectedTask
+                ? "数据源 / 采集任务 / 运行"
+                : "数据源 / 采集任务"
+              : "数据源";
+        const main = document.getElementById("main");
+        main.innerHTML = selectedSource
+          ? renderSourceDetail()
+          : renderSources();
+        hydrateIcons(main);
+      }
+      function renderSources() {
+        const configured = sources.filter((s) => s.state !== "draft"),
+          count = configured.reduce((n, s) => n + tables(s).length, 0),
+          cols = configured.reduce((n, s) => n + totalColumns(s), 0),
+          attention = sources.filter(needsAttention);
+        return (
+          pageHead(
+            "数据源",
+            "从源系统到可信元数据，让每一张表都有来处。",
+            btn("添加数据源", "add", "", "primary", "plus"),
+          ) +
+          `<div class="stats">${stat("已配置数据源", configured.length, "/ " + sources.length, "覆盖 MES · QMS · 数仓", "database")}${stat("已采集表", count, "张", "来源于本页示例采集结果", "layers")}${stat("字段元数据", cols, "个", "包含字段类型与业务注释", "file")}${stat("需要关注", attention.length, "项", attention.length ? "存在采集不完整的数据源" : "最近采集均已完成", "activity")}</div>
+      <section class="panel"><div class="toolbar"><div class="searchbox">${icon("search")}<input class="input" id="source-search" placeholder="搜索名称、连接器或数据库" aria-label="搜索数据源" value="${esc(sourceQuery)}" /></div><select class="filter" id="source-filter" aria-label="按状态筛选"><option value="">全部状态</option>${[
+        ["success", "采集成功"],
+        ["partial", "需要关注"],
+        ["draft", "待配置"],
+        ["paused", "调度已暂停"],
+      ]
+        .map(
+          ([v, t]) =>
+            `<option value="${v}" ${sourceFilter === v ? "selected" : ""}>${t}</option>`,
+        )
+        .join(
+          "",
+        )}</select><span class="spacer"></span><span class="small muted">${sources.length} 个数据源</span>${btn("重置筛选", "clear-filters", "", "ghost sm")}</div><div class="table-scroll" id="source-table-wrap">${sourceTable()}</div><div class="panel-foot"><span>采集结果统一写入 OpenMetadata</span><span>独立 Airflow 调度 <span class="dot" style="color:#82a88e;margin-left:8px"></span></span></div></section>
+      <div class="bottom-grid"><section class="notice-card"><div class="icon-block">${icon(attention.length ? "warning" : "check")}</div><div class="grow"><h3>${attention.length ? `有 ${attention.length} 个数据源的采集需要处理` : "采集状态已更新"}</h3><p>${attention.length ? `${esc(attention.map((x) => x.name).join("、"))}：最近一次运行部分成功或失败，已写入的元数据保留。` : "最近运行均已完成。可在数据源详情的采集任务中查看运行记录。"}</p>${attention.length ? `<button class="link small" data-action="detail" data-value="${attention[0].id}">查看运行与日志 →</button>` : ""}</div></section><section class="pipeline-strip"><div class="row between"><h3>连接数据，保留数据边界</h3>${icon("branch")}</div><div class="flow"><span>源系统</span><i>→</i><span>OpenMetadata Ingestion</span><i>→</i><span>元数据目录</span></div><p class="small muted" style="font-size:10px">Airflow 编排采集任务 · 业务数据保留在源系统</p></section></div>${footer()}`
+        );
+      }
+      function sourceTable() {
+        const list = sources.filter(
+          (s) =>
+            (!sourceQuery ||
+              [s.name, s.type, s.database, s.service]
+                .join(" ")
+                .toLowerCase()
+                .includes(sourceQuery.toLowerCase())) &&
+            (!sourceFilter ||
+              (sourceFilter === "paused"
+                ? schedulePaused(s)
+                : sourceFilter === "partial"
+                  ? needsAttention(s)
+                  : s.state === sourceFilter)),
+        );
+        if (!list.length)
+          return `<div class="empty">${icon("search")}<h3>没有匹配的数据源</h3><p class="small">试试其他名称，或清除筛选条件。</p>${btn("清除筛选", "clear-filters", "", "sm")}</div>`;
+        return `<table class="source-table"><thead><tr><th>数据源 / 连接器</th><th>最近采集</th><th>元数据</th><th>调度</th><th>更新时间</th><th style="width:100px">操作</th></tr></thead><tbody>${list.map((s) => `<tr><td><div class="row">${dbIcon(s)}<div><button class="link source-name" data-action="detail" data-value="${s.id}" style="color:var(--ink)">${esc(s.name)}</button><div class="source-sub">${esc(s.type)} <span style="margin:0 5px">/</span> ${esc(s.service)}</div></div></div></td><td>${status(s.state)}<div class="cell-sub">${esc(s.state === "draft" ? "等待完成连接配置" : s.lineage)}</div></td><td><div class="count-cell">${s.state === "draft" ? "—" : tables(s).length + " 张表"}</div><div class="cell-sub">${s.state === "draft" ? "尚未采集" : totalColumns(s) + " 个字段"}</div></td><td><span style="color:#65758b">${s.schedule === "手动触发" ? "手动触发" : s.active ? esc(s.schedule) : s.state === "draft" ? "—" : badge("已暂停")}</span><div class="cell-sub">${s.state === "draft" ? "" : s.schedule === "手动触发" ? "手动运行" : "Asia/Shanghai"}</div></td><td><span style="color:#73839a">${esc(s.last)}</span><div class="cell-sub">${s.duration === "—" ? "" : s.duration}</div></td><td>${s.state === "draft" ? btn("继续配置", "configure", s.id, "sm") : btn("查看详情", "detail", s.id, "sm")}</td></tr>`).join("")}</tbody></table>`;
+      }
+      function renderSourceDetail() {
+        const s = source(selectedSource);
+        if (!s) {
+          selectedSource = null;
+          return renderSources();
+        }
+        const assetNode = catalogNodes.get(catalogSelection);
+        if (assetNode?.source === s.id && assetNode.kind !== "service")
+          return renderAssetDetail(s, assetNode);
+        const tabLabels = {
+          overview: "概览",
+          metadata: "已采集元数据",
+          scope: "采集配置",
+          tasks: "采集任务",
+        };
+        return (
+          `<button class="link small row" style="margin-bottom:18px" data-action="back">${icon("back")}返回数据源</button>` +
+          pageHead(
+            esc(s.name),
+            `<span class="mono">${esc(s.service)}</span> <span style="margin:0 8px">·</span> ${esc(s.type)} <span style="margin:0 8px">·</span> ${status(s.state)}`,
+            s.state === "draft"
+              ? btn("继续配置", "configure", s.id, "primary", "settings")
+              : btn("配置连接与范围", "configure", s.id, "", "settings"),
+          ) +
+          `<div class="tabs">${Object.entries(tabLabels)
+            .map(
+              ([k, v]) =>
+                `<button class="tab ${detailTab === k ? "active" : ""}" data-action="detail-tab" data-value="${k}">${v}</button>`,
+            )
+            .join("")}</div>` +
+          (detailTab === "overview"
+            ? sourceOverview(s)
+            : detailTab === "metadata"
+              ? sourceCatalogOverview(s)
+              : detailTab === "scope"
+                ? sourceScope(s)
+                : sourceTasks(s)) +
+          footer()
+        );
+      }
+      // Offline fixtures, never presented as the deployment's real governance catalog.
+      const propertyCatalog = {
+        domains: [
+          { id: "demo-domain-a", name: "示例业务域 A" },
+          { id: "demo-domain-b", name: "示例业务域 B" },
+        ],
+        owners: [
+          { id: "demo-user-a", name: "示例用户 A", type: "user" },
+          { id: "demo-user-b", name: "示例用户 B", type: "user" },
+          { id: "demo-team", name: "示例团队", type: "team" },
+        ],
+        terms: [
+          { id: "demo.termA", name: "示例术语 A" },
+          { id: "demo.termB", name: "示例术语 B" },
+        ],
+        products: [
+          {
+            id: "demo.productA",
+            name: "示例数据产品 A",
+            domain: "demo-domain-a",
+          },
+          {
+            id: "demo.productB",
+            name: "示例数据产品 B",
+            domain: "demo-domain-b",
+          },
+        ],
+        tags: [
+          "PII.None",
+          "PII.NonSensitive",
+          "PII.Sensitive",
+          "PersonalData.Personal",
+          "PersonalData.SpecialCategory",
+        ].map((id) => ({ id, name: id })),
+      };
+      const assetMetadata = new Map();
+      const kindNames = {
+        service: "数据源",
+        database: "数据库",
+        schema: "Schema",
+        table: "数据表",
+        column: "字段",
+      };
+      function propertyTarget(key) {
+        const parts = key.split("/"),
+          s = source(parts[0]);
+        if (!s) return null;
+        if (parts.length === 1)
+          return {
+            key,
+            kind: "service",
+            record: s,
+            physicalName: s.service,
+            fqn: s.service,
+            parent: null,
+            s,
+          };
+        const ns = namespace(s),
+          kind =
+            parts[1] === "db"
+              ? "database"
+              : parts[1] === "schema"
+                ? "schema"
+                : parts[3] === "column"
+                  ? "column"
+                  : "table";
+        const t =
+          parts[1] === "table"
+            ? tables(s).find((t) => t.name === parts[2])
+            : null;
+        const c =
+          kind === "column"
+            ? t?.columns.find((c) => c.name === parts[4])
+            : null;
+        if ((kind === "table" && !t) || (kind === "column" && !c)) return null;
+        const physicalName =
+          kind === "database"
+            ? ns.database
+            : kind === "schema"
+              ? ns.schema
+              : kind === "table"
+                ? t.name
+                : c.name;
+        const path = [
+          s.service,
+          ns.database,
+          ...(kind === "database" ? [] : [ns.schema]),
+          ...(t ? [t.name] : []),
+          ...(c ? [c.name] : []),
+        ];
+        const fqn = path
+          .map((name) => (name.includes(".") ? `"${name}"` : name))
+          .join(".");
+        // Include the namespace in storage identity, so changing a connection cannot relabel a different asset.
+        const storageKey = s.id + ":" + kind + ":" + fqn;
+        if (!assetMetadata.has(storageKey))
+          assetMetadata.set(storageKey, {
+            displayName: "",
+            description: c?.comment ?? t?.comment ?? "",
+            owners: [],
+            domains: [],
+            dataProducts: [],
+            tags: [],
+            retentionPeriod: "",
+          });
+        const parent =
+          kind === "database"
+            ? s.id
+            : kind === "schema"
+              ? s.id + "/db"
+              : kind === "table"
+                ? s.id + "/schema"
+                : s.id + "/table/" + t.name;
+        return {
+          key,
+          kind,
+          record: assetMetadata.get(storageKey),
+          physicalName,
+          fqn,
+          parent,
+          s,
+          t,
+          c,
+        };
+      }
+      const inheritsField = (kind, field) =>
+        field === "domains"
+          ? ["database", "schema", "table"].includes(kind)
+          : ["owners", "retentionPeriod"].includes(field) &&
+            ["schema", "table"].includes(kind);
+      function resolvedProperty(key, field) {
+        const target = propertyTarget(key),
+          value = target?.record[field];
+        if (value?.length) return { value, origin: key };
+        if (target?.parent && inheritsField(target.kind, field))
+          return resolvedProperty(target.parent, field);
+        return { value: field === "retentionPeriod" ? "" : [], origin: null };
+      }
+      function inheritedMarkup(key, field, kind) {
+        const resolved = resolvedProperty(key, field);
+        const content =
+          field === "retentionPeriod"
+            ? esc(resolved.value || "未设置")
+            : propertyChips(propertyNames(kind, resolved.value));
+        const origin = resolved.origin && propertyTarget(resolved.origin);
+        return `<div data-asset-field="${field}">${content}${origin ? `<p class="help">${origin.key === key ? "单独设置" : `继承自 ${kindNames[origin.kind]} · ${esc(origin.fqn)}`}</p>` : ""}</div>`;
+      }
+      function assetProperties(key) {
+        const a = propertyTarget(key),
+          r = a.record,
+          tags = r.tags || [],
+          tier = tags.find((t) => t.tagFQN.startsWith("Tier."));
+        const products = r.dataProducts || [],
+          effectiveDomain = resolvedProperty(key, "domains").value[0];
+        const mismatch = products.some(
+          (id) =>
+            propertyCatalog.products.find((x) => x.id === id)?.domain !==
+            effectiveDomain,
+        );
+        return `<section class="panel asset-properties" style="margin-bottom:20px" data-asset-key="${esc(key)}"><div class="panel-head"><div><h2>${kindNames[a.kind]}属性 · ${esc(r.displayName || a.physicalName)}</h2><p class="subtitle">编辑元数据描述与治理属性，不修改源数据库。</p></div>${btn("编辑属性", "edit-properties", key, "sm", "settings")}</div><div class="detail-grid"><dl class="kv"><dt>名称（只读）</dt><dd class="mono">${esc(a.physicalName)}</dd><dt>显示名称</dt><dd>${esc(r.displayName || "未设置")}</dd><dt>完整名称</dt><dd class="mono">${esc(a.fqn)}</dd><dt>描述</dt><dd style="white-space:pre-wrap">${esc(r.description || "暂无描述")}</dd><dt>负责人</dt><dd>${inheritedMarkup(key, "owners", "owners")}</dd><dt>保留周期</dt><dd>${inheritedMarkup(key, "retentionPeriod")}</dd></dl><dl class="kv"><dt>业务域</dt><dd>${inheritedMarkup(key, "domains", "domains")}</dd><dt>重要程度</dt><dd>${tier ? esc(tier.tagFQN) : '<span class="muted">未分配</span>'}</dd><dt>分类标签</dt><dd>${propertyChips(tags.filter((t) => t.source === "Classification" && !t.tagFQN.startsWith("Tier.")).map((t) => t.tagFQN))}</dd><dt>业务术语</dt><dd>${propertyChips(
+          propertyNames(
+            "terms",
+            tags.filter((t) => t.source === "Glossary").map((t) => t.tagFQN),
+          ),
+        )}</dd><dt>数据产品</dt><dd>${propertyChips(propertyNames("products", products))}${mismatch ? '<p class="help" style="color:var(--red)">当前域与数据产品不匹配，请编辑属性调整。</p>' : ""}</dd></dl></div></section>`;
+      }
+      function structuralInfo(s, t) {
+        const keyColumns = t.columns.filter((c) => c.pk).map((c) => c.name);
+        return `<section class="panel" style="margin-bottom:20px"><div class="panel-head"><h2>结构信息</h2><span class="small muted">结构元数据 · 只读</span></div><dl class="kv"><dt>表类型</dt><dd>Regular（普通表）</dd><dt>字段数</dt><dd>${t.columns.length}</dd><dt>表约束</dt><dd class="mono">${keyColumns.length ? `PRIMARY_KEY (${esc(keyColumns.join(", "))})` : "示例未提供约束信息"}</dd><dt>其他结构</dt><dd class="muted">${s.type === "Doris" ? "Doris 键列按 OpenMetadata 原生 Doris 连接器记为主键约束；不区分 UNIQUE / DUPLICATE / AGGREGATE 键模型。" : "本示例未提供分区、外键或视图定义；不推测补全。"}</dd></dl></section>`;
+      }
+      let propertyDraft = null;
+      const propertyNames = (kind, ids) =>
+        ids.map(
+          (id) => propertyCatalog[kind].find((x) => x.id === id)?.name || id,
+        );
+      const propertyChips = (names) =>
+        names.length
+          ? `<div class="row wrap">${names.map((name) => badge(esc(name), "blue")).join("")}</div>`
+          : '<span class="muted">未分配</span>';
+      function sourceProperties(s) {
+        const tags = s.tags || [],
+          tier = tags.find((t) => t.tagFQN.startsWith("Tier."));
+        return `<section class="panel" style="margin-bottom:20px" id="source-properties"><div class="panel-head"><div><h2>数据源属性</h2><p class="subtitle">维护名称、描述与治理归属。</p></div>${btn("编辑属性", "edit-properties", s.id, "sm", "settings")}</div><div class="detail-grid"><dl class="kv"><dt>显示名称</dt><dd>${esc(s.name)}</dd><dt>服务标识</dt><dd class="mono">${esc(s.service)}</dd><dt>连接器</dt><dd>${esc(s.type)}</dd><dt>描述</dt><dd style="white-space:pre-wrap">${esc(s.description || "暂无描述")}</dd><dt>负责人</dt><dd>${propertyChips(propertyNames("owners", s.owners || []))}</dd></dl><dl class="kv"><dt>业务域</dt><dd>${propertyChips(propertyNames("domains", s.domains || []))}</dd><dt>重要程度</dt><dd>${tier ? esc(tier.tagFQN) : '<span class="muted">未分配</span>'}</dd><dt>分类标签</dt><dd>${propertyChips(tags.filter((t) => t.source === "Classification" && !t.tagFQN.startsWith("Tier.")).map((t) => t.tagFQN))}</dd><dt>业务术语</dt><dd>${propertyChips(
+          propertyNames(
+            "terms",
+            tags.filter((t) => t.source === "Glossary").map((t) => t.tagFQN),
+          ),
+        )}</dd><dt>数据产品</dt><dd>${propertyChips(propertyNames("products", s.dataProducts || []))}</dd></dl></div></section>`;
+      }
+      function beginProperties(id) {
+        const a = propertyTarget(id);
+        if (!a) return;
+        const r = a.record,
+          tags = r.tags || [];
+        propertyDraft = {
+          id,
+          name: a.kind === "service" ? r.name : r.displayName || "",
+          description: r.description || "",
+          domain: r.domains?.[0] || "",
+          retentionPeriod: r.retentionPeriod || "",
+          ownerType: (r.owners || []).some(
+            (id) =>
+              propertyCatalog.owners.find((x) => x.id === id)?.type === "team",
+          )
+            ? "team"
+            : "user",
+          owners: [...(r.owners || [])],
+          products: [...(r.dataProducts || [])],
+          tier: tags.find((t) => t.tagFQN.startsWith("Tier."))?.tagFQN || "",
+          tags: tags
+            .filter(
+              (t) =>
+                t.source === "Classification" && !t.tagFQN.startsWith("Tier."),
+            )
+            .map((t) => t.tagFQN),
+          terms: tags
+            .filter((t) => t.source === "Glossary")
+            .map((t) => t.tagFQN),
+        };
+        renderProperties();
+      }
+      function draftDomain() {
+        const a = propertyTarget(propertyDraft.id);
+        return (
+          propertyDraft.domain ||
+          (a.parent && inheritsField(a.kind, "domains")
+            ? resolvedProperty(a.parent, "domains").value[0]
+            : "") ||
+          ""
+        );
+      }
+      function propertyChoices(kind, list, selected, hint = "") {
+        return `<fieldset class="property-choices"><legend>${{ owners: "选择负责人", tags: "分类标签", terms: "业务术语", products: "数据产品" }[kind]}</legend>${list.map((x) => `<label class="row"><input type="checkbox" name="property-${kind}" data-property-list="${kind}" value="${esc(x.id)}" ${selected.includes(x.id) ? "checked" : ""}>${esc(x.name)}${x.domain && x.domain !== draftDomain() ? '<span class="help">（与当前业务域不匹配）</span>' : ""}</label>`).join("") || '<span class="muted">暂无可选项</span>'}${hint ? `<p class="help">${hint}</p>` : ""}</fieldset>`;
+      }
+      function renderProperties() {
+        const p = propertyDraft,
+          a = propertyTarget(p.id),
+          column = a.kind === "column",
+          inheritDomain = inheritsField(a.kind, "domains"),
+          inheritOwner = inheritsField(a.kind, "owners");
+        const parentDomain = inheritDomain
+          ? resolvedProperty(a.parent, "domains")
+          : { value: [] };
+        const parentDomainText =
+          propertyNames("domains", parentDomain.value).join("、") || "未分配";
+        openModal(
+          `编辑${kindNames[a.kind]}属性`,
+          `<div class="alert" style="margin-bottom:20px"><span>离线原型：人员、业务域、术语和数据产品均为演示选项。修改仅保留在当前页面，不写入源系统。</span></div><div class="fields"><label class="field"><span>显示名称</span><input class="input" data-property="name" value="${esc(p.name)}" maxlength="256" placeholder="留空时使用原名称"></label><label class="field"><span>${a.kind === "service" ? "服务标识" : "完整名称（只读）"}</span><input class="input mono" value="${esc(a.fqn)}" readonly><span class="help">名称、所属层级与结构信息不在这里修改。</span></label><label class="field full"><span>描述</span><textarea class="input" data-property="description" rows="3" placeholder="填写用途与说明">${esc(p.description)}</textarea></label>${
+            column
+              ? `<div class="field full"><div class="review-chip">${esc(a.c.name)} · ${esc(a.c.type)} · ${a.c.pk ? (a.s.type === "Doris" ? "唯一键成员" : "主键成员") : "约束未单独标注"}（只读）</div></div>`
+              : `<label class="field"><span>业务域</span><select data-property="domain"><option value="">${inheritDomain ? `继承上级（${esc(parentDomainText)}）` : "未分配"}</option>${propertyCatalog.domains.map((x) => `<option value="${x.id}" ${p.domain === x.id ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select><span class="help">${inheritDomain ? "清除单独设置后恢复继承上级；上级未分配时显示未分配。" : "下级数据库未单独设置时继承此域。"}域按默认规则单选。</span></label><label class="field"><span>重要程度（Tier）</span><select data-property="tier"><option value="">未分配</option>${[1, 2, 3, 4, 5].map((n) => `<option value="Tier.Tier${n}" ${p.tier === `Tier.Tier${n}` ? "selected" : ""}>Tier${n}</option>`).join("")}</select><span class="help">业务重要程度；不等同于敏感级别。</span></label><div class="field full"><label class="field"><span>负责人类型</span><select data-property="ownerType"><option value="user" ${p.ownerType === "user" ? "selected" : ""}>用户（可多选）</option><option value="team" ${p.ownerType === "team" ? "selected" : ""}>团队（单选）</option></select><span class="help">切换类型后重新选择。${inheritOwner ? "不选择负责人时继承上级：" + esc(propertyNames("owners", resolvedProperty(a.parent, "owners").value).join("、") || "未分配") : "此层级不从上级继承负责人。"}</span></label>${propertyChoices(
+                  "owners",
+                  propertyCatalog.owners.filter((x) => x.type === p.ownerType),
+                  p.owners,
+                )}</div>${a.kind !== "service" ? `<label class="field full"><span>保留周期</span><input class="input" data-property="retentionPeriod" value="${esc(p.retentionPeriod)}" placeholder="例如 P30D"><span class="help">ISO 8601 时长，如 P30D 或 PT24H。${inheritsField(a.kind, "retentionPeriod") ? "留空时继承上级。" : "留空表示未设置。"}仅记录元数据，不执行数据删除。</span></label>` : ""}`
+          }
+          <div class="field full">${propertyChoices("tags", propertyCatalog.tags, p.tags, "同一互斥分类只能选择一个标签；选择新标签会替换同分类已选项。")}</div><div class="field full">${propertyChoices("terms", propertyCatalog.terms, p.terms)}</div>${column ? "" : `<div class="field full">${propertyChoices("products", propertyCatalog.products, p.products, "数据产品必须与当前有效业务域匹配；数据产品不自动继承上级。")}</div>`}</div><div id="properties-error" class="alert red hidden" role="alert" style="margin-top:16px"></div>`,
+          `<span class="help">取消不会保存本次修改</span><div class="row">${btn("取消", "close")}${btn("保存属性", "save-properties", "", "primary")}</div>`,
+          "properties",
+        );
+      }
+      function saveProperties() {
+        const p = propertyDraft,
+          a = propertyTarget(p.id),
+          column = a.kind === "column";
+        const fail = (message) => {
+          const error = document.getElementById("properties-error");
+          error.textContent = message;
+          error.classList.remove("hidden");
+          error.scrollIntoView({ block: "nearest" });
+        };
+        if (
+          !column &&
+          p.products.some(
+            (id) =>
+              propertyCatalog.products.find((x) => x.id === id)?.domain !==
+              draftDomain(),
+          )
+        )
+          return fail(
+            "数据产品与业务域不匹配。请选择对应业务域，或取消勾选不匹配的数据产品。",
+          );
+        const retention = p.retentionPeriod.trim();
+        if (
+          !column &&
+          a.kind !== "service" &&
+          retention &&
+          !/^(?:P\d+(?:\.\d+)?W|P(?=\d|T\d)(?:\d+Y)?(?:\d+M)?(?:\d+D)?(?:T(?=\d)(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?)$/.test(
+            retention,
+          )
+        )
+          return fail(
+            "请输入有效的 ISO 8601 保留周期，例如 P30D 或 PT24H，或留空。",
+          );
+        const label = (tagFQN, source) => ({
+          tagFQN,
+          source,
+          labelType: "Manual",
+          state: "Confirmed",
+        });
+        const values = {
+          description: p.description.trim(),
+          tags: [...p.tags, ...(!column && p.tier ? [p.tier] : [])]
+            .map((x) => label(x, "Classification"))
+            .concat(p.terms.map((x) => label(x, "Glossary"))),
+        };
+        if (a.kind === "service") values.name = p.name.trim() || a.physicalName;
+        else values.displayName = p.name.trim();
+        if (!column)
+          Object.assign(values, {
+            domains: p.domain ? [p.domain] : [],
+            owners: [...p.owners],
+            dataProducts: [...p.products],
+          });
+        if (!column && a.kind !== "service") values.retentionPeriod = retention;
+        Object.assign(a.record, values);
+        closeModal();
+        render();
+        toast(`${kindNames[a.kind]}属性已保存（模拟）`);
+      }
+
+      function sourceOverview(s) {
+        const bad = tasksOf(s).filter((k) =>
+          ["partial", "failed"].includes(task(s, k).state),
+        );
+        return `${sourceProperties(s)}${bad.length ? `<div class="alert amber" style="margin-bottom:20px">${icon("warning")}<div><b>${bad.map((k) => KIND_LABEL[k]).join("、")}最近一次运行${task(s, bad[0]).state === "failed" ? "失败" : "部分成功"}</b><br>已写入的元数据保留。请在运行详情中查看失败对象与日志，处理后重新运行。<br><button class="link small" data-action="task-runs" data-value="${s.id}|${bad[0]}">查看运行与日志 →</button></div></div>` : ""}<div class="metric-row"><div class="metric"><span>已采集表</span><b>${tables(s).length}</b><span>${esc(s.database || "全部库")}</span></div><div class="metric"><span>字段元数据</span><b>${totalColumns(s)}</b><span>字段类型、注释与主键标识</span></div><div class="metric"><span>采集任务</span><b>${tasksOf(s).length}</b><span>${tasksOf(s).length ? tasksOf(s).map((k) => KIND_LABEL[k]).join(" · ") : "尚未配置"}</span></div></div><div class="detail-grid"><section class="panel"><div class="panel-head"><h2>连接信息</h2>${badge("SecretsManager 加密", "blue")}</div><dl class="kv"><dt>数据库</dt><dd class="mono">${esc(s.database || "全部库")}</dd><dt>连接地址</dt><dd class="mono">${s.host ? esc(s.host + ":" + s.port) : "待配置"}</dd><dt>只读账号</dt><dd class="mono">${esc(s.username || "待配置")}</dd><dt>采集边界</dt><dd>仅表、字段与视图血缘元数据</dd></dl></section><section class="panel"><div class="panel-head"><h2>调度与最近运行</h2>${badge("Airflow", "blue")}</div>${
+          tasksOf(s).length
+            ? `<dl class="kv">${tasksOf(s)
+                .map((k) => {
+                  const t = task(s, k);
+                  return `<dt>${KIND_LABEL[k]}</dt><dd>${status(t.state)} <span class="small muted">${esc(t.last)} · ${esc(t.schedule)}${!t.active && t.schedule !== "手动触发" ? "（已暂停）" : ""}</span></dd>`;
+                })
+                .join(
+                  "",
+                )}<dt>时区</dt><dd>Asia/Shanghai</dd><dt>采集任务</dt><dd><button class="link" data-action="open-tasks" data-value="${s.id}">查看 ${tasksOf(s).length} 个任务 ↗</button></dd></dl>`
+            : `<div class="panel-body"><p class="small muted">完成连接与采集配置后生成采集任务。</p></div>`
+        }</section></div>`;
+      }
+      function sourceMetadata(s) {
+        const node = catalogNodes.get(catalogSelection);
+        if (node?.source === s.id && ["database", "schema"].includes(node.kind))
+          return catalogFolder(s, node);
+        const list = tables(s);
+        if (!list.length)
+          return `<div class="panel empty">${icon("database")}<h3>还没有采集结果</h3><p class="small">完成数据源配置并运行后，在此查看表结构和字段说明。</p></div>`;
+        const t = list.find((t) => t.name === selectedTable) || list[0],
+          key = s.id + "/table/" + t.name;
+        return (
+          catalogPath(s, t) +
+          `<div class="row wrap" style="margin-bottom:16px"><label class="small">选择数据表 <select id="metadata-table-select" aria-label="选择数据表">${list.map((x) => `<option value="${esc(x.name)}" ${x.name === t.name ? "selected" : ""}>${esc(propertyTarget(s.id + "/table/" + x.name).record.displayName || x.name)} · ${esc(x.name)}</option>`).join("")}</select></label></div>` +
+          assetProperties(key) +
+          structuralInfo(s, t) +
+          `<section class="panel"><div class="panel-head"><div><h2>字段元数据</h2><p class="subtitle">维护字段描述、分类标签与业务术语。</p></div><span class="badge">${t.columns.length} 字段</span></div><div class="table-scroll"><table class="column-metadata"><thead><tr><th>字段名称</th><th>数据类型</th><th>显示名称 / 描述</th><th>分类标签</th><th>业务术语</th><th>操作</th></tr></thead><tbody>${t.columns
+            .map((c) => {
+              const columnKey = key + "/column/" + c.name,
+                r = propertyTarget(columnKey).record;
+              return `<tr data-column-key="${esc(columnKey)}"><td class="mono">${esc(c.name)} ${c.pk ? `<span class="badge blue" style="font-size:9px;margin-left:3px">PK</span>` : ""}</td><td class="mono muted">${esc(c.type)}</td><td><b>${esc(r.displayName || "未设置显示名称")}</b><div class="cell-sub" style="white-space:pre-wrap">${esc(r.description || "暂无描述")}</div></td><td>${propertyChips(r.tags.filter((t) => t.source === "Classification").map((t) => t.tagFQN))}</td><td>${propertyChips(
+                propertyNames(
+                  "terms",
+                  r.tags
+                    .filter((t) => t.source === "Glossary")
+                    .map((t) => t.tagFQN),
+                ),
+              )}</td><td>${btn("编辑属性", "edit-properties", columnKey, "sm")}</td></tr>`;
+            })
+            .join("")}</tbody></table></div></section>`
+        );
+      }
+      function sourceScope(s) {
+        return `<div class="detail-grid"><section class="panel"><div class="panel-head"><h2>采集范围</h2>${btn("调整配置", "configure", s.id, "sm", "settings")}</div><dl class="kv"><dt>连接数据库</dt><dd class="mono">${esc(s.database || "全部库")}</dd>${["database", "schema", "table"]
+          .map(
+            (level) =>
+              `<dt>${FILTER_LABEL[level]}过滤</dt><dd class="mono">${splitPatterns(s.filters[level].includes).length || splitPatterns(s.filters[level].excludes).length ? `${splitPatterns(s.filters[level].includes).length ? "包含 " + esc(splitPatterns(s.filters[level].includes).join(", ")) : ""}${splitPatterns(s.filters[level].includes).length && splitPatterns(s.filters[level].excludes).length ? "；" : ""}${splitPatterns(s.filters[level].excludes).length ? "排除 " + esc(splitPatterns(s.filters[level].excludes).join(", ")) : ""}` : '<span class="muted">未设置（全部）</span>'}</dd>`,
+          )
+          .join(
+            "",
+          )}<dt>视图</dt><dd>${s.includeViews ? "采集视图元数据" : "不采集视图"}</dd><dt>视图血缘任务</dt><dd>${s.lineageTask ? "已创建（处理视图血缘；不处理查询日志血缘）" : "未创建"}</dd></dl></section><section class="panel"><div class="panel-head"><h2>采集边界</h2>${icon("shield")}</div><div class="panel-body stack"><div class="review-chip">${icon("check")}只读连接源系统</div><div class="review-chip">${icon("check")}密码由 OpenMetadata SecretsManager 加密托管</div><div class="review-chip">${icon("check")}不开启数据采样或数据剖析</div><div class="review-chip">${icon("check")}不复制表中的业务记录</div><p class="help">过滤规则为 OpenMetadata 原生正则表达式，多个规则用逗号分隔；未设置时采集全部。本原型不连接实际系统。</p></div></section></div>`;
+      }
+      function taskActions(s, kind) {
+        const t = task(s, kind),
+          v = s.id + "|" + kind;
+        return `${btn(t.schedule === "手动触发" ? "配置调度" : t.active ? "暂停调度" : "恢复调度", t.schedule === "手动触发" ? "configure" : "schedule-confirm", t.schedule === "手动触发" ? s.id : v, "sm", t.active ? "pause" : "settings")}<button class="btn primary sm" data-action="run" data-value="${v}" ${["running", "queued"].includes(t.state) ? "disabled" : ""}>${icon("play")}立即运行</button>`;
+      }
+      function sourceTasks(s) {
+        if (s.state === "draft")
+          return `<section class="panel empty">${icon("activity")}<h3>尚未配置采集任务</h3><p class="small">先完成数据源连接与采集配置，再查看任务和运行记录。</p><div style="margin-top:18px">${btn("继续配置", "configure", s.id, "primary")}</div></section>`;
+        if (selectedTask && tasksOf(s).includes(selectedTask)) {
+          const kind = selectedTask,
+            t = task(s, kind);
+          const list = runs.filter(
+            (r) =>
+              r.source === s.id &&
+              r.kind === kind &&
+              (!runFilter || r.state === runFilter),
+          );
+          return `<div class="row between wrap" style="margin-bottom:18px"><div><button class="link small row" data-action="tasks-back">${icon("back")}返回采集任务</button><h2 style="margin-top:14px">运行 · <span class="mono">${esc(taskName(s, kind))}</span></h2><p class="subtitle">${KIND_LABEL[kind]} · ${esc(s.service)} · ${esc(t.schedule)}${!t.active && t.schedule !== "手动触发" ? "（已暂停）" : ""}</p></div><div class="row">${taskActions(s, kind)}</div></div><section class="panel"><div class="toolbar"><select id="run-filter" class="filter" aria-label="筛选运行状态"><option value="">全部状态</option>${["success", "partial", "failed", "running", "queued"].map((k) => `<option value="${k}" ${runFilter === k ? "selected" : ""}>${STATUS[k][0]}</option>`).join("")}</select><span class="spacer"></span><span class="small muted">${list.length} 次运行</span>${btn("刷新", "refresh-runs", "", "ghost sm", "refresh")}</div>${runsTable(list)}<div class="panel-foot"><span>OpenMetadata Ingestion · 独立 Airflow 调度</span>${btn("调度详情", "dag", s.id + "|" + kind, "ghost sm")}</div></section>`;
+        }
+        return `<section class="panel"><div class="panel-head"><div><h2>采集任务</h2><p class="subtitle">当前数据源的 OpenMetadata 采集任务：调度与运行记录。</p></div><span class="badge blue">${tasksOf(s).length} 个任务</span></div><div class="table-scroll"><table><thead><tr><th>任务名称</th><th>类型</th><th>调度计划</th><th>最近运行</th><th>操作</th></tr></thead><tbody>${tasksOf(
+          s,
+        )
+          .map((kind) => {
+            const t = task(s, kind),
+              v = s.id + "|" + kind;
+            return `<tr><td><button class="link mono" data-action="task-runs" data-value="${v}">${esc(taskName(s, kind))}</button><div class="cell-sub">OpenMetadata Ingestion</div></td><td>${KIND_LABEL[kind]}<div class="cell-sub">${kind === "metadata" ? "表、字段与视图元数据" : "依据已采集的视图定义"}</div></td><td>${esc(t.schedule)}<div class="cell-sub">${t.schedule === "手动触发" ? "按需执行" : t.active ? "Asia/Shanghai · 已启用" : "定时调度已暂停"}</div></td><td>${status(t.state)}<div class="cell-sub">${esc(t.last)}</div></td><td>${btn("查看运行", "task-runs", v, "sm", "arrow")}</td></tr>`;
+          })
+          .join(
+            "",
+          )}</tbody></table></div><div class="panel-foot"><span>${s.lineageTask ? "视图血缘依赖已采集的视图定义，建议安排在元数据采集之后。" : "未创建视图血缘任务；可在采集配置中开启。"}</span></div></section>`;
+      }
+      function runsTable(list) {
+        if (!list.length)
+          return `<div class="empty">${icon("activity")}<h3>暂无运行记录</h3><p class="small">调整筛选，或点击当前任务的“立即运行”。</p></div>`;
+        return `<div class="table-scroll"><table><thead><tr><th>开始时间</th><th>状态</th><th>耗时</th><th>运行编号</th><th>操作</th></tr></thead><tbody>${list.map((r) => `<tr><td><button class="link" data-action="run-detail" data-value="${r.id}">${esc(r.time)}</button></td><td>${status(r.state)}</td><td style="color:#8896a9">${esc(r.duration)}</td><td class="mono small muted">${esc(r.id.slice(0, 8))}…</td><td>${btn("查看运行", "run-detail", r.id, "sm")}</td></tr>`).join("")}</tbody></table></div>`;
+      }
+      function openModal(title, body, foot = "", kind = "info") {
+        if (!document.getElementById("dialog").open)
+          returnFocus = document.activeElement;
+        modalKind = kind;
+        const d = document.getElementById("dialog");
+        d.innerHTML = `<div class="modal-head"><h2 id="modal-title">${title}</h2><button class="close" data-action="close" aria-label="关闭弹窗">${icon("close")}</button></div><div class="modal-body">${body}</div>${foot ? `<div class="modal-foot">${foot}</div>` : ""}`;
+        if (!d.open) d.showModal();
+      }
+      function closeModal() {
+        document.getElementById("dialog").close();
+        modalKind = "";
+        if (returnFocus?.isConnected) returnFocus.focus();
+      }
+      function showGuide() {
+        openModal(
+          "源系统元数据采集 · 原型说明",
+          `<div class="stack"><div class="alert">${icon("spark")}<span>这是 Spec 005 的可交互设计原型。所有连接和运行仅发生在当前页面，刷新页面后恢复初始示例。</span></div><p class="small">建议从「数据源」开始：查看目录与字段 → 进入 QMS 采集任务（元数据采集 / 视图血缘）→ 查看运行统计与日志 → 配置 ERP。</p><div class="review-chip">1. 数据源：连接、只读范围与调度计划</div><div class="review-chip">2. 数据源详情 → 采集任务 → 运行：步骤统计、失败对象与日志，处理后立即运行</div><p class="help">MES / QMS / Doris 表结构取自 Spec 003 模拟工厂定义。运行结果为示例；ERP 尚无测试设施。当前导航位置为设计提案，资产搜索将在 Spec 006 中实现。</p></div>`,
+          `${btn("恢复初始示例", "reset-confirm", "", "sm", "refresh")}${btn("开始体验", "close", "", "primary")}`,
+        );
+      }
+      function beginWizard(id) {
+        const s = id ? source(id) : null;
+        const sched = (t, fallback) => ({
+          mode: t?.schedule === "手动触发" ? "manual" : "daily",
+          time: t?.schedule?.startsWith("每天 ") ? t.schedule.slice(3) : fallback,
+        });
+        const meta = sched(s?.state === "draft" ? null : s, "02:00"),
+          lin = sched(s?.lineageTask, "03:00");
+        wizard = {
+          id: id || "",
+          step: 1,
+          type: s?.type || "MySQL",
+          name: s?.name || "",
+          service: s?.service || "",
+          host: s?.host || "",
+          port: s?.port || "3306",
+          database: s?.database || "",
+          username: s?.username || "",
+          password: s?.password || "",
+          tested: false,
+          testFailure: false,
+          testResult: null,
+          filters: JSON.parse(JSON.stringify(s?.filters || emptyFilters())),
+          includeViews: s ? s.includeViews !== false : true,
+          lineage: s ? Boolean(s.lineageTask) || s.state === "draft" : true,
+          schedule: meta.mode,
+          time: meta.time,
+          lineageSchedule: lin.mode,
+          lineageTime: lin.time,
+          tls: s?.tls !== false,
+        };
+        renderWizard();
+      }
+      const connectionTypes = [
+        ["MySQL", "My", "", 3306],
+        ["PostgreSQL", "Pg", "purple", 5432],
+        ["Oracle", "Or", "orange", 1521],
+        ["SQL Server", "MS", "purple", 1433],
+        ["Doris", "Do", "teal", 9030],
+      ];
+      // OM 2.0.3 testConnections/database/<connector>.json 的步骤定义（名称、是否必需）
+      const TEST_STEPS = {
+        MySQL: [["CheckAccess", 1], ["GetSchemas", 1], ["GetTables", 1], ["GetViews", 0], ["GetQueries", 0]],
+        PostgreSQL: [["CheckAccess", 1], ["GetDatabases", 1], ["GetSchemas", 1], ["GetTables", 1], ["GetViews", 0], ["GetTags", 0], ["GetQueries", 0], ["GetColumnMetadata", 0], ["GetTableComments", 0], ["GetInformationSchemaColumns", 0]],
+        Oracle: [["CheckAccess", 1], ["PackageAccess", 0], ["GetSchemas", 1], ["GetTables", 1], ["GetViews", 0], ["GetMaterializedViews", 0], ["GetQueryHistory", 0]],
+        "SQL Server": [["CheckAccess", 1], ["GetDatabases", 1], ["GetSchemas", 1], ["GetTables", 1], ["GetViews", 0], ["GetQueries", 0]],
+        Doris: [["CheckAccess", 1], ["GetSchemas", 1], ["GetTables", 1], ["GetViews", 0]],
+      };
+      function testResultMarkup(result) {
+        if (!result) return "";
+        const ok = result.every((x) => x.passed || !x.mandatory);
+        return `<div class="alert ${ok ? "green" : "red"}" style="margin-bottom:10px">${icon(ok ? "check" : "warning")}${ok ? "模拟测试通过：必需步骤全部成功。" : "模拟测试失败：必需步骤未通过，无法继续。"}</div><div class="table-scroll"><table><thead><tr><th>检查步骤</th><th>类型</th><th>结果</th></tr></thead><tbody>${result.map((x) => `<tr><td class="mono">${esc(x.name)}</td><td class="small muted">${x.mandatory ? "必需" : "可选"}</td><td>${x.passed === null ? '<span class="muted">未执行</span>' : x.passed ? badge("通过", "green") : badge("失败", "red")}${x.message ? `<div class="cell-sub">${esc(x.message)}</div>` : ""}</td></tr>`).join("")}</tbody></table></div>`;
+      }
+      function wizardBody() {
+        const w = wizard;
+        if (w.step === 1)
+          return `<div class="fields"><label class="field full"><span>显示名称 *</span><input class="input" data-w="name" placeholder="例如：华东工厂 MES" maxlength="60" value="${esc(w.name)}" /></label><label class="field full"><span>服务标识 *</span><input class="input mono" data-w="service" placeholder="例如：plant-mes" maxlength="50" value="${esc(w.service)}" ${w.id && source(w.id)?.state !== "draft" ? "readonly" : ""}/><span class="help">用于稳定识别数据源，只能包含小写字母、数字和连字符。</span></label></div><h3 style="margin-top:22px">选择数据库连接器</h3><div class="connector-grid">${connectionTypes.map(([type, abbr, color]) => `<button class="connector ${w.type === type ? "active" : ""}" data-action="connector" data-value="${type}">${dbIcon({ type, abbr, color })}<span><b>${type}</b><small>数据库元数据</small></span></button>`).join("")}</div>`;
+        if (w.step === 2)
+          return `<div class="fields"><label class="field"><span>主机地址 *</span><input class="input mono" data-w="host" placeholder="db.example.invalid" value="${esc(w.host)}" /></label><label class="field"><span>端口 *</span><input class="input mono" type="number" min="1" max="65535" data-w="port" value="${esc(w.port)}" /></label><label class="field"><span>${w.type === "Oracle" ? "Service Name *" : dbOptional(w.type) ? "数据库（选填）" : "数据库 *"}</span><input class="input mono" data-w="database" placeholder="${dbOptional(w.type) ? "留空表示全部库，例如：" + (w.type === "Doris" ? "mock_dw" : "mes") : "例如：" + (w.type === "Oracle" ? "ERP" : "production")}" value="${esc(w.database)}" />${dbOptional(w.type) ? '<span class="help">对应 OpenMetadata <span class="mono">databaseSchema</span>，限定单个库；范围也可在下一步用过滤规则设置。</span>' : w.type === "Oracle" ? "" : '<span class="help">对应 OpenMetadata <span class="mono">database</span>；只采集该库。</span>'}</label><label class="field"><span>用户名 *</span><input class="input mono" data-w="username" placeholder="例如：mes_ro" value="${esc(w.username)}" /></label><label class="field full"><span>密码 *</span><input class="input mono" type="password" data-w="password" placeholder="只读数据库账号密码（由 OpenMetadata SecretsManager 加密存储）" value="${esc(w.password)}" /><span class="help">对齐 OpenMetadata 原生连接配置；密码经 SecretsManager 加密存储并在读取时脱敏。</span></label></div>${["PostgreSQL", "SQL Server"].includes(w.type) ? `<label class="checkrow" style="margin:10px 0"><input type="checkbox" data-w="tls" ${w.tls ? "checked" : ""}/>启用 TLS 加密连接</label>` : `<p class="help" style="margin:10px 0">${w.type === "Oracle" ? "OpenMetadata 的 Oracle 连接器没有 TLS 选项。" : "OpenMetadata 的 " + w.type + " 连接器需上传 CA 证书才能启用 TLS，本期不提供。"}</p>`}<div class="alert">${icon("shield")}测试连接由 OpenMetadata 在采集执行环境中逐步检查，只读取元数据目录，不读取业务记录。</div><div class="row between" style="margin-top:18px"><label class="checkrow small muted"><input type="checkbox" data-w="testFailure" ${w.testFailure ? "checked" : ""}/>原型演示：连接不可达</label>${btn("测试连接", "test-connection", "", "", "plug")}</div><div id="connection-result" style="margin-top:12px">${testResultMarkup(w.testResult)}</div>`;
+        if (w.step === 3) {
+          const row = (level) =>
+            `<div class="fields" style="margin-bottom:6px"><label class="field"><span>${FILTER_LABEL[level]} · 包含</span><input class="input mono" data-filter="${level}.includes" placeholder="${level === "table" ? "例如：^ncr.*, ^inspection_lot$" : "留空表示全部"}" value="${esc(w.filters[level].includes)}" /></label><label class="field"><span>${FILTER_LABEL[level]} · 排除</span><input class="input mono" data-filter="${level}.excludes" placeholder="例如：^tmp_.*" value="${esc(w.filters[level].excludes)}" /></label></div>`;
+          return `<div class="alert" style="margin-bottom:18px">${icon("database")}<span>按 OpenMetadata 原生过滤规则（正则表达式，多个用逗号分隔）限定采集范围；全部留空即采集全部，后续新增的表也会被采集。</span></div>${["database", "schema", "table"].map(row).join("")}<label class="checkrow" style="margin-top:12px"><input type="checkbox" data-w="includeViews" ${w.includeViews ? "checked" : ""}/>采集视图（视图元数据与视图定义）</label><label class="checkrow" style="margin-top:8px"><input type="checkbox" data-w="lineage" ${w.lineage && w.includeViews ? "checked" : ""} ${w.includeViews ? "" : "disabled"}/>创建视图血缘任务（OpenMetadata lineage 采集）</label><p class="help">视图血缘任务依据已采集的视图定义生成血缘，需同时采集视图；不处理查询日志血缘。</p><div class="row wrap" style="margin-top:15px">${badge("表与字段元数据", "blue")}${badge("无数据采样")}${badge("无数据剖析")}${badge("不自动删除历史元数据")}</div>`;
+        }
+        const schedRow = (label, modeKey, timeKey) =>
+          `<div class="fields" style="margin-bottom:14px"><label class="field"><span>${label} · 调度方式</span><select data-w="${modeKey}"><option value="daily" ${w[modeKey] === "daily" ? "selected" : ""}>每天定时采集</option><option value="manual" ${w[modeKey] === "manual" ? "selected" : ""}>仅手动触发</option></select></label><label class="field"><span>执行时间 · Asia/Shanghai</span><input type="time" class="input" data-w="${timeKey}" value="${esc(w[timeKey])}" ${w[modeKey] === "manual" ? "disabled" : ""}/></label></div>`;
+        const withLineage = w.lineage && w.includeViews;
+        return `${schedRow("元数据采集", "schedule", "time")}${withLineage ? schedRow("视图血缘", "lineageSchedule", "lineageTime") + '<p class="help">视图血缘依赖已采集的视图定义，建议晚于元数据采集执行。</p>' : ""}<div class="panel" style="margin-top:20px"><div class="panel-head"><h3>配置确认</h3>${badge("仅元数据", "blue")}</div><dl class="kv"><dt>数据源</dt><dd>${esc(w.name)} · ${esc(w.type)}</dd><dt>目标数据库</dt><dd class="mono">${esc(w.database || "全部库")}</dd><dt>采集范围</dt><dd>${esc(filterSummary(w.filters))} · ${w.includeViews ? "包含视图" : "不采集视图"}</dd><dt>采集任务</dt><dd>${withLineage ? "元数据采集、视图血缘（2 个）" : "元数据采集（1 个）"}</dd><dt>调度执行</dt><dd>独立部署的 Airflow</dd><dt>结果写入</dt><dd>OpenMetadata 元数据目录</dd></dl></div><p class="help" style="margin-top:16px">保存后 OpenMetadata 将采集任务部署到 Airflow，可手动发起首次采集。原型只模拟配置保存。</p>`;
+      }
+      function exampleTables(id, type) {
+        // 原型示例：模拟 OM 采集后会写入的表；生产以实际采集结果为准
+        if (id && CATALOG[id]) return CATALOG[id];
+        if (type === "Doris") return CATALOG.dw;
+        if (type === "PostgreSQL") return CATALOG.qms;
+        if (type === "MySQL") return CATALOG.mes;
+        return [
+          {
+            name: "erp_material",
+            comment: "物料主数据（设计示例）",
+            columns: [
+              { name: "material_code", type: "VARCHAR(32)", comment: "物料编码", pk: true },
+              { name: "material_name", type: "VARCHAR(100)", comment: "物料名称", pk: false },
+            ],
+          },
+          {
+            name: "erp_purchase_order",
+            comment: "采购订单（设计示例）",
+            columns: [
+              { name: "order_no", type: "VARCHAR(32)", comment: "订单号", pk: true },
+              { name: "material_code", type: "VARCHAR(32)", comment: "物料编码", pk: false },
+            ],
+          },
+        ];
+      }
+      function renderWizard() {
+        const w = wizard;
+        openModal(
+          w.id ? "配置数据源" : "添加数据源",
+          `<div class="steps">${["选择连接器", "连接验证", "采集范围", "调度与确认"].map((n, i) => `<div class="step ${w.step === i + 1 ? "active" : w.step > i + 1 ? "done" : ""}"><b>${w.step > i + 1 ? "✓" : i + 1}</b>${n}</div>`).join("")}</div>${wizardBody()}<div id="wizard-error" class="field-error" role="alert"></div>`,
+          `<span class="help">步骤 ${w.step} / 4</span><div class="row">${btn(w.step === 1 ? "取消" : "上一步", w.step === 1 ? "close" : "wizard-prev")}${btn(w.step === 4 ? "保存配置" : "下一步", w.step === 4 ? "wizard-save" : "wizard-next", "", "primary", w.step === 4 ? "check" : "arrow")}</div>`,
+          "wizard",
+        );
+      }
+      function wizardError(message) {
+        document.getElementById("wizard-error").textContent = message;
+      }
+      function validateConnection() {
+        const w = wizard;
+        if (!w.host.trim() || !/^[A-Za-z0-9.:[\]-]+$/.test(w.host))
+          return "请输入有效的主机名或 IP 地址。";
+        if (
+          !Number.isInteger(Number(w.port)) ||
+          Number(w.port) < 1 ||
+          Number(w.port) > 65535
+        )
+          return "端口必须为 1–65535 的整数。";
+        if (!dbOptional(w.type) && !w.database.trim())
+          return w.type === "Oracle" ? "请填写 Service Name。" : "请填写数据库名称。";
+        if (!w.username.trim() || !w.password.trim())
+          return "请填写用户名与密码。";
+        return "";
+      }
+      function nextWizard() {
+        const w = wizard;
+        if (w.step === 1) {
+          if (!w.name.trim()) return wizardError("请填写数据源名称。");
+          if (!/^[a-z][a-z0-9-]{1,49}$/.test(w.service))
+            return wizardError(
+              "服务标识需要 2–50 位小写字母、数字或连字符，以字母开头。",
+            );
+          if (sources.some((s) => s.service === w.service && s.id !== w.id))
+            return wizardError("服务标识已存在，请换一个名称。");
+        }
+        if (w.step === 2) {
+          const e = validateConnection();
+          if (e) return wizardError(e);
+          if (!w.tested) return wizardError("请先完成连接测试，且必需步骤全部通过。");
+        }
+        if (w.step === 3) {
+          for (const level of ["database", "schema", "table"])
+            for (const key of ["includes", "excludes"])
+              for (const p of splitPatterns(w.filters[level][key]))
+                try {
+                  new RegExp(p);
+                } catch {
+                  return wizardError(`${FILTER_LABEL[level]}过滤规则不是有效的正则表达式：${p}`);
+                }
+        }
+        w.step++;
+        renderWizard();
+      }
+      function saveWizard() {
+        const w = wizard;
+        const withLineage = w.lineage && w.includeViews;
+        if (w.schedule === "daily" && !/^\d\d:\d\d$/.test(w.time))
+          return wizardError("请选择元数据采集的每日执行时间。");
+        if (withLineage && w.lineageSchedule === "daily" && !/^\d\d:\d\d$/.test(w.lineageTime))
+          return wizardError("请选择视图血缘的每日执行时间。");
+        const old = source(w.id);
+        const ci = connectionTypes.find((c) => c[0] === w.type);
+        const firstConfig = !old || old.state === "draft";
+        const pending = applyTableFilter(exampleTables(w.id, w.type), w.filters);
+        const lineageTask = withLineage
+          ? {
+              state: old?.lineageTask?.state || "待首次采集",
+              last: old?.lineageTask?.last || "—",
+              duration: old?.lineageTask?.duration || "—",
+              schedule: w.lineageSchedule === "manual" ? "手动触发" : "每天 " + w.lineageTime,
+              active: w.lineageSchedule !== "manual",
+            }
+          : null;
+        const s = {
+          id: w.id || "new-" + Date.now(),
+          name: w.name.trim(),
+          service: w.service,
+          type: w.type,
+          abbr: ci[1],
+          color: ci[2],
+          database: w.database,
+          host: w.host,
+          port: w.port,
+          username: w.username,
+          password: "********",
+          tls: w.tls,
+          suffix: old?.suffix || randomSuffix(),
+          state: firstConfig ? "待首次采集" : old.state,
+          last: old?.last || "—",
+          duration: old?.duration || "—",
+          schedule: w.schedule === "manual" ? "手动触发" : "每天 " + w.time,
+          active: w.schedule !== "manual",
+          filters: JSON.parse(JSON.stringify(w.filters)),
+          includeViews: w.includeViews,
+          lineage: firstConfig ? "等待首次采集" : old.lineage,
+          lineageTask,
+          previewTables: old?.previewTables || [],
+          pendingTables: pending,
+        };
+        if (!s.suffix) s.suffix = randomSuffix();
+        if (old) Object.assign(old, s);
+        else sources.push(s);
+        selectedSource = s.id;
+        detailTab = "overview";
+        view = "sources";
+        closeModal();
+        render();
+        toast("配置已保存，采集任务已部署到 Airflow（模拟）。可在采集任务中发起首次采集。");
+      }
+      function startRun(value, repair = false) {
+        const [id, kind = "metadata"] = value.split("|");
+        const s = source(id),
+          t = task(s, kind);
+        selectedSource = id;
+        detailTab = "tasks";
+        selectedTask = kind;
+        runFilter = "";
+        view = "sources";
+        if (["running", "queued"].includes(t.state)) {
+          toast("该任务已有排队中或运行中的运行");
+          return;
+        }
+        s.permissionFixed = repair || s.permissionFixed;
+        const r = {
+          id: uuid(),
+          source: id,
+          kind,
+          state: "queued",
+          time:
+            "今天 " + new Date().toLocaleTimeString("zh-CN", { hour12: false }),
+          duration: "—",
+        };
+        runs.unshift(r);
+        t.state = "queued";
+        closeModal();
+        render();
+        toast("已触发运行，等待 Airflow 调度（模拟）");
+        timers.push(
+          setTimeout(() => {
+            r.state = "running";
+            t.state = "running";
+            render();
+            refreshRunModal(r.id);
+          }, 800),
+        );
+        timers.push(
+          setTimeout(() => {
+            r.state =
+              kind === "metadata" && id === "qms" && !s.permissionFixed
+                ? "partial"
+                : "success";
+            t.state = r.state;
+            r.duration = "3 秒";
+            t.last = "刚刚";
+            t.duration = r.duration;
+            if (kind === "metadata") {
+              s.lineage =
+                r.state === "partial" ? "部分对象读取失败" : "表与字段元数据已更新";
+              if (s.pendingTables) {
+                s.previewTables = s.pendingTables;
+                delete s.pendingTables;
+                if (CATALOG[id]) s.catalogOverride = s.previewTables;
+              }
+            }
+            render();
+            refreshRunModal(r.id);
+            toast(
+              r.state === "partial"
+                ? "运行部分成功：存在读取失败的对象（模拟）。"
+                : "运行成功（模拟），结果已写入 OpenMetadata。",
+            );
+          }, 3300),
+        );
+      }
+      function refreshRunModal(id) {
+        if (document.getElementById("dialog").open && modalKind === "run:" + id)
+          showRun(id);
+      }
+      function showRun(id) {
+        const r = runs.find((r) => r.id === id);
+        if (!r) return;
+        const s = source(r.source),
+          bad = r.state === "partial" || r.state === "failed",
+          working = ["queued", "running"].includes(r.state),
+          latest = runs.find((x) => x.source === r.source && x.kind === r.kind) === r,
+          n = working ? 0 : tables(s).length + 2,
+          views = r.kind === "lineage" ? (working ? 0 : 0) : null;
+        // 原型示例统计：对齐 OM StepSummary 字段（records / updated_records / warnings / errors / filtered）
+        const steps = [
+          { name: OM_TYPE[s.type], records: r.kind === "lineage" ? views : n, updated: 0, warnings: 0, errors: bad ? 1 : 0, filtered: 0 },
+          { name: "OpenMetadata", records: r.kind === "lineage" ? views : n, updated: 0, warnings: 0, errors: 0, filtered: 0 },
+        ];
+        const stepTable = `<div class="table-scroll"><table><thead><tr><th>步骤</th><th>记录</th><th>更新</th><th>警告</th><th>错误</th><th>过滤</th></tr></thead><tbody>${steps.map((x) => `<tr><td class="mono">${esc(x.name)}</td><td>${working ? "—" : x.records}</td><td>${working ? "—" : x.updated}</td><td>${working ? "—" : x.warnings}</td><td>${working ? "—" : x.errors}</td><td>${working ? "—" : x.filtered}</td></tr>`).join("")}</tbody></table></div>`;
+        const failures = bad
+          ? `<div class="alert amber" style="margin:16px 0">${icon("warning")}<div><b>失败对象（示例）</b><br><span class="mono small">示例视图定义 · permission denied（示例错误信息）</span><br>其余对象已写入 OpenMetadata。处理源端权限后点击“立即运行”重新采集；历史运行保留。</div></div>`
+          : "";
+        const logs = latest
+          ? `<div class="log">[${working ? "INFO" : bad ? "WARN" : "OK"}] ${esc(taskName(s, r.kind))}\n${working ? "等待调度 / 运行中……" : "本日志为原型示例，已脱敏，不含凭证与业务行。"}</div>`
+          : `<p class="help" style="margin-top:12px">OpenMetadata 仅提供最近一次运行的日志；本次运行可查看状态与统计。</p>`;
+        openModal(
+          "运行详情",
+          `<div class="row between" style="margin-bottom:20px"><div><h3>${esc(s.name)} · ${KIND_LABEL[r.kind]}</h3><p class="mono muted" style="margin-top:6px">${esc(taskName(s, r.kind))} · ${esc(r.id)}</p></div>${status(r.state)}</div><div class="row small muted" style="margin-bottom:20px"><span>开始：${esc(r.time)}</span><span>耗时：${esc(r.duration)}</span></div>${working ? `<div class="alert">${icon("clock")}${r.state === "queued" ? "已提交到 Airflow，等待调度。" : "运行中，完成后显示步骤统计。"}</div>` : ""}${stepTable}${failures}${logs}${bad && r.kind === "metadata" && s.id === "qms" ? `<label class="checkrow" style="margin-top:12px"><input type="checkbox" id="permission-fixed"/>原型演示：模拟源端权限已修复</label>` : ""}`,
+          `<span class="help">OpenMetadata Ingestion · Airflow</span><div class="row">${btn("关闭", "close")}${bad ? btn("立即运行", "retry", s.id + "|" + r.kind, "primary", "play") : ""}</div>`,
+          "run:" + id,
+        );
+      }
+      document.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-action]");
+        if (!b || b.disabled) return;
+        const a = b.dataset.action,
+          v = b.dataset.value;
+        if (a === "edit-properties") {
+          beginProperties(v);
+          return;
+        }
+        if (a === "save-properties") {
+          saveProperties();
+          return;
+        }
+        if (a === "catalog-toggle") {
+          treeExpanded.has(v) ? treeExpanded.delete(v) : treeExpanded.add(v);
+          renderCatalog();
+          return;
+        }
+        if (a === "catalog-pick") {
+          selectCatalog(v);
+          return;
+        }
+        if (a === "toggle-catalog") {
+          document.body.classList.toggle("catalogue-open");
+          render();
+          return;
+        }
+        if (a === "open-tasks" || a === "task-runs") {
+          const [sid, kind = "metadata"] = v.split("|");
+          selectedSource = sid;
+          detailTab = "tasks";
+          selectedTask = a === "task-runs" ? kind : null;
+          runFilter = "";
+          catalogSelection = null;
+          render();
+          return;
+        }
+        if (a === "tasks-back") {
+          selectedTask = null;
+          runFilter = "";
+          render();
+          return;
+        }
+        if (a === "nav") {
+          selectedTask = null;
+          runFilter = "";
+          catalogSelection = null;
+          document.body.classList.remove("catalogue-open");
+          view = v;
+          selectedSource = null;
+          closeModal();
+          render();
+          window.scrollTo(0, 0);
+        } else if (a === "outside")
+          openModal(
+            v,
+            `<p class="small muted">当前原型聚焦 Spec 005 源系统元数据采集。${v === "资产搜索" ? "资产搜索与摘要在 Spec 006 中实现。" : "这个工作空间入口不属于本次原型的交互范围。"}</p>`,
+            btn("返回数据接入", "close", "", "primary"),
+          );
+        else if (a === "guide") showGuide();
+        else if (a === "close") closeModal();
+        else if (a === "clear-filters") {
+          sourceQuery = "";
+          sourceFilter = "";
+          render();
+        } else if (a === "detail") {
+          selectedTask = null;
+          runFilter = "";
+          catalogSelection = null;
+          selectedSource = v;
+          detailTab = "overview";
+          selectedTable = "";
+          render();
+          window.scrollTo(0, 0);
+        } else if (a === "back") {
+          catalogSelection = null;
+          selectedSource = null;
+          render();
+        } else if (a === "detail-tab") {
+          selectedTask = null;
+          runFilter = "";
+          detailTab = v;
+          render();
+        } else if (a === "table") {
+          catalogSelection = selectedSource + "/table/" + v;
+          treeExpanded.add(selectedSource);
+          treeExpanded.add(selectedSource + "/db");
+          treeExpanded.add(selectedSource + "/schema");
+          selectedTable = v;
+          render();
+        } else if (a === "add") beginWizard();
+        else if (a === "configure") beginWizard(v);
+        else if (a === "connector") {
+          if (
+            wizard.id &&
+            source(wizard.id)?.state !== "draft" &&
+            wizard.type !== v
+          ) {
+            wizardError("已有采集结果的数据源不能更换连接器，请新建数据源。");
+            return;
+          }
+          if (wizard.type !== v) {
+            wizard.type = v;
+            wizard.port = String(connectionTypes.find((c) => c[0] === v)[3]);
+            wizard.tested = false;
+            wizard.testResult = null;
+          }
+          renderWizard();
+        } else if (a === "wizard-next") nextWizard();
+        else if (a === "wizard-prev") {
+          wizard.step--;
+          renderWizard();
+        } else if (a === "wizard-save") saveWizard();
+        else if (a === "test-connection") {
+          const err = validateConnection();
+          if (err) return wizardError(err);
+          wizardError("");
+          // CheckAccess 为短路步骤：失败时后续步骤不执行
+          wizard.testResult = TEST_STEPS[wizard.type].map(([name, mandatory], i) => ({
+            name,
+            mandatory: Boolean(mandatory),
+            passed: wizard.testFailure ? (i === 0 ? false : null) : true,
+            message:
+              wizard.testFailure && i === 0
+                ? "无法连接到目标地址（示例错误信息）。请检查网络、端口、用户名与密码。"
+                : "",
+          }));
+          wizard.tested = !wizard.testFailure;
+          document.getElementById("connection-result").innerHTML =
+            testResultMarkup(wizard.testResult);
+        } else if (a === "schedule-confirm") {
+          const [sid, kind] = v.split("|");
+          const s = task(source(sid), kind);
+          if (s.schedule === "手动触发") {
+            toast("此数据源仅手动触发，请在采集配置中设置定时计划。");
+            return;
+          }
+          openModal(
+            s.active ? "暂停定时采集？" : "恢复定时采集？",
+            `<p class="small muted">${s.active ? "暂停后不会触发新的定时采集，已有元数据和正在运行的任务会保留。仍可手动采集。" : "恢复后按 " + esc(s.schedule) + "（Asia/Shanghai）执行。"}</p>`,
+            `${btn("取消", "close")}${btn(s.active ? "确认暂停" : "确认恢复", "schedule-toggle", v, "primary")}`,
+          );
+        } else if (a === "schedule-toggle") {
+          const [sid, kind] = v.split("|");
+          const t = task(source(sid), kind);
+          t.active = !t.active;
+          closeModal();
+          render();
+          toast(
+            t.active
+              ? "定时调度已恢复（模拟）"
+              : "定时调度已暂停（模拟）",
+          );
+        } else if (a === "run") startRun(v);
+        else if (a === "retry")
+          startRun(
+            v,
+            document.getElementById("permission-fixed")?.checked || false,
+          );
+        else if (a === "run-detail") showRun(v);
+        else if (a === "refresh-runs") {
+          render();
+          toast("已刷新本地示例运行状态");
+        } else if (a === "dag") {
+          const [sid, kind] = v.split("|");
+          const src = source(sid),
+            s = task(src, kind);
+          openModal(
+            "调度任务",
+            `<dl class="kv"><dt>DAG 标识</dt><dd class="mono">${esc(taskName(src, kind))}</dd><dt>任务类型</dt><dd>${KIND_LABEL[kind]}（${kind}）</dd><dt>编排器</dt><dd>独立部署的 Airflow</dd><dt>执行器</dt><dd>OpenMetadata Ingestion</dd><dt>调度计划</dt><dd>${esc(s.schedule)} · Asia/Shanghai</dd><dt>当前调度</dt><dd>${s.schedule === "手动触发" ? "手动触发" : s.active ? "启用" : "已暂停"}</dd></dl><div class="alert">${icon("clock")}DAG 由 OpenMetadata 部署到 Airflow，标识与采集任务名称一致。原型仅展示关联关系。</div>`,
+            btn("关闭", "close", "", "primary"),
+          );
+        } else if (a === "reset-confirm")
+          openModal(
+            "恢复初始示例？",
+            `<p class="small muted">清除本次体验中新建的数据源和模拟运行。所有修改只存在于页面内。</p>`,
+            `${btn("取消", "close")}${btn("确认恢复", "reset", "", "primary")}`,
+          );
+        else if (a === "reset") location.reload();
+      });
+      document.addEventListener("input", (e) => {
+        const t = e.target;
+        if (
+          t.dataset.property &&
+          ["name", "description", "retentionPeriod"].includes(
+            t.dataset.property,
+          )
+        )
+          propertyDraft[t.dataset.property] = t.value;
+        if (t.id === "source-search") {
+          sourceQuery = t.value;
+          document.getElementById("source-table-wrap").innerHTML =
+            sourceTable();
+        }
+        if (t.dataset.filter) {
+          const [level, key] = t.dataset.filter.split(".");
+          wizard.filters[level][key] = t.value;
+        }
+        if (t.dataset.w) {
+          wizard[t.dataset.w] = t.type === "checkbox" ? t.checked : t.value;
+          if (
+            [
+              "host",
+              "port",
+              "database",
+              "username",
+              "password",
+              "tls",
+              "testFailure",
+            ].includes(t.dataset.w)
+          ) {
+            wizard.tested = false;
+            wizard.testResult = null;
+            const result = document.getElementById("connection-result");
+            if (result) result.innerHTML = "";
+          }
+        }
+      });
+      document.addEventListener("change", (e) => {
+        const t = e.target;
+        if (t.dataset.property) {
+          const field = t.dataset.property;
+          propertyDraft[field] = t.value;
+          if (field === "ownerType") propertyDraft.owners = [];
+          if (["domain", "ownerType"].includes(field)) {
+            const scroll = document.querySelector(".modal-body").scrollTop;
+            renderProperties();
+            document.querySelector(".modal-body").scrollTop = scroll;
+            document
+              .querySelector(`[data-property="${field}"]`)
+              .focus({ preventScroll: true });
+          }
+          return;
+        }
+        if (t.dataset.propertyList) {
+          const key = t.dataset.propertyList;
+          let values = propertyDraft[key].filter((x) => x !== t.value);
+          if (t.checked) {
+            if (key === "owners" && propertyDraft.ownerType === "team")
+              values = [];
+            if (key === "tags")
+              values = values.filter(
+                (x) => x.split(".")[0] !== t.value.split(".")[0],
+              );
+            values.push(t.value);
+          }
+          propertyDraft[key] = values;
+          document
+            .querySelectorAll(`[data-property-list="${key}"]`)
+            .forEach((input) => (input.checked = values.includes(input.value)));
+          return;
+        }
+        if (t.id === "metadata-table-select") {
+          selectCatalog(selectedSource + "/table/" + t.value);
+          return;
+        }
+        if (t.id === "source-filter") {
+          sourceFilter = t.value;
+          render();
+        }
+        if (t.id === "run-filter") {
+          runFilter = t.value;
+          render();
+        }
+        if (
+          t.dataset.w &&
+          ["schedule", "lineageSchedule", "includeViews"].includes(t.dataset.w)
+        ) {
+          wizard[t.dataset.w] = t.type === "checkbox" ? t.checked : t.value;
+          renderWizard();
+        }
+      });
+      document.getElementById("dialog").addEventListener("cancel", () => {
+        modalKind = "";
+      });
+      hydrateIcons();
+      render();
+    </script>
+  </body>
+</html>

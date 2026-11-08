@@ -40,7 +40,7 @@ it("四入口顺序、名称、品牌与首页二级准确，设备和开发页�
     within(nav)
       .getAllByRole("link")
       .map((e) => e.getAttribute("aria-label")),
-  ).toEqual(["新建对话", "首页", "资产搜索", "Agent 工作台"]);
+  ).toEqual(["新建对话", "首页", "资产", "Agent 工作台"]);
   expect(screen.getByRole("link", { name: "织境" })).toHaveAttribute(
     "href",
     "/home",
@@ -67,8 +67,8 @@ it.each([
   ["/home", "概览", "首页"],
   ["/home/", "概览", "首页"],
   ["/approvals", "审批中心", "首页"],
-  ["/assets", "资产搜索", "资产搜索"],
-  ["/assets/", "资产搜索", "资产搜索"],
+  ["/assets", "资产搜索", "资产"],
+  ["/assets/", "资产搜索", "资产"],
   ["/agents", "Agent 工作台", "Agent 工作台"],
   ["/agents/new", "新建对话", "新建对话"],
 ])("深链 %s 的标题和选中入口一致", async (path, title, current) => {
@@ -92,7 +92,7 @@ it("切页保留收起偏好，重复展开操作稳定，重新挂载默认展�
   expect(
     screen.queryByRole("navigation", { name: "首页导航" }),
   ).not.toBeInTheDocument();
-  await userEvent.click(screen.getByRole("link", { name: "资产搜索" }));
+  await userEvent.click(screen.getByRole("link", { name: "资产" }));
   await userEvent.click(screen.getByRole("link", { name: "首页" }));
   expect(
     screen.queryByRole("navigation", { name: "首页导航" }),
@@ -133,3 +133,73 @@ it.each(["/unknown/path", "/objects/a/b"])(
     ).toBeVisible();
   },
 );
+
+// 005：资产工作空间：二级为“资产搜索（未开放）”与“数据源”；不显示“数据接入”分组标题（负责人 2026-11-08 验收反馈）
+it("资产工作空间的二级导航含数据源入口，指向 /sources", async () => {
+  stubIdentity();
+  await openShell("/assets");
+  const secondary = screen.getByRole("navigation", { name: "数据资产导航" });
+  const links = within(secondary).getAllByRole("link");
+  expect(links.map((e) => e.textContent)).toEqual(["资产搜索", "数据源"]);
+  expect(screen.queryByText("数据接入")).not.toBeInTheDocument();
+  expect(
+    within(secondary).getByRole("link", { name: "数据源" }),
+  ).toHaveAttribute("href", "/sources");
+  const nav = screen.getByRole("navigation", { name: "一级导航" });
+  expect(within(nav).getByRole("link", { name: "资产" })).toHaveAttribute(
+    "href",
+    "/sources",
+  );
+});
+
+it("一级与二级导航每个入口带对应图标（2026-11-08 负责人按附图调整配色与图标）", async () => {
+  stubIdentity();
+  await openShell("/assets");
+  const nav = screen.getByRole("navigation", { name: "一级导航" });
+  expect(
+    within(nav)
+      .getAllByRole("link")
+      .map((a) => a.querySelector("svg")?.getAttribute("data-icon")),
+  ).toEqual(["new", "home", "assets", "agents"]);
+  const secondary = screen.getByRole("navigation", { name: "数据资产导航" });
+  expect(
+    within(secondary)
+      .getAllByRole("link")
+      .map((a) => a.querySelector("svg")?.getAttribute("data-icon")),
+  ).toEqual(["search", "database"]);
+  expect(
+    document.querySelector(".module-label svg")?.getAttribute("data-icon"),
+  ).toBe("module-asset");
+});
+
+it("品牌位为经纬交织图标（2026-11-08 负责人确认），无障碍名称为织境", async () => {
+  stubIdentity();
+  await openShell();
+  const brand = screen.getByRole("link", { name: "织境" });
+  expect(brand.querySelector("svg")?.getAttribute("data-icon")).toBe("brand");
+  expect(brand.textContent).toBe("");
+});
+
+it("二级栏可拖动调整宽度：分隔条可用键盘调整，宽度有上下限（负责人 2026-11-08 反馈）", async () => {
+  localStorage.removeItem("ctx.secondaryWidth");
+  stubIdentity();
+  await openShell("/assets");
+  const rail = document.getElementById("secondary-navigation")!;
+  const handle = screen.getByRole("separator", { name: "调整二级栏宽度" });
+  expect(handle).toHaveAttribute("aria-orientation", "vertical");
+  const start = Number(handle.getAttribute("aria-valuenow"));
+  handle.focus();
+  fireEvent.keyDown(handle, { key: "ArrowRight" });
+  expect(Number(handle.getAttribute("aria-valuenow"))).toBe(start + 16);
+  expect(rail.style.width).toBe(`${start + 16}px`);
+  for (let i = 0; i < 60; i++) fireEvent.keyDown(handle, { key: "ArrowRight" });
+  expect(handle).toHaveAttribute(
+    "aria-valuenow",
+    handle.getAttribute("aria-valuemax"),
+  );
+  fireEvent.keyDown(handle, { key: "Home" });
+  expect(handle).toHaveAttribute(
+    "aria-valuenow",
+    handle.getAttribute("aria-valuemin"),
+  );
+});

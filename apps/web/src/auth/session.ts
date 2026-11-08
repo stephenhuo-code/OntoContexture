@@ -8,7 +8,8 @@ export interface CurrentUser {
 }
 export type SessionView =
   | { status: "checking" }
-  | { status: "authenticated"; user: CurrentUser }
+  /** rechecking：切回窗口等场景的后台身份核验进行中；页面保留但不可操作 */
+  | { status: "authenticated"; user: CurrentUser; rechecking: boolean }
   | { status: "anonymous" }
   | { status: "forbidden" }
   | { status: "unavailable"; error: ApiFailure };

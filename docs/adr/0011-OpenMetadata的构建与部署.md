@@ -41,6 +41,7 @@ Helm Chart（含依赖组件的打包）。织境需要跟随 OM 最新版本，
   | --- | --- | --- |
   | `openmetadata-server` | Java 服务端（含随包的界面静态资源与 MCP 模块） | 常驻服务；也用于数据库迁移任务 |
   | `openmetadata-ingestion` | Python 采集框架（连接器、剖析、数据质量、自动分类） | 由 Airflow 按需拉起运行（ADR-0006） |
+  | `openmetadata-ingestion-airflow` | Airflow 3.3.2 + managed-apis + 采集框架（005 起只装 MySQL / PostgreSQL / Oracle / SQL Server / Doris 连接器） | 平台独立 Airflow 的全部组件与任务 Pod 镜像；OM 经 `AirflowRESTClient` 部署与触发采集（005 research R1–R2） |
 
 - 构建流水线：检出锁定的发布分支提交 → 核对补丁登记 → 构建 → SBOM、许可与漏洞扫描 → 推送到测试环境镜像仓库，并纳入离线安装包。
   镜像版本号为 `<上游版本>-ctx.<修订号>`。

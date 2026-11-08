@@ -3,17 +3,21 @@
 import asyncio
 import contextlib
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from sqlalchemy.ext.asyncio import create_async_engine
+from starlette.routing import Match
 
 from contexture_bff.adapters.data import McpObjectData, ObjectData
 from contexture_bff.adapters.keycloak import KeycloakOidc, Oidc
 from contexture_bff.adapters.om import ObjectTypes, OmObjectTypes
+from contexture_bff.adapters.om_client import OmClient
+from contexture_bff.adapters.om_sources import SourcesService
+from contexture_bff.adapters.om_users import OmUserSync
 from contexture_bff.adapters.sessions import PostgresSessionStore, SessionStore
-from contexture_bff.api import auth, deps, me, objects
+from contexture_bff.api import auth, catalog, deps, me, objects, sources
 from contexture_bff.settings import BffSettings
 from contexture_core.auth import Authenticator, TokenVerifier
 from contexture_core.config import load_settings
@@ -32,6 +36,9 @@ class Services:
     object_types: ObjectTypes | None
     object_data: ObjectData | None
     authenticator: Authenticator | None
+    # 005：OM 用户同步（research R13）与源系统元数据采集（经用户委托令牌调用 OM）
+    om_users: OmUserSync | None = None
+    sources: SourcesService | None = None
 
 
 def build_authenticator(settings: BffSettings) -> Authenticator:
@@ -87,6 +94,17 @@ def create_app(settings: BffSettings | None = None, *, services: Services | None
                 )
             ),
             authenticator=build_authenticator(cfg),
+            om_users=OmUserSync(
+                om_url=cfg.om_url,
+                token_url=cfg.token_url,
+                client_id=cfg.client_id,
+                client_secret=cfg.client_secret.get_secret_value(),
+            )
+            if cfg.om_user_sync
+            else None,
+            sources=SourcesService(
+                OmClient(om_url=cfg.om_url, exchanger=exchanger, audience=cfg.om_audience)
+            ),
         )
         cleanup = asyncio.create_task(_cleanup_loop(store, cfg.session_cleanup_interval_seconds))
         try:
@@ -104,10 +122,32 @@ def create_app(settings: BffSettings | None = None, *, services: Services | None
         services.authenticator.token_source = deps.session_or_bearer
         app.state.services = services
     install_error_handlers(app)
+
+    @app.middleware("http")
+    async def allow_header(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        """同一路径按方法拆成多个路由时，405 的 Allow 合并该路径全部方法（RFC 9110 §15.5.6）。"""
+        response = await call_next(request)
+        if response.status_code == 405:
+            methods = [
+                m
+                for m in ("GET", "POST", "PUT", "PATCH", "DELETE")
+                if any(
+                    route.matches({**request.scope, "method": m})[0] == Match.FULL
+                    for route in app.router.routes
+                )
+            ]
+            if methods:
+                response.headers["Allow"] = ", ".join(methods)
+        return response
+
     setup_telemetry(cfg, app)
     app.include_router(auth.router)
     app.include_router(me.router)
     app.include_router(objects.router)
+    app.include_router(sources.router)
+    app.include_router(catalog.router)
     return app
 
 

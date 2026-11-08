@@ -8,6 +8,28 @@ export type ObjectTypeRef = components["schemas"]["ObjectTypeRef"];
 export type ObjectInstance = components["schemas"]["ObjectInstance"];
 export type Me = components["schemas"]["Me"];
 
+// 005 源系统元数据采集
+export type ServiceType = components["schemas"]["ServiceType"];
+export type PipelineState = components["schemas"]["PipelineState"];
+export type ConnectionInput = components["schemas"]["ConnectionInput"];
+export type FilterPattern = components["schemas"]["FilterPattern"];
+export type Scope = components["schemas"]["Scope"];
+export type Schedule = components["schemas"]["Schedule"];
+export type SourceUpsert = components["schemas"]["SourceUpsert"];
+export type PipelineSummary = components["schemas"]["PipelineSummary"];
+export type PipelineRun = components["schemas"]["PipelineRun"];
+export type SourceSummary = components["schemas"]["SourceSummary"];
+export type SourceDetail = components["schemas"]["SourceDetail"];
+export type TestConnectionResult =
+  components["schemas"]["TestConnectionResult"];
+export type GovernanceValues = components["schemas"]["GovernanceValues"];
+export type GovernancePatch = components["schemas"]["GovernancePatch"];
+export type CatalogEntity = components["schemas"]["CatalogEntity"];
+export type EntityRef = components["schemas"]["Ref"];
+export type GovernanceOptions = components["schemas"]["GovernanceOptions"];
+export type PipelineKind = "metadata" | "lineage";
+export type CatalogEntityType = CatalogEntity["entityType"];
+
 /** 统一错误格式（contracts/schemas/error.json） */
 export interface ApiError {
   code: string;

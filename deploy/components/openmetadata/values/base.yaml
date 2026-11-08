@@ -25,12 +25,18 @@ openmetadata:
       searchType: opensearch
       port: 9200
       scheme: http
-    # 001 不接 Airflow 编排（ADR-0006 在后续特性中接入）
+    # 005：OM 原生编排接入平台独立 Airflow 3.3.2（ADR-0006；AirflowRESTClient 走 /pluginsv2，research R1、R3）。
+    # 部署、触发、启停、最近日志与测试连接都经 OM；Airflow 账号由 Airflow Chart 的 createUserJob 创建
     pipelineServiceClientConfig:
-      enabled: false
-      # 关闭时 Chart 仍引用该 Secret，指向 OM 自己的 Secret
+      enabled: true
+      type: airflow
+      metadataApiEndpoint: http://openmetadata:8585/api
       airflow:
+        apiEndpoint: http://airflow-api-server:8080
+        ingestionIpInfoEnabled: false
         auth:
+          enabled: true
+          username: openmetadata
           password: { secretRef: om-secrets, secretKey: airflow-password }
     deployPipelinesConfig:
       enabled: false

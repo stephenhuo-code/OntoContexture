@@ -3,6 +3,7 @@ import { PrimaryNav } from "./PrimaryNav";
 import { SecondaryNav } from "./SecondaryNav";
 import { PageHeader } from "./PageHeader";
 import { routePresentation } from "./navigation";
+import { CatalogTree } from "../features/sources/CatalogTree";
 export function AppShell({
   secondaryOpen,
   toggleSecondary,
@@ -17,7 +18,9 @@ export function AppShell({
     <div className="app-shell">
       <PrimaryNav current={route.primary} />
       {hasSecondary && secondaryOpen && route.primary && (
-        <SecondaryNav route={route.primary} path={route.path} />
+        <SecondaryNav route={route.primary} path={route.path}>
+          {route.path.startsWith("/sources") && <CatalogTree />}
+        </SecondaryNav>
       )}
       <div className="workspace">
         <PageHeader

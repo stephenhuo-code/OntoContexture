@@ -14,3 +14,6 @@ ensure mock-mes --from-literal=root-password="$(rand)"
 ensure mock-qms-superuser --type=kubernetes.io/basic-auth --from-literal=username=postgres \
   --from-literal=password="$(rand)"
 ensure mock-dw-reader --from-literal=password="$(rand)"
+# 005：只读元数据账号与 viewlab 视图测试库的账号（mockfactory provision-005）
+ensure mock-readonly --from-literal=mes-meta-ro="$(rand)" --from-literal=qms-meta-ro="$(rand)" \
+  --from-literal=viewlab-ro="$(rand)" --from-literal=viewlab-noview="$(rand)"

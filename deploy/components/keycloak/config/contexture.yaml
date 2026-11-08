@@ -18,7 +18,8 @@ clients:
     standardFlowEnabled: true
     directAccessGrantsEnabled: false
     implicitFlowEnabled: false
-    serviceAccountsEnabled: false
+    # 005：BFF 在 OpenMetadata 中建档用户、同步团队成员的身份（client credentials，research R13）
+    serviceAccountsEnabled: true
     redirectUris:
       - $(env:CTX_PUBLIC_URL)/bff/v1/auth/callback
     webOrigins:
@@ -42,6 +43,14 @@ clients:
         protocolMapper: oidc-audience-mapper
         config:
           included.client.audience: contexture-ai-gateway
+          access.token.claim: "true"
+          id.token.claim: "false"
+      # 005：BFF 以用户委托令牌调用 OpenMetadata（令牌交换收窄到 OM，research R5）
+      - name: aud-contexture-openmetadata
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        config:
+          included.client.audience: contexture-openmetadata
           access.token.claim: "true"
           id.token.claim: "false"
   - clientId: contexture-ai-gateway

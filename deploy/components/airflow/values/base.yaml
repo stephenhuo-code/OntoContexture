@@ -1,7 +1,46 @@
-# 平台自带的管线编排（ADR-0006）。001 只验证就绪；DAG 由后续特性提供
+# 平台自带的管线编排（ADR-0006）。005 起承载 OpenMetadata 采集：OM 经 AirflowRESTClient 调用
+# managed-apis 插件部署与触发 DAG（research R1–R4），DAG 由 OM 动态生成，不在仓库中维护。
 airflowVersion: "3.3.2"
 defaultAirflowTag: "3.3.2"
 executor: KubernetesExecutor
+
+# 织境采集镜像（third_party/openmetadata/build/build.sh airflow）：Airflow 3.3.2 + managed-apis + 五类连接器；
+# 各组件与 KubernetesExecutor 任务 Pod 共用
+images:
+  airflow:
+    repository: contexture/openmetadata-ingestion-airflow
+    tag: 2.0.3-ctx.0
+    pullPolicy: IfNotPresent
+  pod_template:
+    repository: contexture/openmetadata-ingestion-airflow
+    tag: 2.0.3-ctx.0
+    pullPolicy: IfNotPresent
+
+# managed-apis 把 DAG 写入 dags 目录、把生成配置写入 DAG_GENERATED_CONFIGS（operations/deploy.py），
+# api-server、dag-processor、scheduler 与任务 Pod 须读到同一份：dags 卷 + 同卷子目录。
+# 本地 kind 的 local-path 只支持 RWO，由 local / lite 把全部 Airflow Pod 固定到同一节点；
+# 阿里云 ACK 使用 NAS（RWX）StorageClass，不固定节点（research R4）。
+dags:
+  persistence:
+    enabled: true
+    size: 1Gi
+    accessMode: ReadWriteOnce
+
+env:
+  - name: AIRFLOW__OPENMETADATA_AIRFLOW_APIS__DAG_GENERATED_CONFIGS
+    value: /opt/airflow/dags/generated_configs
+  # Airflow 3 中 managed-apis 部署后依赖 dag-processor 扫描登记 DAG（deploy.py:159 “relying on scheduler scan”）；
+  # 默认 300 秒才发现新文件，保存后“立即运行”会报 DAG 不存在，缩短为 10 秒（2026-11-07 实测）
+  - name: AIRFLOW__DAG_PROCESSOR__REFRESH_INTERVAL
+    value: "10"
+  # OM 的 AirflowRESTClient 只支持 Basic 认证（AirflowRESTClient.java:85-160）；Chart 默认 FAB 认证管理器
+  - name: AIRFLOW__FAB__AUTH_BACKENDS
+    value: airflow.providers.fab.auth_manager.api.auth.backend.basic_auth,airflow.providers.fab.auth_manager.api.auth.backend.session
+# OM 调用 Airflow 的账号密码（tools/up.sh 生成于 om-secrets）
+secret:
+  - envName: OM_AIRFLOW_PASSWORD
+    secretName: om-secrets
+    secretKey: airflow-password
 
 # 平台共享的 PostgreSQL（database airflow）；连接串 Secret 由 tools/up.sh 生成（键 connection）
 postgresql:
@@ -20,14 +59,41 @@ fernetKeySecretName: airflow-secrets
 apiSecretKeySecretName: airflow-secrets
 jwtSecretName: airflow-secrets
 
+# 只保留 OM 使用的 openmetadata 账号（Admin 角色），密码取自 om-secrets；删除 Chart 默认的 admin/admin
 createUserJob:
   useHelmHooks: false
-  applyCustomEnv: false
+  applyCustomEnv: true
+  command: [bash, -c]
+  args:
+    - >-
+      airflow users create -r Admin -u openmetadata -e openmetadata@contexture.local -f OpenMetadata -l Service
+      -p "$OM_AIRFLOW_PASSWORD" || airflow users reset-password -u openmetadata -p "$OM_AIRFLOW_PASSWORD";
+      airflow users delete -u admin || true
 migrateDatabaseJob:
   useHelmHooks: false
   applyCustomEnv: false
 
+# managed-apis 在 Airflow 3 下不校验凭证（上游 security_compat.py 为放行装饰器；2026-11-07 实测不带凭证可调用），
+# 以网络策略限制 api-server 的访问方：只允许 Airflow 自身组件（含任务 Pod，经执行接口回报）与 OpenMetadata（research R3）
+networkPolicies:
+  enabled: true
+
 apiServer:
+  # managed-apis 在 api-server 内写 DAG 与生成配置；Chart 默认不给 api-server 挂 dags 卷（2026-11-07 实测写进了容器临时目录，
+  # 任务 Pod 报 “Dag not found during start up”），显式挂同一个 PVC
+  extraVolumes:
+    - name: dags
+      persistentVolumeClaim: { claimName: airflow-dags }
+  extraVolumeMounts:
+    - name: dags
+      mountPath: /opt/airflow/dags
+  networkPolicy:
+    ingress:
+      from:
+        - podSelector:
+            matchLabels: { tier: airflow, release: airflow }
+        - podSelector:
+            matchLabels: { app.kubernetes.io/name: openmetadata }
   resources:
     requests: { cpu: 100m, memory: 512Mi }
     limits: { memory: 1Gi }

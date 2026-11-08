@@ -30,3 +30,5 @@ resources:
 route:
   enabled: true
   gateway: contexture
+  # Envoy 默认路由超时 15 秒；刚部署的采集任务触发需等待 Airflow 登记 DAG（005 research R11/R14，最长约 40 秒）
+  requestTimeout: 60s

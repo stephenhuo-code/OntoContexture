@@ -129,6 +129,200 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bff/v1/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 数据源列表（含各任务最近运行与已采集统计） */
+        get: operations["listSources"];
+        put?: never;
+        /** 新建数据源：保存 DatabaseService 与采集任务，并由 OM 部署到 Airflow */
+        post: operations["createSource"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/sources/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: components["parameters"]["SourceName"];
+            };
+            cookie?: never;
+        };
+        /** 数据源详情（连接信息脱敏、采集范围、各任务调度与最近运行） */
+        get: operations["getSource"];
+        /**
+         * 修改连接、采集范围与调度；服务标识与连接器不可改（不同于已保存值时 400 source.immutable_field）；密码传 "*********" 表示不变；保存后重新部署
+         * @description includeViews=false 或 createLineageTask=false 时删除视图血缘任务（OM 实体与其运行记录）。
+         */
+        put: operations["updateSource"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/sources/test-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 发起测试连接（OM automation workflow，异步） */
+        post: operations["startTestConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/sources/test-connection/{workflowId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 查询测试连接结果（轮询） */
+        get: operations["getTestConnection"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/sources/{name}/pipelines/{kind}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: components["parameters"]["SourceName"];
+                kind: components["parameters"]["PipelineKind"];
+            };
+            cookie?: never;
+        };
+        /** 当前任务的运行记录（OM PipelineStatus），新到旧 */
+        get: operations["listPipelineRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/sources/{name}/pipelines/{kind}/trigger": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: components["parameters"]["SourceName"];
+                kind: components["parameters"]["PipelineKind"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 立即运行（OM trigger）；该任务已有 queued / running 运行时拒绝 */
+        post: operations["triggerPipeline"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/sources/{name}/pipelines/{kind}/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: components["parameters"]["SourceName"];
+                kind: components["parameters"]["PipelineKind"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** 暂停 / 恢复定时调度（OM toggleIngestion）；仅对有定时计划的任务有效 */
+        put: operations["setPipelineScheduleEnabled"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/sources/{name}/pipelines/{kind}/logs/last": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: components["parameters"]["SourceName"];
+                kind: components["parameters"]["PipelineKind"];
+            };
+            cookie?: never;
+        };
+        /** 该任务最近一次运行的日志（OM 仅提供最近一次，research R7），已脱敏 */
+        get: operations["getLastPipelineLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/catalog/{entityType}/{fqn}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityType: "databaseService" | "database" | "databaseSchema" | "table";
+                /** @description URL 编码的完整 FQN */
+                fqn: string;
+            };
+            cookie?: never;
+        };
+        /** 目录实体（含直接子项、继承来源标注；表含字段与约束） */
+        get: operations["getCatalogEntity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** 修改治理属性（转换为 OM JSON Patch）；字段属性经 columnName 定位 */
+        patch: operations["patchCatalogEntity"];
+        trace?: never;
+    };
+    "/bff/v1/governance/options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 治理选项（用户、团队、业务域、数据产品、分类与标签、术语），实时读取 OM */
+        get: operations["getGovernanceOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -167,6 +361,227 @@ export interface components {
             items: components["schemas"]["ObjectInstance"][];
             /** @description 用于查询本次取数的审计记录 */
             trace_id?: string;
+        };
+        /** @enum {string} */
+        ServiceType: "Mysql" | "Postgres" | "Oracle" | "Mssql" | "Doris";
+        /** @enum {string} */
+        PipelineState: "queued" | "running" | "success" | "partialSuccess" | "failed" | "stopped";
+        /** @description 按连接器映射到 OM 原生连接字段（research R9）；高级字段不暴露 */
+        ConnectionInput: {
+            /** @example mes.mock-sources.svc:3306 */
+            hostPort: string;
+            username: string;
+            /** @description "*********" 表示保留已保存的密码 */
+            password: string;
+            /** @description MySQL / Doris 选填（databaseSchema）；PostgreSQL / SQL Server 必填（database）；Oracle 为 Service Name */
+            database?: string | null;
+            /** @default false */
+            tls: boolean;
+        };
+        ConnectionView: {
+            hostPort: string;
+            username: string;
+            /** @constant */
+            password: "*********";
+            database?: string | null;
+            tls?: boolean;
+        };
+        FilterPattern: {
+            /** @description 正则；空数组表示不限 */
+            includes?: string[];
+            excludes?: string[];
+        };
+        Scope: {
+            databaseFilterPattern?: components["schemas"]["FilterPattern"] | null;
+            schemaFilterPattern?: components["schemas"]["FilterPattern"] | null;
+            tableFilterPattern?: components["schemas"]["FilterPattern"] | null;
+            /** @default true */
+            includeViews: boolean;
+        };
+        /** @description cron 为空表示仅手动触发；时区固定 Asia/Shanghai */
+        Schedule: {
+            /** @example 0 2 * * * */
+            cron?: string | null;
+        };
+        SourceUpsert: {
+            /** @description test-connection 为保留名（400 source.invalid_request） */
+            name: string;
+            displayName: string;
+            serviceType: components["schemas"]["ServiceType"];
+            connection: components["schemas"]["ConnectionInput"];
+            scope: components["schemas"]["Scope"];
+            metadataSchedule: components["schemas"]["Schedule"];
+            /**
+             * @description 仅在 includeViews=true 时允许为 true
+             * @default false
+             */
+            createLineageTask: boolean;
+            lineageSchedule?: components["schemas"]["Schedule"] | null;
+        };
+        PipelineSummary: {
+            /** @enum {string} */
+            kind: "metadata" | "lineage";
+            /** @description <服务>_<kind>_<8 位随机串>（research R8） */
+            name: string;
+            fullyQualifiedName: string;
+            deployed: boolean;
+            schedule?: components["schemas"]["Schedule"];
+            scheduleEnabled: boolean;
+            lastRun?: components["schemas"]["PipelineRun"] | null;
+        };
+        /** @description OM PipelineStatus 的投影；不含触发方式 */
+        PipelineRun: {
+            /** Format: uuid */
+            runId: string;
+            pipelineState: components["schemas"]["PipelineState"];
+            /** @description 毫秒时间戳 */
+            startDate?: number | null;
+            endDate?: number | null;
+            steps?: {
+                /** @description Source 步骤为连接器类型，Sink 为 OpenMetadata */
+                name: string;
+                records?: number;
+                updatedRecords?: number;
+                warnings?: number;
+                errors?: number;
+                filtered?: number;
+                failures?: {
+                    name?: string;
+                    error?: string;
+                }[];
+            }[];
+        };
+        SourceSummary: {
+            name: string;
+            displayName: string;
+            serviceType: components["schemas"]["ServiceType"];
+            database?: string | null;
+            /** @description 已创建元数据采集任务 */
+            configured: boolean;
+            /** @description OM 中该服务下的表与视图数（含 View） */
+            tableCount: number;
+            columnCount: number;
+            pipelines: components["schemas"]["PipelineSummary"][];
+        };
+        SourceDetail: components["schemas"]["SourceSummary"] & {
+            description?: string;
+            connection: components["schemas"]["ConnectionView"];
+            scope: components["schemas"]["Scope"];
+            governance?: components["schemas"]["GovernanceValues"];
+        };
+        TestConnectionResult: {
+            /** Format: uuid */
+            workflowId: string;
+            /**
+             * @description 映射 OM workflow 状态
+             * @enum {string}
+             */
+            status: "Pending" | "Running" | "Successful" | "Failed";
+            /** @description 以 OM testConnections/database/<connector>.json 的步骤为准 */
+            steps: {
+                /** @example CheckAccess */
+                name: string;
+                mandatory: boolean;
+                /** @description null 表示未执行 */
+                passed: boolean | null;
+                message?: string | null;
+            }[];
+        };
+        GovernanceValues: {
+            displayName?: string | null;
+            description?: string | null;
+            owners?: components["schemas"]["Ref"][];
+            domains?: components["schemas"]["Ref"][];
+            /** @example Tier.Tier2 */
+            tier?: string | null;
+            tags?: string[];
+            glossaryTerms?: string[];
+            dataProducts?: components["schemas"]["Ref"][];
+            /** @example P30D */
+            retentionPeriod?: string | null;
+            /** @description 字段名 → 继承来源 {entityType, fullyQualifiedName}；未列出表示单独设置或为空 */
+            inheritedFrom?: {
+                [key: string]: {
+                    entityType?: string;
+                    fullyQualifiedName?: string;
+                };
+            };
+        };
+        /** @description 只含要改的字段；值为 null 表示清空（恢复继承） */
+        GovernancePatch: {
+            /** @description 编辑字段属性时提供；仅允许 displayName / description / tags / glossaryTerms */
+            columnName?: string;
+            displayName?: string | null;
+            description?: string | null;
+            owners?: components["schemas"]["Ref"][] | null;
+            domain?: components["schemas"]["Ref"] | null;
+            tier?: string | null;
+            tags?: string[] | null;
+            glossaryTerms?: string[] | null;
+            dataProducts?: components["schemas"]["Ref"][] | null;
+            retentionPeriod?: string | null;
+        };
+        CatalogEntity: {
+            /** @enum {string} */
+            entityType: "databaseService" | "database" | "databaseSchema" | "table";
+            /** Format: uuid */
+            id?: string;
+            name: string;
+            fullyQualifiedName: string;
+            governance?: components["schemas"]["GovernanceValues"];
+            /** @description 直接子项（库 / Schema / 表）及其计数 */
+            children?: {
+                entityType?: string;
+                name?: string;
+                fullyQualifiedName?: string;
+                displayName?: string | null;
+                description?: string | null;
+                childCount?: number;
+            }[];
+            /** @description 仅 entityType=table */
+            table?: {
+                /** @example Regular */
+                tableType?: string;
+                constraints?: {
+                    /** @example PRIMARY_KEY */
+                    constraintType?: string;
+                    columns?: string[];
+                }[];
+                schemaDefinition?: string | null;
+                columns?: {
+                    name?: string;
+                    dataTypeDisplay?: string;
+                    /** @description OM 列级约束，如 PRIMARY_KEY */
+                    constraint?: string | null;
+                    displayName?: string | null;
+                    description?: string | null;
+                    tags?: string[];
+                    glossaryTerms?: string[];
+                }[];
+            };
+        };
+        Ref: {
+            /** Format: uuid */
+            id: string;
+            /** @example user */
+            type: string;
+            name?: string;
+            displayName?: string;
+            fullyQualifiedName?: string;
+        };
+        GovernanceOptions: {
+            users?: components["schemas"]["Ref"][];
+            teams?: components["schemas"]["Ref"][];
+            domains?: components["schemas"]["Ref"][];
+            dataProducts?: (components["schemas"]["Ref"] & {
+                domains?: components["schemas"]["Ref"][];
+            })[];
+            classifications?: {
+                name?: string;
+                mutuallyExclusive?: boolean;
+                tags?: string[];
+            }[];
+            glossaryTerms?: string[];
         };
         /** ErrorEnvelope */
         error: {
@@ -230,7 +645,10 @@ export interface components {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        SourceName: string;
+        PipelineKind: "metadata" | "lineage";
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
@@ -384,6 +802,417 @@ export interface operations {
             500: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
             default: components["responses"]["Error"];
+        };
+    };
+    listSources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 全部数据库类数据源；统计由 BFF 基于 OM 实体实时计算，不持久化 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["SourceSummary"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+        };
+    };
+    createSource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceUpsert"];
+            };
+        };
+        responses: {
+            /** @description 已保存并部署；部署失败时不返回 201，而返回 source.deploy_failed（已保存的实体保留，可再次保存重试部署） */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceDetail"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description 服务标识已存在 source.name_conflict */
+            409: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+        };
+    };
+    getSource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: components["parameters"]["SourceName"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+        };
+    };
+    updateSource: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: components["parameters"]["SourceName"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceUpsert"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceDetail"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+        };
+    };
+    startTestConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description 已有数据源时提供；密码为 "*********" 时由 OM 按已保存凭证测试（research R5 验证项 3） */
+                    serviceName?: string | null;
+                    serviceType: components["schemas"]["ServiceType"];
+                    connection: components["schemas"]["ConnectionInput"];
+                };
+            };
+        };
+        responses: {
+            /** @description 已提交 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestConnectionResult"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+        };
+    };
+    getTestConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workflowId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 进行中或已完成 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestConnectionResult"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
+        };
+    };
+    listPipelineRuns: {
+        parameters: {
+            query?: {
+                state?: components["schemas"]["PipelineState"];
+            };
+            header?: never;
+            path: {
+                name: components["parameters"]["SourceName"];
+                kind: components["parameters"]["PipelineKind"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["PipelineRun"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+        };
+    };
+    triggerPipeline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: components["parameters"]["SourceName"];
+                kind: components["parameters"]["PipelineKind"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已提交到 Airflow；运行记录以 OM 回写为准 */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description 数据源或任务不存在 source.not_found */
+            404: components["responses"]["Error"];
+            /** @description source.pipeline_in_flight */
+            409: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+        };
+    };
+    setPipelineScheduleEnabled: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: components["parameters"]["SourceName"];
+                kind: components["parameters"]["PipelineKind"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    enabled: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PipelineSummary"];
+                };
+            };
+            /** @description 手动任务不支持 source.schedule_not_set */
+            400: components["responses"]["Error"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description 数据源或任务不存在 source.not_found */
+            404: components["responses"]["Error"];
+            /** @description Airflow 尚未登记该任务 source.pipeline_not_ready */
+            409: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+        };
+    };
+    getLastPipelineLogs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: components["parameters"]["SourceName"];
+                kind: components["parameters"]["PipelineKind"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        runId?: string | null;
+                        logs: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description 数据源或任务不存在 source.not_found */
+            404: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+        };
+    };
+    getCatalogEntity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityType: "databaseService" | "database" | "databaseSchema" | "table";
+                /** @description URL 编码的完整 FQN */
+                fqn: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogEntity"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+        };
+    };
+    patchCatalogEntity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityType: "databaseService" | "database" | "databaseSchema" | "table";
+                /** @description URL 编码的完整 FQN */
+                fqn: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GovernancePatch"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogEntity"];
+                };
+            };
+            /** @description 校验失败：域与数据产品不一致、保留周期非 ISO 8601、互斥分类多选 */
+            400: components["responses"]["Error"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description 实体不存在 catalog.not_found，或字段不存在 catalog.column_not_found */
+            404: components["responses"]["Error"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+        };
+    };
+    getGovernanceOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GovernanceOptions"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
         };
     };
 }

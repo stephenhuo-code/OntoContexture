@@ -1,0 +1,91 @@
+# 织境 Airflow 采集镜像（005，research R2）：平台独立 Airflow 的全部组件与 KubernetesExecutor 任务 Pod 共用。
+# 以上游 ingestion/Dockerfile.ci 为蓝本，从子仓库（ctx/2.0.3）源码安装 openmetadata-managed-apis 与
+# openmetadata-ingestion，使镜像与锁定提交及织境补丁一致（ADR-0011）。与上游的差异：
+#   - 连接器依赖只装本期五类（mysql、postgres、oracle、mssql、doris）及 DAG 加载必需的 pii-processor，不装 all 与 db2；
+#   - 不复制上游示例 / 测试 DAG，不带 sample_data；
+#   - 不使用上游单容器入口脚本（组件由 Helm Chart 分别启动）。
+# 构建上下文为子仓库根目录：third_party/openmetadata/build/build.sh airflow
+FROM apache/airflow:3.3.2-python3.12
+USER root
+RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /usr/share/keyrings/microsoft-prod.gpg \
+  && echo "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list
+RUN dpkg --configure -a \
+  && apt-get -qq update \
+  && apt-get -qq install -y \
+  build-essential \
+  default-libmysqlclient-dev \
+  freetds-bin \
+  freetds-dev \
+  gcc \
+  gnupg \
+  libaio1 \
+  libffi-dev \
+  libpq-dev \
+  libsasl2-dev \
+  libssl-dev \
+  libxml2 \
+  libkrb5-dev \
+  default-jre-headless \
+  odbcinst=2.3.11-2+deb12u1 \
+  tdsodbc \
+  unixodbc=2.3.11-2+deb12u1 \
+  unixodbc-dev=2.3.11-2+deb12u1 \
+  unzip \
+  wget --no-install-recommends \
+  && ACCEPT_EULA=Y apt-get -qq install -y msodbcsql18 \
+  && apt-get -qq autoremove -y --purge \
+  && rm -rf /var/lib/apt/lists/*
+
+# Oracle 连接器所需的 Instant Client（与上游一致）
+RUN if [ $(uname -m) = "arm64" ] || [ $(uname -m) = "aarch64" ]; \
+  then \
+  wget -q https://download.oracle.com/otn_software/linux/instantclient/191000/instantclient-basic-linux.arm64-19.10.0.0.0dbru.zip -O /oracle-instantclient.zip && \
+  unzip -q -d /instantclient -j /oracle-instantclient.zip && rm -f /oracle-instantclient.zip; \
+  else \
+  wget -q https://download.oracle.com/otn_software/linux/instantclient/1917000/instantclient-basic-linux.x64-19.17.0.0.0dbru.zip -O /oracle-instantclient.zip && \
+  unzip -q -d /instantclient -j /oracle-instantclient.zip && rm -f /oracle-instantclient.zip; \
+  fi
+ENV LD_LIBRARY_PATH=/instantclient
+
+COPY --chown=airflow:0 ingestion /home/airflow/ingestion
+COPY --chown=airflow:0 openmetadata-spec /home/airflow/openmetadata-spec
+COPY --chown=airflow:0 scripts/datamodel_generation.py /home/airflow/scripts/datamodel_generation.py
+COPY --chown=airflow:0 openmetadata-airflow-apis /home/airflow/openmetadata-airflow-apis
+COPY --chown=airflow:0 ingestion/airflow-constraints-3.3.2.txt /home/airflow/airflow-constraints-3.3.2.txt
+RUN /usr/local/bin/python -m pip install --no-cache-dir --upgrade "pip>=26.2,<27"
+
+USER airflow
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_QUIET=1
+RUN pip install --upgrade "pip>=26.2,<27" "setuptools<81"
+RUN pip install --no-build-isolation "cx_Oracle>=8.3.0,<9"
+RUN pip install "apache-airflow-providers-fab>=1.0.0" --constraint "/home/airflow/airflow-constraints-3.3.2.txt"
+
+WORKDIR /home/airflow/openmetadata-airflow-apis
+RUN pip install "." --constraint "/home/airflow/airflow-constraints-3.3.2.txt"
+
+WORKDIR /home/airflow/ingestion
+RUN pip install "datamodel-code-generator==0.64.0"
+RUN mkdir -p /home/airflow/ingestion/src/metadata/generated
+RUN python /home/airflow/scripts/datamodel_generation.py
+RUN wget -q https://repo1.maven.org/maven2/org/antlr/antlr4/4.9.2/antlr4-4.9.2-complete.jar -O /tmp/antlr.jar \
+  && echo "bb117b1476691dc2915a318efd36f8957c0ad93447fb1dac01107eb15fe137cd  /tmp/antlr.jar" | sha256sum -c - \
+  && mkdir -p /home/airflow/ingestion/src/metadata/generated/antlr \
+  && java -jar /tmp/antlr.jar -Dlanguage=Python3 -Xexact-output-dir \
+    -o /home/airflow/ingestion/src/metadata/generated/antlr \
+    /home/airflow/openmetadata-spec/src/main/antlr4/org/openmetadata/schema/*.g4 \
+  && touch /home/airflow/ingestion/src/metadata/generated/antlr/__init__.py \
+  && rm -f /tmp/antlr.jar
+
+# pii-processor：managed-apis 生成的 DAG 导入工作流注册表时会加载自动分类模块（依赖 presidio-analyzer），
+# 不装则部署 DAG 失败（2026-11-07 实测 “No module named 'presidio_analyzer'”）；本期不启用自动分类
+ARG INGESTION_DEPENDENCY="mysql,postgres,oracle,mssql,doris,pii-processor"
+RUN pip install ".[${INGESTION_DEPENDENCY}]"
+RUN pip install "python-daemon>=3.0.0"
+# 与上游一致：只保留 docker / http / cncf / fab / common / standard 类 provider
+RUN pip freeze | grep "apache-airflow-providers" | grep --invert-match -E "docker|http|cncf|fab|common|standard" | xargs -r pip uninstall -y
+RUN pip uninstall psycopg2-binary -y && pip install psycopg2 mysqlclient==2.1.1
+RUN pip uninstall upath -y; pip install "universal-pathlib==0.3.10"
+RUN mkdir -p /opt/airflow/dag_generated_configs
+EXPOSE 8080
+WORKDIR /opt/airflow
