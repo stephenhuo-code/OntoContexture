@@ -141,7 +141,11 @@ paths:
       responses:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
+        "422":
+          {
+            description: "请求参数不合法 request.invalid（py-core 统一处理）",
+            $ref: "#/components/responses/Error",
+          }
         "200":
           description: 全部数据库类数据源；统计由 BFF 基于 OM 实体实时计算，不持久化
           content:
@@ -150,7 +154,11 @@ paths:
                 type: object
                 required: [data]
                 properties:
-                  data: { type: array, items: { $ref: "#/components/schemas/SourceSummary" } }
+                  data:
+                    {
+                      type: array,
+                      items: { $ref: "#/components/schemas/SourceSummary" },
+                    }
         "502": { $ref: "#/components/responses/Unavailable" }
     post:
       operationId: createSource
@@ -163,14 +171,22 @@ paths:
       responses:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
+        "422":
+          {
+            description: "请求参数不合法 request.invalid（py-core 统一处理）",
+            $ref: "#/components/responses/Error",
+          }
         "201":
           description: 已保存并部署；部署失败时不返回 201，而返回 source.deploy_failed（已保存的实体保留，可再次保存重试部署）
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SourceDetail" }
         "400": { $ref: "#/components/responses/Error" }
-        "409": { description: "服务标识已存在 source.name_conflict", $ref: "#/components/responses/Error" }
+        "409":
+          {
+            description: "服务标识已存在 source.name_conflict",
+            $ref: "#/components/responses/Error",
+          }
         "502": { $ref: "#/components/responses/Unavailable" }
   /bff/v1/sources/{name}:
     parameters:
@@ -181,7 +197,11 @@ paths:
       responses:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
+        "422":
+          {
+            description: "请求参数不合法 request.invalid（py-core 统一处理）",
+            $ref: "#/components/responses/Error",
+          }
         "200":
           description: OK
           content:
@@ -202,7 +222,11 @@ paths:
       responses:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
+        "422":
+          {
+            description: "请求参数不合法 request.invalid（py-core 统一处理）",
+            $ref: "#/components/responses/Error",
+          }
         "200":
           description: OK
           content:
@@ -231,7 +255,11 @@ paths:
       responses:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
+        "422":
+          {
+            description: "请求参数不合法 request.invalid（py-core 统一处理）",
+            $ref: "#/components/responses/Error",
+          }
         "202":
           description: 已提交
           content:
@@ -244,11 +272,20 @@ paths:
       operationId: getTestConnection
       summary: 查询测试连接结果（轮询）
       parameters:
-        - { name: workflowId, in: path, required: true, schema: { type: string, format: uuid } }
+        - {
+            name: workflowId,
+            in: path,
+            required: true,
+            schema: { type: string, format: uuid },
+          }
       responses:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
+        "422":
+          {
+            description: "请求参数不合法 request.invalid（py-core 统一处理）",
+            $ref: "#/components/responses/Error",
+          }
         "200":
           description: 进行中或已完成
           content:
@@ -269,7 +306,11 @@ paths:
       responses:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
+        "422":
+          {
+            description: "请求参数不合法 request.invalid（py-core 统一处理）",
+            $ref: "#/components/responses/Error",
+          }
         "200":
           description: OK
           content:
@@ -278,7 +319,11 @@ paths:
                 type: object
                 required: [data]
                 properties:
-                  data: { type: array, items: { $ref: "#/components/schemas/PipelineRun" } }
+                  data:
+                    {
+                      type: array,
+                      items: { $ref: "#/components/schemas/PipelineRun" },
+                    }
         "404": { $ref: "#/components/responses/Error" }
         "502": { $ref: "#/components/responses/Unavailable" }
   /bff/v1/sources/{name}/pipelines/{kind}/trigger:
@@ -289,12 +334,24 @@ paths:
       operationId: triggerPipeline
       summary: 立即运行（OM trigger）；该任务已有 queued / running 运行时拒绝
       responses:
-        "404": { description: "数据源或任务不存在 source.not_found", $ref: "#/components/responses/Error" }
+        "404":
+          {
+            description: "数据源或任务不存在 source.not_found",
+            $ref: "#/components/responses/Error",
+          }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
+        "422":
+          {
+            description: "请求参数不合法 request.invalid（py-core 统一处理）",
+            $ref: "#/components/responses/Error",
+          }
         "202": { description: 已提交到 Airflow；运行记录以 OM 回写为准 }
-        "409": { description: "source.pipeline_in_flight", $ref: "#/components/responses/Error" }
+        "409":
+          {
+            description: "source.pipeline_in_flight",
+            $ref: "#/components/responses/Error",
+          }
         "502": { $ref: "#/components/responses/Unavailable" }
   /bff/v1/sources/{name}/pipelines/{kind}/schedule:
     parameters:
@@ -313,17 +370,33 @@ paths:
               properties:
                 enabled: { type: boolean }
       responses:
-        "409": { description: "Airflow 尚未登记该任务 source.pipeline_not_ready", $ref: "#/components/responses/Error" }
-        "404": { description: "数据源或任务不存在 source.not_found", $ref: "#/components/responses/Error" }
+        "409":
+          {
+            description: "Airflow 尚未登记该任务 source.pipeline_not_ready",
+            $ref: "#/components/responses/Error",
+          }
+        "404":
+          {
+            description: "数据源或任务不存在 source.not_found",
+            $ref: "#/components/responses/Error",
+          }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
+        "422":
+          {
+            description: "请求参数不合法 request.invalid（py-core 统一处理）",
+            $ref: "#/components/responses/Error",
+          }
         "200":
           description: OK
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PipelineSummary" }
-        "400": { description: "手动任务不支持 source.schedule_not_set", $ref: "#/components/responses/Error" }
+        "400":
+          {
+            description: "手动任务不支持 source.schedule_not_set",
+            $ref: "#/components/responses/Error",
+          }
         "502": { $ref: "#/components/responses/Unavailable" }
   /bff/v1/sources/{name}/pipelines/{kind}/logs/last:
     parameters:
@@ -333,10 +406,18 @@ paths:
       operationId: getLastPipelineLogs
       summary: 该任务最近一次运行的日志（OM 仅提供最近一次，research R7），已脱敏
       responses:
-        "404": { description: "数据源或任务不存在 source.not_found", $ref: "#/components/responses/Error" }
+        "404":
+          {
+            description: "数据源或任务不存在 source.not_found",
+            $ref: "#/components/responses/Error",
+          }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
+        "422":
+          {
+            description: "请求参数不合法 request.invalid（py-core 统一处理）",
+            $ref: "#/components/responses/Error",
+          }
         "200":
           description: OK
           content:
@@ -353,15 +434,29 @@ paths:
       - name: entityType
         in: path
         required: true
-        schema: { type: string, enum: [databaseService, database, databaseSchema, table] }
-      - { name: fqn, in: path, required: true, schema: { type: string }, description: URL 编码的完整 FQN }
+        schema:
+          {
+            type: string,
+            enum: [databaseService, database, databaseSchema, table],
+          }
+      - {
+          name: fqn,
+          in: path,
+          required: true,
+          schema: { type: string },
+          description: URL 编码的完整 FQN,
+        }
     get:
       operationId: getCatalogEntity
       summary: 目录实体（含直接子项、继承来源标注；表含字段与约束）
       responses:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
+        "422":
+          {
+            description: "请求参数不合法 request.invalid（py-core 统一处理）",
+            $ref: "#/components/responses/Error",
+          }
         "200":
           description: OK
           content:
@@ -380,13 +475,21 @@ paths:
       responses:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
+        "422":
+          {
+            description: "请求参数不合法 request.invalid（py-core 统一处理）",
+            $ref: "#/components/responses/Error",
+          }
         "200":
           description: OK
           content:
             application/json:
               schema: { $ref: "#/components/schemas/CatalogEntity" }
-        "400": { description: "校验失败：域与数据产品不一致、保留周期非 ISO 8601、互斥分类多选", $ref: "#/components/responses/Error" }
+        "400":
+          {
+            description: "校验失败：域与数据产品不一致、保留周期非 ISO 8601、互斥分类多选",
+            $ref: "#/components/responses/Error",
+          }
         "502": { $ref: "#/components/responses/Unavailable" }
   /bff/v1/governance/options:
     get:
@@ -395,7 +498,11 @@ paths:
       responses:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
-        "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
+        "422":
+          {
+            description: "请求参数不合法 request.invalid（py-core 统一处理）",
+            $ref: "#/components/responses/Error",
+          }
         "200":
           description: OK
           content:
@@ -409,7 +516,12 @@ components:
       name: name
       in: path
       required: true
-      schema: { type: string, pattern: "^[a-z][a-z0-9-]{1,49}$", description: "test-connection 为保留名，不可用作服务标识" }
+      schema:
+        {
+          type: string,
+          pattern: "^[a-z][a-z0-9-]{1,49}$",
+          description: "test-connection 为保留名，不可用作服务标识",
+        }
     PipelineKind:
       name: kind
       in: path
@@ -505,15 +617,26 @@ components:
         trace_id: { type: string, description: 用于查询本次取数的审计记录 }
     # ---------- 005 ----------
     ServiceType: { type: string, enum: [Mysql, Postgres, Oracle, Mssql, Doris] }
-    PipelineState: { type: string, enum: [queued, running, success, partialSuccess, failed, stopped] }
+    PipelineState:
+      {
+        type: string,
+        enum: [queued, running, success, partialSuccess, failed, stopped],
+      }
     ConnectionInput:
       type: object
       description: 按连接器映射到 OM 原生连接字段（research R9）；高级字段不暴露
       required: [hostPort, username, password]
       properties:
-        hostPort: { type: string, minLength: 1, example: "mes.mock-sources.svc:3306" }
+        hostPort:
+          { type: string, minLength: 1, example: "mes.mock-sources.svc:3306" }
         username: { type: string, minLength: 1 }
-        password: { type: string, minLength: 1, writeOnly: true, description: '"*********" 表示保留已保存的密码' }
+        password:
+          {
+            type: string,
+            minLength: 1,
+            writeOnly: true,
+            description: '"*********" 表示保留已保存的密码',
+          }
         database:
           type: [string, "null"]
           description: MySQL / Doris 选填（databaseSchema）；PostgreSQL / SQL Server 必填（database）；Oracle 为 Service Name
@@ -530,14 +653,40 @@ components:
     FilterPattern:
       type: object
       properties:
-        includes: { type: array, items: { type: string }, description: 正则；空数组表示不限 }
+        includes:
+          {
+            type: array,
+            items: { type: string },
+            description: 正则；空数组表示不限,
+          }
         excludes: { type: array, items: { type: string } }
     Scope:
       type: object
       properties:
-        databaseFilterPattern: { oneOf: [{ $ref: "#/components/schemas/FilterPattern" }, { type: "null" }] }
-        schemaFilterPattern: { oneOf: [{ $ref: "#/components/schemas/FilterPattern" }, { type: "null" }] }
-        tableFilterPattern: { oneOf: [{ $ref: "#/components/schemas/FilterPattern" }, { type: "null" }] }
+        databaseFilterPattern:
+          {
+            oneOf:
+              [
+                { $ref: "#/components/schemas/FilterPattern" },
+                { type: "null" },
+              ],
+          }
+        schemaFilterPattern:
+          {
+            oneOf:
+              [
+                { $ref: "#/components/schemas/FilterPattern" },
+                { type: "null" },
+              ],
+          }
+        tableFilterPattern:
+          {
+            oneOf:
+              [
+                { $ref: "#/components/schemas/FilterPattern" },
+                { type: "null" },
+              ],
+          }
         includeViews: { type: boolean, default: true }
     Schedule:
       type: object
@@ -546,27 +695,50 @@ components:
         cron: { type: [string, "null"], example: "0 2 * * *" }
     SourceUpsert:
       type: object
-      required: [name, displayName, serviceType, connection, scope, metadataSchedule]
+      required:
+        [name, displayName, serviceType, connection, scope, metadataSchedule]
       properties:
-        name: { type: string, pattern: "^[a-z][a-z0-9-]{1,49}$", description: "test-connection 为保留名（400 source.invalid_request）" }
+        name:
+          {
+            type: string,
+            pattern: "^[a-z][a-z0-9-]{1,49}$",
+            description: "test-connection 为保留名（400 source.invalid_request）",
+          }
         displayName: { type: string, minLength: 1, maxLength: 60 }
         serviceType: { $ref: "#/components/schemas/ServiceType" }
         connection: { $ref: "#/components/schemas/ConnectionInput" }
         scope: { $ref: "#/components/schemas/Scope" }
         metadataSchedule: { $ref: "#/components/schemas/Schedule" }
-        createLineageTask: { type: boolean, default: false, description: 仅在 includeViews=true 时允许为 true }
-        lineageSchedule: { oneOf: [{ $ref: "#/components/schemas/Schedule" }, { type: "null" }] }
+        createLineageTask:
+          {
+            type: boolean,
+            default: false,
+            description: 仅在 includeViews=true 时允许为 true,
+          }
+        lineageSchedule:
+          {
+            oneOf:
+              [{ $ref: "#/components/schemas/Schedule" }, { type: "null" }],
+          }
     PipelineSummary:
       type: object
       required: [kind, name, fullyQualifiedName, deployed, scheduleEnabled]
       properties:
         kind: { type: string, enum: [metadata, lineage] }
-        name: { type: string, description: "<服务>_<kind>_<8 位随机串>（research R8）" }
+        name:
+          {
+            type: string,
+            description: "<服务>_<kind>_<8 位随机串>（research R8）",
+          }
         fullyQualifiedName: { type: string }
         deployed: { type: boolean }
         schedule: { $ref: "#/components/schemas/Schedule" }
         scheduleEnabled: { type: boolean }
-        lastRun: { oneOf: [{ $ref: "#/components/schemas/PipelineRun" }, { type: "null" }] }
+        lastRun:
+          {
+            oneOf:
+              [{ $ref: "#/components/schemas/PipelineRun" }, { type: "null" }],
+          }
     PipelineRun:
       type: object
       description: OM PipelineStatus 的投影；不含触发方式
@@ -582,7 +754,11 @@ components:
             type: object
             required: [name]
             properties:
-              name: { type: string, description: Source 步骤为连接器类型，Sink 为 OpenMetadata }
+              name:
+                {
+                  type: string,
+                  description: Source 步骤为连接器类型，Sink 为 OpenMetadata,
+                }
               records: { type: integer }
               updatedRecords: { type: integer }
               warnings: { type: integer }
@@ -597,16 +773,30 @@ components:
                     error: { type: string }
     SourceSummary:
       type: object
-      required: [name, displayName, serviceType, configured, tableCount, columnCount, pipelines]
+      required:
+        [
+          name,
+          displayName,
+          serviceType,
+          configured,
+          tableCount,
+          columnCount,
+          pipelines,
+        ]
       properties:
         name: { type: string }
         displayName: { type: string }
         serviceType: { $ref: "#/components/schemas/ServiceType" }
         database: { type: [string, "null"] }
         configured: { type: boolean, description: 已创建元数据采集任务 }
-        tableCount: { type: integer, description: OM 中该服务下的表与视图数（含 View） }
+        tableCount:
+          { type: integer, description: OM 中该服务下的表与视图数（含 View） }
         columnCount: { type: integer }
-        pipelines: { type: array, items: { $ref: "#/components/schemas/PipelineSummary" } }
+        pipelines:
+          {
+            type: array,
+            items: { $ref: "#/components/schemas/PipelineSummary" },
+          }
     SourceDetail:
       allOf:
         - $ref: "#/components/schemas/SourceSummary"
@@ -622,7 +812,12 @@ components:
       required: [workflowId, status, steps]
       properties:
         workflowId: { type: string, format: uuid }
-        status: { type: string, enum: [Pending, Running, Successful, Failed], description: 映射 OM workflow 状态 }
+        status:
+          {
+            type: string,
+            enum: [Pending, Running, Successful, Failed],
+            description: 映射 OM workflow 状态,
+          }
         steps:
           type: array
           description: 以 OM testConnections/database/<connector>.json 的步骤为准
@@ -644,7 +839,8 @@ components:
         tier: { type: [string, "null"], example: Tier.Tier2 }
         tags: { type: array, items: { type: string } }
         glossaryTerms: { type: array, items: { type: string } }
-        dataProducts: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        dataProducts:
+          { type: array, items: { $ref: "#/components/schemas/Ref" } }
         retentionPeriod: { type: [string, "null"], example: P30D }
         inheritedFrom:
           type: object
@@ -658,21 +854,32 @@ components:
       type: object
       description: 只含要改的字段；值为 null 表示清空（恢复继承）
       properties:
-        columnName: { type: string, description: 编辑字段属性时提供；仅允许 displayName / description / tags / glossaryTerms }
+        columnName:
+          {
+            type: string,
+            description: 编辑字段属性时提供；仅允许 displayName / description / tags / glossaryTerms,
+          }
         displayName: { type: [string, "null"] }
         description: { type: [string, "null"] }
-        owners: { type: [array, "null"], items: { $ref: "#/components/schemas/Ref" } }
-        domain: { oneOf: [{ $ref: "#/components/schemas/Ref" }, { type: "null" }] }
+        owners:
+          { type: [array, "null"], items: { $ref: "#/components/schemas/Ref" } }
+        domain:
+          { oneOf: [{ $ref: "#/components/schemas/Ref" }, { type: "null" }] }
         tier: { type: [string, "null"] }
         tags: { type: [array, "null"], items: { type: string } }
         glossaryTerms: { type: [array, "null"], items: { type: string } }
-        dataProducts: { type: [array, "null"], items: { $ref: "#/components/schemas/Ref" } }
+        dataProducts:
+          { type: [array, "null"], items: { $ref: "#/components/schemas/Ref" } }
         retentionPeriod: { type: [string, "null"] }
     CatalogEntity:
       type: object
       required: [entityType, name, fullyQualifiedName]
       properties:
-        entityType: { type: string, enum: [databaseService, database, databaseSchema, table] }
+        entityType:
+          {
+            type: string,
+            enum: [databaseService, database, databaseSchema, table],
+          }
         id: { type: string, format: uuid }
         name: { type: string }
         fullyQualifiedName: { type: string }
@@ -709,7 +916,11 @@ components:
                 properties:
                   name: { type: string }
                   dataTypeDisplay: { type: string }
-                  constraint: { type: [string, "null"], description: OM 列级约束，如 PRIMARY_KEY }
+                  constraint:
+                    {
+                      type: [string, "null"],
+                      description: OM 列级约束，如 PRIMARY_KEY,
+                    }
                   displayName: { type: [string, "null"] }
                   description: { type: [string, "null"] }
                   tags: { type: array, items: { type: string } }
@@ -736,7 +947,8 @@ components:
               - $ref: "#/components/schemas/Ref"
               - type: object
                 properties:
-                  domains: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+                  domains:
+                    { type: array, items: { $ref: "#/components/schemas/Ref" } }
         classifications:
           type: array
           items:

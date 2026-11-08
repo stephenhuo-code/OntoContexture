@@ -1,5 +1,6 @@
 // 005 展示规则：状态推导与格式化（data-model.md 第 3 节）。只做展示转换，不产生任何数据。
 import type {
+  CatalogEntityType,
   PipelineKind,
   PipelineState,
   PipelineSummary,
@@ -133,4 +134,65 @@ export function invalidPattern(patterns: string[]): string | null {
     }
   }
   return null;
+}
+
+// ---------- US3 目录 ----------
+
+export const KIND_NAME: Record<CatalogEntityType, string> = {
+  databaseService: "数据源",
+  database: "数据库",
+  databaseSchema: "Schema",
+  table: "数据表",
+};
+
+export const CHILD_TYPE: Partial<Record<CatalogEntityType, CatalogEntityType>> =
+  {
+    databaseService: "database",
+    database: "databaseSchema",
+    databaseSchema: "table",
+  };
+
+export const LEVELS: CatalogEntityType[] = [
+  "databaseService",
+  "database",
+  "databaseSchema",
+  "table",
+];
+
+/** 按 OM FQN 规则切分：以点分隔，含点的名称用双引号包裹（保留原始片段以便重新拼接） */
+export function splitFqn(fqn: string): string[] {
+  const parts: string[] = [];
+  let cur = "";
+  let quoted = false;
+  for (const ch of fqn) {
+    if (ch === '"') quoted = !quoted;
+    if (ch === "." && !quoted) {
+      parts.push(cur);
+      cur = "";
+    } else cur += ch;
+  }
+  parts.push(cur);
+  return parts;
+}
+
+export const fqnLabel = (part: string) => part.replace(/^"(.*)"$/, "$1");
+
+export const assetHref = (
+  service: string,
+  type: CatalogEntityType,
+  fqn: string,
+) =>
+  type === "databaseService"
+    ? `/sources/${service}`
+    : `/sources/${service}/assets/${type}/${encodeURIComponent(fqn)}`;
+
+/** 当前地址对应的目录层级链（从服务到当前资产），用于展开目录树与面包屑 */
+export function assetChain(type: CatalogEntityType, fqn: string) {
+  const parts = splitFqn(fqn);
+  const depth = LEVELS.indexOf(type);
+  return LEVELS.slice(0, depth + 1).map((t, i) => ({
+    type: t,
+    fqn: parts.slice(0, i + 1).join("."),
+    label: fqnLabel(parts[i] ?? ""),
+  }));
 }

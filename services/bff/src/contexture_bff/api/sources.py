@@ -111,7 +111,9 @@ async def list_sources(ctx: WebContext, svc: Sources) -> dict[str, Any]:
 
 
 @router.post("/sources", status_code=status.HTTP_201_CREATED)
-async def create_source(request: Request, body: SourceUpsert, ctx: WebContext, svc: Sources) -> dict[str, Any]:
+async def create_source(
+    request: Request, body: SourceUpsert, ctx: WebContext, svc: Sources
+) -> dict[str, Any]:
     audited(request, ctx)
     return await svc.create_source(ctx, body.model_dump())
 
@@ -163,8 +165,12 @@ async def list_runs(
     return {"data": await svc.list_runs(ctx, name, kind, state)}
 
 
-@router.post("/sources/{name:source_name}/pipelines/{kind}/trigger", status_code=status.HTTP_202_ACCEPTED)
-async def trigger_pipeline(request: Request, name: Name, kind: Kind, ctx: WebContext, svc: Sources) -> dict[str, Any]:
+@router.post(
+    "/sources/{name:source_name}/pipelines/{kind}/trigger", status_code=status.HTTP_202_ACCEPTED
+)
+async def trigger_pipeline(
+    request: Request, name: Name, kind: Kind, ctx: WebContext, svc: Sources
+) -> dict[str, Any]:
     audited(request, ctx)
     await svc.trigger(ctx, name, kind)
     return {}

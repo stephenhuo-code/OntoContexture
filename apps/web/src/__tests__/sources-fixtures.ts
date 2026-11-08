@@ -68,7 +68,12 @@ export const sourcesFixture = [
   },
 ];
 
-type Route = { method?: string; path: string | RegExp; status?: number; body: unknown };
+type Route = {
+  method?: string;
+  path: string | RegExp;
+  status?: number;
+  body: unknown;
+};
 
 /** 按方法与路径返回夹具；未匹配的请求返回 404，便于发现遗漏。 */
 export function stubBff(routes: Route[]) {
@@ -79,16 +84,29 @@ export function stubBff(routes: Route[]) {
       const url = new URL(request.url, "http://localhost");
       const method = request.method;
       const text = method === "GET" ? "" : await request.clone().text();
-      calls.push({ method, path: url.pathname, body: text ? JSON.parse(text) : undefined });
+      calls.push({
+        method,
+        path: url.pathname,
+        body: text ? JSON.parse(text) : undefined,
+      });
       const hit = routes.find(
         (r) =>
           (r.method ?? "GET") === method &&
-          (typeof r.path === "string" ? r.path === url.pathname : r.path.test(url.pathname)),
+          (typeof r.path === "string"
+            ? r.path === url.pathname
+            : r.path.test(url.pathname)),
       );
       if (!hit)
-        return new Response(JSON.stringify({ code: "test.unmatched", message: url.pathname, trace_id: "" }), {
-          status: 404,
-        });
+        return new Response(
+          JSON.stringify({
+            code: "test.unmatched",
+            message: url.pathname,
+            trace_id: "",
+          }),
+          {
+            status: 404,
+          },
+        );
       return new Response(JSON.stringify(hit.body), {
         status: hit.status ?? 200,
         headers: { "Content-Type": "application/json" },

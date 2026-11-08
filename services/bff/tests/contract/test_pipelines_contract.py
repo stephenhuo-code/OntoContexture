@@ -26,7 +26,10 @@ def test_runs_trigger_schedule_logs_match_contract() -> None:
     logs = c.get(f"{base}/logs/last")
     assert logs.status_code == 200 and isinstance(logs.json()["logs"], str)
     assert c.get("/bff/v1/sources/mock-mes/pipelines/other/runs").status_code == 422
-    assert c.get("/bff/v1/sources/mock-mes/pipelines/lineage/runs").json()["code"] == "source.not_found"
+    assert (
+        c.get("/bff/v1/sources/mock-mes/pipelines/lineage/runs").json()["code"]
+        == "source.not_found"
+    )
 
 
 def test_manual_task_schedule_toggle_rejected() -> None:
@@ -35,4 +38,3 @@ def test_manual_task_schedule_toggle_rejected() -> None:
     c.post("/bff/v1/sources", json=upsert(metadataSchedule={"cron": None}))
     resp = c.put("/bff/v1/sources/mock-mes/pipelines/metadata/schedule", json={"enabled": True})
     assert resp.status_code == 400 and resp.json()["code"] == "source.schedule_not_set"
-

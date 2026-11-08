@@ -32,8 +32,12 @@ def make(om: FakeOM, roles: tuple[str, ...] = ("ai-engineer",)) -> TestClient:
     app = create_app(
         BffSettings(tenant_id="local", public_url="http://testserver"),
         services=Services(
-            sessions=FakeSessions(), oidc=FakeOidc(), object_types=FakeObjectTypes(),
-            object_data=FakeObjectData(), authenticator=None, sources=service(om),
+            sessions=FakeSessions(),
+            oidc=FakeOidc(),
+            object_types=FakeObjectTypes(),
+            object_data=FakeObjectData(),
+            authenticator=None,
+            sources=service(om),
         ),
     )
     app.dependency_overrides[current_context] = lambda: user_context(roles=roles)

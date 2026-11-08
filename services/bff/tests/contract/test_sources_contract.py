@@ -32,7 +32,10 @@ def test_conflict_not_found_immutable_and_invalid() -> None:
     assert dup.status_code == 409 and dup.json()["code"] == "source.name_conflict"
     jsonschema.validate(dup.json(), ERROR)
     assert c.get("/bff/v1/sources/nope").json()["code"] == "source.not_found"
-    imm = c.put("/bff/v1/sources/mock-mes", json=upsert(serviceType="Postgres", connection={**upsert()["connection"]}))
+    imm = c.put(
+        "/bff/v1/sources/mock-mes",
+        json=upsert(serviceType="Postgres", connection={**upsert()["connection"]}),
+    )
     assert imm.status_code == 400 and imm.json()["code"] == "source.immutable_field"
     bad = c.post("/bff/v1/sources", json=upsert(name="Bad_Name"))
     assert bad.status_code == 422 and bad.json()["code"] == "request.invalid"

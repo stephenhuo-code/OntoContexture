@@ -4,7 +4,10 @@ import { zh } from "../i18n/zh-CN";
 import type { RouteEntry } from "./navigation";
 
 // 各工作空间的二级栏标题与导航名称；资产工作空间按 005 原型
-const moduleText: Record<RouteEntry["module"], { title?: string; aria: string }> = {
+const moduleText: Record<
+  RouteEntry["module"],
+  { title?: string; aria: string }
+> = {
   home: { aria: zh.nav.secondary },
   asset: { title: zh.nav.assetModule, aria: zh.nav.assetSecondary },
   agent: { aria: zh.nav.secondary },

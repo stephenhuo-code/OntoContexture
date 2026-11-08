@@ -19,7 +19,7 @@ from contexture_bff.adapters.om_client import OmClient
 from contexture_bff.adapters.om_sources import SourcesService
 from contexture_bff.adapters.om_users import OmUserSync
 from contexture_bff.adapters.sessions import PostgresSessionStore, SessionStore
-from contexture_bff.api import auth, deps, me, objects, sources
+from contexture_bff.api import auth, catalog, deps, me, objects, sources
 from contexture_bff.settings import BffSettings
 from contexture_core.auth import Authenticator, TokenVerifier
 from contexture_core.config import load_settings
@@ -124,7 +124,9 @@ def create_app(settings: BffSettings | None = None, *, services: Services | None
     install_error_handlers(app)
 
     @app.middleware("http")
-    async def allow_header(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+    async def allow_header(
+        request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
         """同一路径按方法拆成多个路由时，405 的 Allow 合并该路径全部方法（RFC 9110 §15.5.6）。"""
         response = await call_next(request)
         if response.status_code == 405:
@@ -145,6 +147,7 @@ def create_app(settings: BffSettings | None = None, *, services: Services | None
     app.include_router(me.router)
     app.include_router(objects.router)
     app.include_router(sources.router)
+    app.include_router(catalog.router)
     return app
 
 

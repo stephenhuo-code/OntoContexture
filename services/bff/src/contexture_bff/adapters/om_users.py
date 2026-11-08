@@ -55,7 +55,10 @@ class OmUserSync:
         if resp.status_code != 200:
             raise UpstreamUnavailable("无法取得 BFF 服务账号令牌", details={"upstream": "keycloak"})
         body = resp.json()
-        self._token = (str(body["access_token"]), time.monotonic() + float(body.get("expires_in", 60)) - 30)
+        self._token = (
+            str(body["access_token"]),
+            time.monotonic() + float(body.get("expires_in", 60)) - 30,
+        )
         return self._token[0]
 
     async def _call(self, method: str, path: str, **kwargs: Any) -> httpx.Response:
@@ -64,7 +67,9 @@ class OmUserSync:
         try:
             resp = await self.http.request(method, f"{self.base}{path}", headers=headers, **kwargs)
         except httpx.HTTPError as exc:
-            raise UpstreamUnavailable("OpenMetadata 不可用", details={"upstream": "openmetadata"}) from exc
+            raise UpstreamUnavailable(
+                "OpenMetadata 不可用", details={"upstream": "openmetadata"}
+            ) from exc
         if resp.status_code >= 500:
             raise UpstreamUnavailable("OpenMetadata 不可用", details={"upstream": "openmetadata"})
         return resp
@@ -79,7 +84,9 @@ class OmUserSync:
             )
         if resp.status_code >= 400:
             raise ContextureError(
-                "auth.om_provision_failed", f"无法在 OpenMetadata 中建档用户 {username}", status_code=502
+                "auth.om_provision_failed",
+                f"无法在 OpenMetadata 中建档用户 {username}",
+                status_code=502,
             )
         return str(resp.json()["id"])
 
@@ -111,5 +118,7 @@ class OmUserSync:
             )
             if patched.status_code >= 400:
                 raise ContextureError(
-                    "auth.om_provision_failed", f"无法同步 OpenMetadata 团队 {team}", status_code=502
+                    "auth.om_provision_failed",
+                    f"无法同步 OpenMetadata 团队 {team}",
+                    status_code=502,
                 )

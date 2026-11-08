@@ -20,7 +20,8 @@ export type PipelineSummary = components["schemas"]["PipelineSummary"];
 export type PipelineRun = components["schemas"]["PipelineRun"];
 export type SourceSummary = components["schemas"]["SourceSummary"];
 export type SourceDetail = components["schemas"]["SourceDetail"];
-export type TestConnectionResult = components["schemas"]["TestConnectionResult"];
+export type TestConnectionResult =
+  components["schemas"]["TestConnectionResult"];
 export type GovernanceValues = components["schemas"]["GovernanceValues"];
 export type GovernancePatch = components["schemas"]["GovernancePatch"];
 export type CatalogEntity = components["schemas"]["CatalogEntity"];

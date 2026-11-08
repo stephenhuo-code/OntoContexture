@@ -9,7 +9,13 @@ from contexture_core.errors import ContextureError
 
 REQ = {
     "serviceType": "Mysql",
-    "connection": {"hostPort": "h:3306", "username": "ro", "password": "pw", "database": "mes", "tls": False},
+    "connection": {
+        "hostPort": "h:3306",
+        "username": "ro",
+        "password": "pw",
+        "database": "mes",
+        "tls": False,
+    },
 }
 
 
@@ -24,8 +30,11 @@ async def test_successful_test_connection_lists_native_steps_and_cleans_up() -> 
     result = await svc.get_test_connection(user_context(), started["workflowId"])
     assert result["status"] == "Successful"
     assert [(s["name"], s["mandatory"], s["passed"]) for s in result["steps"]] == [
-        ("CheckAccess", True, True), ("GetSchemas", True, True), ("GetTables", True, True),
-        ("GetViews", False, True), ("GetQueries", False, True),
+        ("CheckAccess", True, True),
+        ("GetSchemas", True, True),
+        ("GetTables", True, True),
+        ("GetViews", False, True),
+        ("GetQueries", False, True),
     ]
     assert started["workflowId"] not in om.workflows  # 完成后清理
 
@@ -37,14 +46,23 @@ async def test_failed_check_access_shows_unexecuted_steps() -> None:
     started = await svc.start_test_connection(user_context(), REQ)
     result = await svc.get_test_connection(user_context(), started["workflowId"])
     assert result["status"] == "Failed"
-    assert result["steps"][0] == {"name": "CheckAccess", "mandatory": True, "passed": False, "message": "Access denied for user"}
+    assert result["steps"][0] == {
+        "name": "CheckAccess",
+        "mandatory": True,
+        "passed": False,
+        "message": "Access denied for user",
+    }
     assert all(s["passed"] is None for s in result["steps"][1:])
 
 
 async def test_existing_service_passes_service_name_for_masked_password() -> None:
     om = FakeOM()
     svc = service(om)
-    req = {**REQ, "serviceName": "mock-mes", "connection": {**REQ["connection"], "password": "*********"}}
+    req = {
+        **REQ,
+        "serviceName": "mock-mes",
+        "connection": {**REQ["connection"], "password": "*********"},
+    }
     started = await svc.start_test_connection(user_context(), req)
     assert om.workflows[started["workflowId"]]["request"]["serviceName"] == "mock-mes"
 

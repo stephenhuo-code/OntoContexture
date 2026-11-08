@@ -234,7 +234,6 @@ function TaskRuns({
       onChanged();
     }, POLL_MS);
     return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running]);
 
   async function act(fn: () => Promise<unknown>) {

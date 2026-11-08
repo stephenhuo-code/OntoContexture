@@ -11,6 +11,7 @@ import string
 import time
 import uuid
 from typing import Any
+from urllib.parse import quote
 
 from contexture_bff.adapters.om_client import MASK, OmClient
 from contexture_core.auth import RequestContext
@@ -43,7 +44,9 @@ def om_connection(service_type: str, conn: dict[str, Any]) -> dict[str, Any]:
     password = str(conn["password"])
     if service_type in ("Mysql", "Doris"):
         if tls:
-            raise _invalid(f"OpenMetadata 的 {service_type} 连接器需上传 CA 证书才能启用 TLS，本期不提供")
+            raise _invalid(
+                f"OpenMetadata 的 {service_type} 连接器需上传 CA 证书才能启用 TLS，本期不提供"
+            )
         if service_type == "Mysql":
             base["authType"] = {"password": password}
         else:
@@ -212,7 +215,9 @@ def _pipeline_view(p: dict[str, Any]) -> dict[str, Any]:
 
 
 class SourcesService:
-    def __init__(self, om: OmClient, *, poll_interval: float = 1.0, settle_seconds: float = 20.0) -> None:
+    def __init__(
+        self, om: OmClient, *, poll_interval: float = 1.0, settle_seconds: float = 20.0
+    ) -> None:
         self.om = om
         self.poll_interval = poll_interval
         # Airflow 3 + managed-apis：部署后 DAG 先出现、任务稍后才由 dag-processor 登记；其间触发会得到
@@ -221,7 +226,9 @@ class SourcesService:
 
     # ---------- 读取 ----------
 
-    async def _paged(self, ctx: RequestContext, path: str, params: dict[str, Any]) -> list[dict[str, Any]]:
+    async def _paged(
+        self, ctx: RequestContext, path: str, params: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         items: list[dict[str, Any]] = []
         after: str | None = None
         while True:
@@ -302,7 +309,9 @@ class SourcesService:
         return {
             **summary,
             "description": svc.get("description") or "",
-            "connection": connection_view(svc["serviceType"], (svc.get("connection") or {}).get("config") or {}),
+            "connection": connection_view(
+                svc["serviceType"], (svc.get("connection") or {}).get("config") or {}
+            ),
             "scope": scope,
         }
 
@@ -317,7 +326,9 @@ class SourcesService:
             raise _invalid("创建视图血缘任务需同时采集视图")
         metadata_source_config(req.get("scope") or {})
 
-    async def _put_service(self, ctx: RequestContext, req: dict[str, Any], existing: dict[str, Any] | None) -> dict[str, Any]:
+    async def _put_service(
+        self, ctx: RequestContext, req: dict[str, Any], existing: dict[str, Any] | None
+    ) -> dict[str, Any]:
         body: dict[str, Any] = {
             "name": req["name"],
             "displayName": req["displayName"].strip(),
@@ -337,7 +348,9 @@ class SourcesService:
         schedule: dict[str, Any] | None,
         existing: dict[str, Any] | None,
     ) -> dict[str, Any]:
-        config = metadata_source_config(scope) if kind == "metadata" else lineage_source_config(scope)
+        config = (
+            metadata_source_config(scope) if kind == "metadata" else lineage_source_config(scope)
+        )
         body = {
             "name": existing["name"] if existing else pipeline_name(svc["name"], kind),
             "displayName": KIND_TITLE[kind],
@@ -347,7 +360,9 @@ class SourcesService:
             "airflowConfig": {"scheduleInterval": _cron(schedule), "pipelineTimezone": TIMEZONE},
         }
         method = "PUT" if existing else "POST"
-        pipe = dict(await self.om.request(ctx, method, "/services/ingestionPipelines", json_body=body))
+        pipe = dict(
+            await self.om.request(ctx, method, "/services/ingestionPipelines", json_body=body)
+        )
         try:
             await self.om.request(ctx, "POST", f"/services/ingestionPipelines/deploy/{pipe['id']}")
         except ContextureError as exc:
@@ -367,7 +382,9 @@ class SourcesService:
             ctx, "GET", f"/services/databaseServices/name/{req['name']}", allow_404=True
         )
         if found is not None:
-            raise ContextureError("source.name_conflict", f"服务标识 {req['name']} 已存在", status_code=409)
+            raise ContextureError(
+                "source.name_conflict", f"服务标识 {req['name']} 已存在", status_code=409
+            )
         svc = await self._put_service(ctx, req, None)
         scope = req.get("scope") or {}
         await self._put_pipeline(ctx, svc, "metadata", scope, req.get("metadataSchedule"), None)
@@ -375,19 +392,27 @@ class SourcesService:
             await self._put_pipeline(ctx, svc, "lineage", scope, req.get("lineageSchedule"), None)
         return await self.get_source(ctx, req["name"])
 
-    async def update_source(self, ctx: RequestContext, name: str, req: dict[str, Any]) -> dict[str, Any]:
+    async def update_source(
+        self, ctx: RequestContext, name: str, req: dict[str, Any]
+    ) -> dict[str, Any]:
         existing = await self._service(ctx, name)
         if req["name"] != name or req["serviceType"] != existing["serviceType"]:
             raise ContextureError(
-                "source.immutable_field", "服务标识与连接器类型不可修改，请新建数据源", status_code=400
+                "source.immutable_field",
+                "服务标识与连接器类型不可修改，请新建数据源",
+                status_code=400,
             )
         self._validate(req)
         svc = await self._put_service(ctx, req, existing)
         pipes = {p["pipelineType"]: p for p in await self._pipelines(ctx, name)}
         scope = req.get("scope") or {}
-        await self._put_pipeline(ctx, svc, "metadata", scope, req.get("metadataSchedule"), pipes.get("metadata"))
+        await self._put_pipeline(
+            ctx, svc, "metadata", scope, req.get("metadataSchedule"), pipes.get("metadata")
+        )
         if req.get("createLineageTask"):
-            await self._put_pipeline(ctx, svc, "lineage", scope, req.get("lineageSchedule"), pipes.get("lineage"))
+            await self._put_pipeline(
+                ctx, svc, "lineage", scope, req.get("lineageSchedule"), pipes.get("lineage")
+            )
         elif "lineage" in pipes:
             # 关闭视图血缘任务：删除管道及其运行记录（OM 删除管道的原生行为）
             await self.om.request(
@@ -400,7 +425,9 @@ class SourcesService:
 
     # ---------- 测试连接（research R6） ----------
 
-    async def start_test_connection(self, ctx: RequestContext, req: dict[str, Any]) -> dict[str, Any]:
+    async def start_test_connection(
+        self, ctx: RequestContext, req: dict[str, Any]
+    ) -> dict[str, Any]:
         stype = req["serviceType"]
         if stype not in SERVICE_TYPES:
             raise _invalid(f"不支持的连接器：{stype}")
@@ -425,7 +452,9 @@ class SourcesService:
         return {"workflowId": wf["id"], "status": "Running", "steps": []}
 
     async def get_test_connection(self, ctx: RequestContext, workflow_id: str) -> dict[str, Any]:
-        wf = await self.om.request(ctx, "GET", f"/automations/workflows/{workflow_id}", allow_404=True)
+        wf = await self.om.request(
+            ctx, "GET", f"/automations/workflows/{workflow_id}", allow_404=True
+        )
         if wf is None:
             raise ContextureError("source.not_found", "测试连接不存在或已结束", status_code=404)
         status = wf.get("status") or "Pending"
@@ -448,7 +477,11 @@ class SourcesService:
                 step["message"] = str(hit["message"])
             steps.append(step)
         await self.om.request(
-            ctx, "DELETE", f"/automations/workflows/{workflow_id}", params={"hardDelete": "true"}, allow_404=True
+            ctx,
+            "DELETE",
+            f"/automations/workflows/{workflow_id}",
+            params={"hardDelete": "true"},
+            allow_404=True,
         )
         return {"workflowId": workflow_id, "status": status, "steps": steps}
 
@@ -473,7 +506,9 @@ class SourcesService:
         last = latest_status(pipe)
         if last and last.get("pipelineState") in ("queued", "running"):
             raise ContextureError(
-                "source.pipeline_in_flight", "该任务已有排队中或运行中的运行，请勿重复触发", status_code=409
+                "source.pipeline_in_flight",
+                "该任务已有排队中或运行中的运行，请勿重复触发",
+                status_code=409,
             )
         deployed_ms = pipe.get("updatedAt")
         if isinstance(deployed_ms, int | float):
@@ -483,11 +518,15 @@ class SourcesService:
         # 刚保存的任务需 Airflow 扫描登记 DAG（research R11），短时重试
         await self.trigger_when_ready(ctx, name, kind, timeout=20)
 
-    async def set_schedule(self, ctx: RequestContext, name: str, kind: str, *, enabled: bool) -> dict[str, Any]:
+    async def set_schedule(
+        self, ctx: RequestContext, name: str, kind: str, *, enabled: bool
+    ) -> dict[str, Any]:
         pipe = await self._pipeline(ctx, name, kind)
         if not (pipe.get("airflowConfig") or {}).get("scheduleInterval"):
             raise ContextureError(
-                "source.schedule_not_set", "该任务为手动触发，请先在采集配置中设置定时计划", status_code=400
+                "source.schedule_not_set",
+                "该任务为手动触发，请先在采集配置中设置定时计划",
+                status_code=400,
             )
         # 刚保存的任务在 Airflow 登记 DAG 前，OM 的 toggle 会因 Airflow 404 而不改状态（2026-11-08 实测）；
         # 切换后以 OM 回读结果为准，未生效则在超时内重试，超时如实返回，不伪造已切换
@@ -499,7 +538,9 @@ class SourcesService:
                     "Airflow 尚未登记该任务，暂时无法切换调度，请稍后重试",
                     status_code=409,
                 )
-            await self.om.request(ctx, "POST", f"/services/ingestionPipelines/toggleIngestion/{pipe['id']}")
+            await self.om.request(
+                ctx, "POST", f"/services/ingestionPipelines/toggleIngestion/{pipe['id']}"
+            )
             pipe = await self._pipeline(ctx, name, kind)
             if bool(pipe.get("enabled", True)) != enabled:
                 await asyncio.sleep(self.poll_interval)
@@ -508,32 +549,48 @@ class SourcesService:
     async def last_logs(self, ctx: RequestContext, name: str, kind: str) -> dict[str, Any]:
         """OM 只提供最近一次运行日志（DefaultLogStorage 忽略 runId，research R7）。"""
         pipe = await self._pipeline(ctx, name, kind)
-        body = await self.om.request(ctx, "GET", f"/services/ingestionPipelines/logs/{pipe['id']}/last")
-        parts = [str(v) for k, v in (body or {}).items() if k not in ("total", "after") and isinstance(v, str)]
+        body = await self.om.request(
+            ctx, "GET", f"/services/ingestionPipelines/logs/{pipe['id']}/last"
+        )
+        parts = [
+            str(v)
+            for k, v in (body or {}).items()
+            if k not in ("total", "after") and isinstance(v, str)
+        ]
         last = latest_status(pipe)
         return {"runId": last.get("runId") if last else None, "logs": redact("\n".join(parts))}
 
     async def _pipeline(self, ctx: RequestContext, name: str, kind: str) -> dict[str, Any]:
         await self._service(ctx, name)
-        pipe = next((p for p in await self._pipelines(ctx, name) if p["pipelineType"] == kind), None)
+        pipe = next(
+            (p for p in await self._pipelines(ctx, name) if p["pipelineType"] == kind), None
+        )
         if pipe is None:
-            raise ContextureError("source.not_found", f"数据源 {name} 没有{KIND_TITLE[kind]}任务", status_code=404)
+            raise ContextureError(
+                "source.not_found", f"数据源 {name} 没有{KIND_TITLE[kind]}任务", status_code=404
+            )
         return pipe
 
-    async def trigger_when_ready(self, ctx: RequestContext, name: str, kind: str, timeout: float = 60) -> None:
+    async def trigger_when_ready(
+        self, ctx: RequestContext, name: str, kind: str, timeout: float = 60
+    ) -> None:
         """部署后 Airflow 需扫描登记 DAG（research R11），登记前 OM 返回 400；在超时内重试。"""
         pipe = await self._pipeline(ctx, name, kind)
         deadline = time.monotonic() + timeout
         while True:
             try:
-                await self.om.request(ctx, "POST", f"/services/ingestionPipelines/trigger/{pipe['id']}")
+                await self.om.request(
+                    ctx, "POST", f"/services/ingestionPipelines/trigger/{pipe['id']}"
+                )
                 return
             except ContextureError as exc:
                 if exc.code != "upstream.rejected" or time.monotonic() >= deadline:
                     raise
                 await asyncio.sleep(self.poll_interval)
 
-    async def wait_for_run(self, ctx: RequestContext, name: str, kind: str, timeout: float = 600) -> dict[str, Any]:
+    async def wait_for_run(
+        self, ctx: RequestContext, name: str, kind: str, timeout: float = 600
+    ) -> dict[str, Any]:
         deadline = time.monotonic() + timeout
         while True:
             pipe = await self._pipeline(ctx, name, kind)
@@ -541,8 +598,149 @@ class SourcesService:
             if last.get("pipelineState") in ("success", "partialSuccess", "failed", "stopped"):
                 return run_view(last)
             if time.monotonic() >= deadline:
-                raise ContextureError("source.run_timeout", f"{name} 的{KIND_TITLE[kind]}运行超时", status_code=504)
+                raise ContextureError(
+                    "source.run_timeout", f"{name} 的{KIND_TITLE[kind]}运行超时", status_code=504
+                )
             await asyncio.sleep(self.poll_interval)
+
+    # ---------- US3 目录（OM 实体层级 DatabaseService → Database → DatabaseSchema → Table） ----------
+    async def _total(self, ctx: RequestContext, path: str, params: dict[str, Any]) -> int:
+        page = await self.om.request(ctx, "GET", path, params={**params, "limit": 1})
+        total = (page.get("paging") or {}).get("total")
+        return int(total) if isinstance(total, int) else len(page.get("data") or [])
+
+    async def get_catalog_entity(
+        self, ctx: RequestContext, entity_type: str, fqn: str
+    ) -> dict[str, Any]:
+        spec = CATALOG[entity_type]
+        raw = await self.om.request(
+            ctx,
+            "GET",
+            f"{spec['path']}/name/{quote(fqn, safe='')}",
+            params={"fields": spec["fields"]},
+            allow_404=True,
+        )
+        if raw is None or (
+            entity_type == "databaseService" and raw.get("serviceType") not in SERVICE_TYPES
+        ):
+            raise ContextureError("catalog.not_found", f"目录中不存在 {fqn}", status_code=404)
+        out: dict[str, Any] = {
+            "entityType": entity_type,
+            "id": raw["id"],
+            "name": raw["name"],
+            "fullyQualifiedName": raw["fullyQualifiedName"],
+            "governance": governance_view(raw),
+        }
+        rfqn = raw["fullyQualifiedName"]
+        if entity_type == "databaseService":
+            dbs = await self._paged(ctx, "/databases", {"service": rfqn})
+            counts = await asyncio.gather(
+                *(
+                    self._total(ctx, "/databaseSchemas", {"database": d["fullyQualifiedName"]})
+                    for d in dbs
+                )
+            )
+            out["children"] = [_child("database", d, n) for d, n in zip(dbs, counts, strict=True)]
+        elif entity_type == "database":
+            schemas = await self._paged(ctx, "/databaseSchemas", {"database": rfqn})
+            counts = await asyncio.gather(
+                *(
+                    self._total(ctx, "/tables", {"databaseSchema": x["fullyQualifiedName"]})
+                    for x in schemas
+                )
+            )
+            out["children"] = [
+                _child("databaseSchema", x, n) for x, n in zip(schemas, counts, strict=True)
+            ]
+        elif entity_type == "databaseSchema":
+            tables = await self._paged(
+                ctx, "/tables", {"databaseSchema": rfqn, "fields": "columns"}
+            )
+            out["children"] = [_child("table", t, len(t.get("columns") or [])) for t in tables]
+        else:
+            out["table"] = table_view(raw)
+        return out
 
 
 KIND_TITLE = {"metadata": "元数据采集", "lineage": "视图血缘"}
+
+CATALOG: dict[str, dict[str, str]] = {
+    "databaseService": {"path": "/services/databaseServices", "fields": "owners,tags,domains"},
+    "database": {"path": "/databases", "fields": "owners,tags,domains,dataProducts"},
+    "databaseSchema": {"path": "/databaseSchemas", "fields": "owners,tags,domains,dataProducts"},
+    "table": {
+        "path": "/tables",
+        "fields": "columns,tableConstraints,tags,owners,domains,dataProducts,schemaDefinition",
+    },
+}
+
+
+def _child(entity_type: str, e: dict[str, Any], count: int) -> dict[str, Any]:
+    return {
+        "entityType": entity_type,
+        "name": e["name"],
+        "fullyQualifiedName": e["fullyQualifiedName"],
+        "displayName": e.get("displayName"),
+        "description": e.get("description"),
+        "childCount": count,
+    }
+
+
+def _tag_fqns(tags: list[dict[str, Any]] | None, glossary: bool) -> list[str]:
+    """OM 的标签与术语同存于 tags，按 source（Classification / Glossary）区分；Tier 单独展示。"""
+    out = []
+    for t in tags or []:
+        fqn = t.get("tagFQN") or ""
+        if (t.get("source") == "Glossary") == glossary and not fqn.startswith("Tier."):
+            out.append(fqn)
+    return out
+
+
+def _ref(r: dict[str, Any]) -> dict[str, Any]:
+    return {
+        k: r[k]
+        for k in ("id", "type", "name", "displayName", "fullyQualifiedName")
+        if r.get(k) is not None
+    }
+
+
+def governance_view(e: dict[str, Any]) -> dict[str, Any]:
+    tier = next(
+        (t["tagFQN"] for t in e.get("tags") or [] if (t.get("tagFQN") or "").startswith("Tier.")),
+        None,
+    )
+    return {
+        "displayName": e.get("displayName"),
+        "description": e.get("description"),
+        "owners": [_ref(r) for r in e.get("owners") or []],
+        "domains": [_ref(r) for r in e.get("domains") or []],
+        "tier": tier,
+        "tags": _tag_fqns(e.get("tags"), glossary=False),
+        "glossaryTerms": _tag_fqns(e.get("tags"), glossary=True),
+        "dataProducts": [_ref(r) for r in e.get("dataProducts") or []],
+        "retentionPeriod": e.get("retentionPeriod"),
+    }
+
+
+def table_view(t: dict[str, Any]) -> dict[str, Any]:
+    """只读结构：只投影 OM 实际返回的类型、约束与字段，源未提供的不补造。"""
+    return {
+        "tableType": t.get("tableType"),
+        "constraints": [
+            {"constraintType": c.get("constraintType"), "columns": list(c.get("columns") or [])}
+            for c in t.get("tableConstraints") or []
+        ],
+        "schemaDefinition": t.get("schemaDefinition"),
+        "columns": [
+            {
+                "name": c["name"],
+                "dataTypeDisplay": c.get("dataTypeDisplay") or c.get("dataType"),
+                "constraint": c.get("constraint"),
+                "displayName": c.get("displayName"),
+                "description": c.get("description"),
+                "tags": _tag_fqns(c.get("tags"), glossary=False),
+                "glossaryTerms": _tag_fqns(c.get("tags"), glossary=True),
+            }
+            for c in t.get("columns") or []
+        ],
+    }

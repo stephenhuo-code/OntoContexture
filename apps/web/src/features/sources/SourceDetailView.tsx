@@ -208,7 +208,6 @@ export function SourceDetailView({
   const saved = (location.state as { saved?: number } | null)?.saved;
   useEffect(() => {
     if (saved) detail.reload(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saved]);
 
   const back = (

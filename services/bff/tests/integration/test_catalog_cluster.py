@@ -26,31 +26,69 @@ class AdminExchanger:
 
     async def exchange(self, subject_token: str, audience: str) -> str:
         if time.monotonic() - self.at > 240:
-            self.token, self.at = exchange(user_token("admin1", "admin1"), audience), time.monotonic()
+            self.token, self.at = (
+                exchange(user_token("admin1", "admin1"), audience),
+                time.monotonic(),
+            )
         return self.token
 
 
 async def _run(url: str) -> None:
     svc = SourcesService(OmClient(om_url=url, exchanger=AdminExchanger()), poll_interval=2)
-    ctx = RequestContext(tenant_id="local", user_id="it", agent_id="bff", roles=("admin",), token_id="it", token="x")
-    pw = base64.b64decode(subprocess.run(
-        ["kubectl", "-n", "mock-sources", "get", "secret", "mock-readonly", "-o", "jsonpath={.data.mes-meta-ro}"],
-        check=True, capture_output=True, text=True).stdout).decode()
+    ctx = RequestContext(
+        tenant_id="local", user_id="it", agent_id="bff", roles=("admin",), token_id="it", token="x"
+    )
+    pw = base64.b64decode(
+        subprocess.run(
+            [
+                "kubectl",
+                "-n",
+                "mock-sources",
+                "get",
+                "secret",
+                "mock-readonly",
+                "-o",
+                "jsonpath={.data.mes-meta-ro}",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+    ).decode()
 
     async def cleanup() -> None:
-        await svc.om.request(ctx, "DELETE", f"/services/databaseServices/name/{NAME}",
-                             params={"hardDelete": "true", "recursive": "true"}, allow_404=True)
+        await svc.om.request(
+            ctx,
+            "DELETE",
+            f"/services/databaseServices/name/{NAME}",
+            params={"hardDelete": "true", "recursive": "true"},
+            allow_404=True,
+        )
 
     await cleanup()
     try:
-        await svc.create_source(ctx, {
-            "name": NAME, "displayName": NAME, "serviceType": "Mysql",
-            "connection": {"hostPort": "mock-mes.mock-sources.svc:3306", "username": "mes_meta_ro",
-                           "password": pw, "database": "mes", "tls": False},
-            "scope": {"includeViews": True}, "metadataSchedule": {"cron": None}, "createLineageTask": False,
-        })
+        await svc.create_source(
+            ctx,
+            {
+                "name": NAME,
+                "displayName": NAME,
+                "serviceType": "Mysql",
+                "connection": {
+                    "hostPort": "mock-mes.mock-sources.svc:3306",
+                    "username": "mes_meta_ro",
+                    "password": pw,
+                    "database": "mes",
+                    "tls": False,
+                },
+                "scope": {"includeViews": True},
+                "metadataSchedule": {"cron": None},
+                "createLineageTask": False,
+            },
+        )
         await svc.trigger(ctx, NAME, "metadata")
-        assert (await svc.wait_for_run(ctx, NAME, "metadata", timeout=300))["pipelineState"] == "success"
+        assert (await svc.wait_for_run(ctx, NAME, "metadata", timeout=300))[
+            "pipelineState"
+        ] == "success"
         root = await svc.get_catalog_entity(ctx, "databaseService", NAME)
         assert [c["fullyQualifiedName"] for c in root["children"]] == [f"{NAME}.default"]
         db = await svc.get_catalog_entity(ctx, "database", f"{NAME}.default")
@@ -61,7 +99,10 @@ async def _run(url: str) -> None:
         first = schema["children"][0]["fullyQualifiedName"]
         table = await svc.get_catalog_entity(ctx, "table", first)
         assert table["table"]["columns"]
-        assert any(c["constraint"] == "PRIMARY_KEY" for c in table["table"]["columns"]) or table["table"]["constraints"]
+        assert (
+            any(c["constraint"] == "PRIMARY_KEY" for c in table["table"]["columns"])
+            or table["table"]["constraints"]
+        )
     finally:
         await cleanup()
 

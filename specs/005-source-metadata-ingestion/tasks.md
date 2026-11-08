@@ -159,11 +159,11 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### Implementation for User Story 3
 
-- [ ] T057 [US3] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现目录实体读取（服务 / 库 / Schema / 表及子项计数、表字段与约束）
-- [ ] T058 [US3] 新增 `services/bff/src/contexture_bff/api/catalog.py` 实现 `GET /bff/v1/catalog/{entityType}/{fqn}` 并挂载（使 T054、T055 通过）
-- [ ] T059 [P] [US3] 修改 `apps/web/src/layout/SecondaryNav.tsx` 渲染四层目录树与移动端抽屉；在 `apps/web/src/features/sources/SourceDetailView.tsx` 实现“已采集元数据”页签
-- [ ] T060 [US3] 新增 `apps/web/src/features/sources/CatalogAssetDetailView.tsx` 独立资产详情（使 T056 通过）
-- [ ] T061 [US3] 在 `tests/e2e/sources.spec.ts` 增加 US3 端到端：MES / QMS / Doris 三种层级浏览与面包屑
+- [X] T057 [US3] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现目录实体读取（服务 / 库 / Schema / 表及子项计数、表字段与约束）
+- [X] T058 [US3] 新增 `services/bff/src/contexture_bff/api/catalog.py` 实现 `GET /bff/v1/catalog/{entityType}/{fqn}` 并挂载（使 T054、T055 通过）
+- [X] T059 [P] [US3] 修改 `apps/web/src/layout/SecondaryNav.tsx` 渲染四层目录树与移动端抽屉；在 `apps/web/src/features/sources/SourceDetailView.tsx` 实现“已采集元数据”页签
+- [X] T060 [US3] 新增 `apps/web/src/features/sources/CatalogAssetDetailView.tsx` 独立资产详情（使 T056 通过）
+- [X] T061 [US3] 在 `tests/e2e/sources.spec.ts` 增加 US3 端到端：MES / QMS / Doris 三种层级浏览与面包屑
 
 ---
 

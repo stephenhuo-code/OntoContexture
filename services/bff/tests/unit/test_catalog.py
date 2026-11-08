@@ -13,8 +13,13 @@ async def catalog() -> tuple[FakeOM, object]:
     svc = service(om)
     await svc.create_source(user_context(), upsert())
     om.add_tables(
-        "mock-mes", "default", "mes",
-        {"work_order": [("wo_no", "varchar(20)", "PRIMARY_KEY"), ("qty", "int", None)], "line": ["code"]},
+        "mock-mes",
+        "default",
+        "mes",
+        {
+            "work_order": [("wo_no", "varchar(20)", "PRIMARY_KEY"), ("qty", "int", None)],
+            "line": ["code"],
+        },
         constraints={"work_order": [{"constraintType": "PRIMARY_KEY", "columns": ["wo_no"]}]},
     )
     om.add_tables("mock-mes", "default", "mes", {"v_report": ["wo_no"]}, table_type="View")
@@ -26,8 +31,14 @@ async def test_service_lists_databases_with_child_counts() -> None:
     e = await svc.get_catalog_entity(user_context(), "databaseService", "mock-mes")
     assert e["entityType"] == "databaseService" and e["fullyQualifiedName"] == "mock-mes"
     assert e["children"] == [
-        {"entityType": "database", "name": "default", "fullyQualifiedName": "mock-mes.default",
-         "displayName": None, "description": None, "childCount": 1}
+        {
+            "entityType": "database",
+            "name": "default",
+            "fullyQualifiedName": "mock-mes.default",
+            "displayName": None,
+            "description": None,
+            "childCount": 1,
+        }
     ]
 
 
@@ -35,11 +46,21 @@ async def test_database_and_schema_children() -> None:
     _, svc = await catalog()
     db = await svc.get_catalog_entity(user_context(), "database", "mock-mes.default")
     assert db["children"] == [
-        {"entityType": "databaseSchema", "name": "mes", "fullyQualifiedName": "mock-mes.default.mes",
-         "displayName": None, "description": None, "childCount": 3}
+        {
+            "entityType": "databaseSchema",
+            "name": "mes",
+            "fullyQualifiedName": "mock-mes.default.mes",
+            "displayName": None,
+            "description": None,
+            "childCount": 3,
+        }
     ]
     schema = await svc.get_catalog_entity(user_context(), "databaseSchema", "mock-mes.default.mes")
-    assert {c["name"]: c["childCount"] for c in schema["children"]} == {"work_order": 2, "line": 1, "v_report": 1}
+    assert {c["name"]: c["childCount"] for c in schema["children"]} == {
+        "work_order": 2,
+        "line": 1,
+        "v_report": 1,
+    }
 
 
 async def test_table_structure_is_read_only_projection() -> None:
@@ -48,7 +69,8 @@ async def test_table_structure_is_read_only_projection() -> None:
     assert t["table"]["tableType"] == "Regular"
     assert t["table"]["constraints"] == [{"constraintType": "PRIMARY_KEY", "columns": ["wo_no"]}]
     assert [(c["name"], c["dataTypeDisplay"], c["constraint"]) for c in t["table"]["columns"]] == [
-        ("wo_no", "varchar(20)", "PRIMARY_KEY"), ("qty", "int", None),
+        ("wo_no", "varchar(20)", "PRIMARY_KEY"),
+        ("qty", "int", None),
     ]
     view = await svc.get_catalog_entity(user_context(), "table", "mock-mes.default.mes.v_report")
     assert view["table"]["tableType"] == "View" and view["table"]["constraints"] == []

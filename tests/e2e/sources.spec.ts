@@ -18,16 +18,18 @@ function secret(ns: string, name: string, key: string): string {
   return Buffer.from(b64, "base64").toString();
 }
 
-async function bff(page: Page, method: string, path: string) {
+async function bff(page: Page, method: string, path: string, body?: unknown) {
   return page.evaluate(
-    async ([m, p]) => {
+    async ([m, p, b]) => {
       const r = await fetch(p as string, {
         method: m as string,
         credentials: "same-origin",
+        headers: b ? { "Content-Type": "application/json" } : {},
+        body: b ? JSON.stringify(b) : undefined,
       });
       return { status: r.status, body: await r.text() };
     },
-    [method, path],
+    [method, path, body] as const,
   );
 }
 
@@ -40,8 +42,9 @@ async function removeService(name: string) {
 
 test.describe.configure({ mode: "serial" });
 
-test.beforeAll(() => removeService(SERVICE));
-test.afterAll(() => removeService(SERVICE));
+const OTHERS = ["e2e-qms", "e2e-dw"];
+test.beforeAll(() => [SERVICE, ...OTHERS].forEach(removeService));
+test.afterAll(() => [SERVICE, ...OTHERS].forEach(removeService));
 
 test("US1：接入 MES 并首采，统计等于 003 金标准，响应无明文密码", async ({
   page,
@@ -101,7 +104,9 @@ test("US1：接入 MES 并首采，统计等于 003 金标准，响应无明文�
   expect(detail.body).not.toContain(password);
 });
 
-test("US2：手动任务的配置调度入口、运行详情步骤统计与最近一次日志、调度详情", async ({ page }) => {
+test("US2：手动任务的配置调度入口、运行详情步骤统计与最近一次日志、调度详情", async ({
+  page,
+}) => {
   test.setTimeout(180_000);
   await login(page, "engineer1", `/sources/${SERVICE}?tab=tasks&task=metadata`);
   const runs = page.getByRole("table", { name: "运行记录" });
@@ -122,4 +127,128 @@ test("US2：手动任务的配置调度入口、运行详情步骤统计与最�
   await expect(page.getByRole("dialog", { name: "调度任务" })).toContainText(
     /e2e_mes_metadata_/,
   );
+});
+
+test("US3：MES / QMS / Doris 四层目录浏览、面包屑与表结构", async ({
+  page,
+}) => {
+  test.setTimeout(420_000);
+  await login(page, "engineer1", "/sources");
+  // QMS、Doris 经 BFF 接口接入并首采（US1 的界面流程已在上面覆盖）
+  const sources = [
+    {
+      name: "e2e-qms",
+      serviceType: "Postgres",
+      connection: {
+        hostPort: "mock-qms-rw.mock-sources.svc:5432",
+        username: "qms_meta_ro",
+        password: secret("mock-sources", "mock-readonly", "qms-meta-ro"),
+        database: "qms",
+        tls: false,
+      },
+      scope: {
+        includeViews: true,
+        schemaFilterPattern: { includes: ["^public$"], excludes: [] },
+      },
+    },
+    {
+      name: "e2e-dw",
+      serviceType: "Doris",
+      connection: {
+        hostPort: "doris-fe-service.contexture.svc:9030",
+        username: "mock_dw_reader",
+        password: secret("mock-sources", "mock-dw-reader", "password"),
+        database: "mock_dw",
+        tls: false,
+      },
+      scope: { includeViews: true },
+    },
+  ];
+  for (const s of sources) {
+    const created = await bff(page, "POST", "/bff/v1/sources", {
+      ...s,
+      displayName: s.name,
+      metadataSchedule: { cron: null },
+      createLineageTask: false,
+    });
+    expect(created.status, created.body).toBe(201);
+    const t = await bff(
+      page,
+      "POST",
+      `/bff/v1/sources/${s.name}/pipelines/metadata/trigger`,
+    );
+    expect(t.status, t.body).toBe(202);
+  }
+  for (const s of sources)
+    await expect
+      .poll(
+        async () =>
+          JSON.parse(
+            (
+              await bff(
+                page,
+                "GET",
+                `/bff/v1/sources/${s.name}/pipelines/metadata/runs`,
+              )
+            ).body,
+          ).data?.[0]?.pipelineState,
+        { timeout: 300_000, intervals: [3000] },
+      )
+      .toBe("success");
+
+  // MES：已采集元数据页签 → 数据库 → Schema → 表（MySQL 为 default → 物理库 → 表）
+  await page.goto(`/sources/${SERVICE}?tab=metadata`);
+  await page
+    .getByRole("table", { name: "数据库目录" })
+    .getByRole("link", { name: "default" })
+    .click();
+  await expect(page.getByText("METADATA CATALOG")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "资产层级" })).toHaveText(
+    `${SERVICE}›default`,
+  );
+  await expect(page.getByRole("tab", { name: "采集任务" })).toHaveCount(0);
+  await page
+    .getByRole("table", { name: "Schema 列表" })
+    .getByRole("link", { name: "mes" })
+    .click();
+  const tables = page.getByRole("table", { name: "数据表列表" });
+  await expect(tables.getByRole("row")).toHaveCount(14); // 表头 + 13 张表（003 金标准）
+  await tables.getByRole("link").first().click();
+  await expect(page.getByRole("navigation", { name: "资产层级" })).toHaveText(
+    new RegExp(`^${SERVICE}›default›mes›\\w+$`),
+  );
+  await expect(page.getByRole("region", { name: "结构信息" })).toContainText(
+    "PRIMARY_KEY",
+  );
+  await expect(
+    page.getByRole("table", { name: "字段元数据" }).getByText("PK").first(),
+  ).toBeVisible();
+  await page.getByRole("link", { name: "← 返回所属数据源" }).click();
+  await expect(page).toHaveURL(new RegExp(`/sources/${SERVICE}$`));
+
+  // QMS：左侧目录树（PostgreSQL 为 物理库 → public → 表）
+  const tree = page.getByRole("navigation", { name: "数据源目录" });
+  await expect(tree.getByRole("button", { name: /^e2e-qms/ })).toContainText(
+    "7",
+  );
+  await tree.getByRole("button", { name: "展开 e2e-qms" }).click();
+  await tree.getByRole("button", { name: "展开 qms" }).click();
+  await tree.getByRole("button", { name: /^public/ }).click();
+  await expect(page.getByRole("navigation", { name: "资产层级" })).toHaveText(
+    "e2e-qms›qms›public",
+  );
+  await expect(
+    page.getByRole("table", { name: "数据表列表" }).getByRole("row"),
+  ).toHaveCount(8);
+
+  // Doris：default → 物理库 → 表，键列按 OM 原生连接器标为主键
+  await tree.getByRole("button", { name: "展开 e2e-dw" }).click();
+  await tree.getByRole("button", { name: "展开 default" }).last().click();
+  await tree.getByRole("button", { name: /^mock_dw/ }).click();
+  await expect(page.getByRole("navigation", { name: "资产层级" })).toHaveText(
+    "e2e-dw›default›mock_dw",
+  );
+  await expect(
+    page.getByRole("table", { name: "数据表列表" }).getByRole("row"),
+  ).toHaveCount(9);
 });

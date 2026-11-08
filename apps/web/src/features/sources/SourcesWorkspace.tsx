@@ -6,6 +6,7 @@ import { SourcesList } from "./SourcesList";
 import { SourceDetailView } from "./SourceDetailView";
 import { SourceWizardModal } from "./SourceWizardModal";
 import { CatalogAssetDetailView } from "./CatalogAssetDetailView";
+import { CatalogTree } from "./CatalogTree";
 import { useLoad } from "./useLoad";
 import "./sources.css";
 
@@ -19,12 +20,27 @@ export function SourcesWorkspace() {
   }>({
     open: false,
   });
+  const [drawer, setDrawer] = useState(false);
   const existingNames =
     sources.state.status === "ready"
       ? sources.state.data.map((s) => s.name)
       : [];
   return (
     <div className="sources-workspace">
+      {/* 窄屏（≤ 850px）下二级栏目录隐藏，改由“目录”抽屉浏览（原型 tree-mobile） */}
+      <button
+        type="button"
+        className="ctx-button ctx-button--secondary tree-mobile"
+        aria-expanded={drawer}
+        onClick={() => setDrawer(!drawer)}
+      >
+        目录
+      </button>
+      {drawer && (
+        <div role="dialog" aria-label="数据源目录" className="catalog-drawer">
+          <CatalogTree onPick={() => setDrawer(false)} />
+        </div>
+      )}
       <Routes>
         <Route
           index

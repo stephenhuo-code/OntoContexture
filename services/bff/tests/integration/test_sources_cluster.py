@@ -26,7 +26,9 @@ GOLD = {"ctx005-it-mes": (13, 79), "ctx005-it-qms": (7, 53), "ctx005-it-dw": (8,
 def _secret(ns: str, name: str, key: str) -> str:
     out = subprocess.run(
         ["kubectl", "-n", ns, "get", "secret", name, "-o", f"jsonpath={{.data.{key}}}"],
-        check=True, capture_output=True, text=True,
+        check=True,
+        capture_output=True,
+        text=True,
     ).stdout
     return base64.b64decode(out).decode()
 
@@ -46,34 +48,78 @@ class AdminExchanger:
 
 
 def _sources() -> list[dict[str, Any]]:
-    def item(name: str, stype: str, host: str, user: str, pw: str, db: str, schema: str | None = None) -> dict[str, Any]:
+    def item(
+        name: str, stype: str, host: str, user: str, pw: str, db: str, schema: str | None = None
+    ) -> dict[str, Any]:
         scope: dict[str, Any] = {"includeViews": True}
         if schema:
             scope["schemaFilterPattern"] = {"includes": [schema], "excludes": []}
         return {
-            "name": name, "displayName": name, "serviceType": stype,
-            "connection": {"hostPort": host, "username": user, "password": pw, "database": db, "tls": False},
-            "scope": scope, "metadataSchedule": {"cron": None}, "createLineageTask": False,
+            "name": name,
+            "displayName": name,
+            "serviceType": stype,
+            "connection": {
+                "hostPort": host,
+                "username": user,
+                "password": pw,
+                "database": db,
+                "tls": False,
+            },
+            "scope": scope,
+            "metadataSchedule": {"cron": None},
+            "createLineageTask": False,
         }
+
     return [
-        item("ctx005-it-mes", "Mysql", "mock-mes.mock-sources.svc:3306", "mes_meta_ro",
-             _secret("mock-sources", "mock-readonly", "mes-meta-ro"), "mes"),
-        item("ctx005-it-qms", "Postgres", "mock-qms-rw.mock-sources.svc:5432", "qms_meta_ro",
-             # OM 2.0.3 的 PostgreSQL 采集默认包含 information_schema（原生无默认排除），按原型以 Schema 过滤限定 public
-             _secret("mock-sources", "mock-readonly", "qms-meta-ro"), "qms", "^public$"),
-        item("ctx005-it-dw", "Doris", "doris-fe-service.contexture.svc:9030", "mock_dw_reader",
-             _secret("mock-sources", "mock-dw-reader", "password"), "mock_dw"),
+        item(
+            "ctx005-it-mes",
+            "Mysql",
+            "mock-mes.mock-sources.svc:3306",
+            "mes_meta_ro",
+            _secret("mock-sources", "mock-readonly", "mes-meta-ro"),
+            "mes",
+        ),
+        item(
+            "ctx005-it-qms",
+            "Postgres",
+            "mock-qms-rw.mock-sources.svc:5432",
+            "qms_meta_ro",
+            # OM 2.0.3 的 PostgreSQL 采集默认包含 information_schema（原生无默认排除），按原型以 Schema 过滤限定 public
+            _secret("mock-sources", "mock-readonly", "qms-meta-ro"),
+            "qms",
+            "^public$",
+        ),
+        item(
+            "ctx005-it-dw",
+            "Doris",
+            "doris-fe-service.contexture.svc:9030",
+            "mock_dw_reader",
+            _secret("mock-sources", "mock-dw-reader", "password"),
+            "mock_dw",
+        ),
     ]
 
 
 async def _run(om_url: str) -> list[dict[str, Any]]:
     svc = SourcesService(OmClient(om_url=om_url, exchanger=AdminExchanger()), poll_interval=2)
-    ctx = RequestContext(tenant_id="local", user_id="engineer1", agent_id="contexture-bff",
-                         roles=("ai-engineer",), token_id="it", token="unused")
+    ctx = RequestContext(
+        tenant_id="local",
+        user_id="engineer1",
+        agent_id="contexture-bff",
+        roles=("ai-engineer",),
+        token_id="it",
+        token="unused",
+    )
+
     async def cleanup() -> None:
         for name in GOLD:
-            await svc.om.request(ctx, "DELETE", f"/services/databaseServices/name/{name}",
-                                 params={"hardDelete": "true", "recursive": "true"}, allow_404=True)
+            await svc.om.request(
+                ctx,
+                "DELETE",
+                f"/services/databaseServices/name/{name}",
+                params={"hardDelete": "true", "recursive": "true"},
+                allow_404=True,
+            )
 
     await cleanup()  # 上次中断可能留下实体
     try:

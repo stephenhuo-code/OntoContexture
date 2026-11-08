@@ -141,10 +141,9 @@ it("资产工作空间的二级导航含数据源入口，指向 /sources", asyn
   const secondary = screen.getByRole("navigation", { name: "数据资产导航" });
   const links = within(secondary).getAllByRole("link");
   expect(links.map((e) => e.textContent)).toEqual(["资产搜索", "数据源"]);
-  expect(within(secondary).getByRole("link", { name: "数据源" })).toHaveAttribute(
-    "href",
-    "/sources",
-  );
+  expect(
+    within(secondary).getByRole("link", { name: "数据源" }),
+  ).toHaveAttribute("href", "/sources");
   const nav = screen.getByRole("navigation", { name: "一级导航" });
   expect(within(nav).getByRole("link", { name: "资产" })).toHaveAttribute(
     "href",

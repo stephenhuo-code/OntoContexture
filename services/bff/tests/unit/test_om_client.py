@@ -38,9 +38,9 @@ async def test_uses_delegated_token_for_openmetadata_audience() -> None:
         return httpx.Response(200, json={"data": []})
 
     om, ex = client(httpx.MockTransport(handler))
-    assert await om.request(user_context(token="user-token"), "GET", "/services/databaseServices") == {
-        "data": []
-    }
+    assert await om.request(
+        user_context(token="user-token"), "GET", "/services/databaseServices"
+    ) == {"data": []}
     assert ex.calls == [("user-token", "contexture-openmetadata")]
     assert seen == {
         "auth": "Bearer om-token",
@@ -116,6 +116,8 @@ async def test_json_patch_uses_patch_content_type() -> None:
         return httpx.Response(200, json={})
 
     om, _ = client(httpx.MockTransport(handler))
-    await om.request(user_context(), "PATCH", "/tables/1", patch=[{"op": "add", "path": "/a", "value": 1}])
+    await om.request(
+        user_context(), "PATCH", "/tables/1", patch=[{"op": "add", "path": "/a", "value": 1}]
+    )
     assert seen["ct"] == "application/json-patch+json"
     assert json.loads(seen["body"]) == [{"op": "add", "path": "/a", "value": 1}]

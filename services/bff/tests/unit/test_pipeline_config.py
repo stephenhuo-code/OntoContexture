@@ -54,7 +54,10 @@ async def test_create_saves_service_pipeline_and_deploys() -> None:
     assert om.secrets["mock-mes"] == "secret-pw"
     [pipe] = om.pipelines.values()
     assert pipe["pipelineType"] == "metadata" and pipe["deployed"] is True
-    assert pipe["airflowConfig"] == {"scheduleInterval": "0 2 * * *", "pipelineTimezone": "Asia/Shanghai"}
+    assert pipe["airflowConfig"] == {
+        "scheduleInterval": "0 2 * * *",
+        "pipelineTimezone": "Asia/Shanghai",
+    }
     assert [p["kind"] for p in detail["pipelines"]] == ["metadata"]
     assert detail["configured"] is True
 
@@ -96,7 +99,10 @@ async def test_update_keeps_identity_and_masked_password() -> None:
     om = FakeOM()
     svc = service(om)
     await svc.create_source(user_context(), upsert())
-    body = upsert(connection={**upsert()["connection"], "password": "*********"}, metadataSchedule={"cron": None})
+    body = upsert(
+        connection={**upsert()["connection"], "password": "*********"},
+        metadataSchedule={"cron": None},
+    )
     detail = await svc.update_source(user_context(), "mock-mes", body)
     assert om.secrets["mock-mes"] == "secret-pw"
     assert detail["pipelines"][0]["schedule"] == {"cron": None}

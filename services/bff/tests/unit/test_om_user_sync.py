@@ -40,7 +40,9 @@ class FakeOM:
             if req.method == "GET" and path.startswith("/teams/name/"):
                 team = path.rsplit("/", 1)[1]
                 users = [{"id": u} for u in self.members[team]]
-                return httpx.Response(200, json={"id": f"team-{team}", "name": team, "users": users})
+                return httpx.Response(
+                    200, json={"id": f"team-{team}", "name": team, "users": users}
+                )
             if req.method == "PATCH" and path.startswith("/teams/"):
                 team = path.removeprefix("/teams/team-")
                 ops = json.loads(req.content)

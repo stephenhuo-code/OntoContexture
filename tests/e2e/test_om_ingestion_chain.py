@@ -75,7 +75,9 @@ def _ensure_member(om: httpx.Client, sa: str, username: str, team: str) -> None:
         resp = om.patch(
             f"/teams/{t.json()['id']}",
             headers={**_bearer(sa), **PATCH},
-            content=json.dumps([{"op": "add", "path": "/users/0", "value": {"id": uid, "type": "user"}}]),
+            content=json.dumps(
+                [{"op": "add", "path": "/users/0", "value": {"id": uid, "type": "user"}}]
+            ),
         )
         resp.raise_for_status()
 
@@ -92,7 +94,9 @@ def _connection(password: str) -> dict[str, Any]:
     }
 
 
-def _test_connection(om: httpx.Client, token: str, password: str, service: str | None) -> dict[str, Any]:
+def _test_connection(
+    om: httpx.Client, token: str, password: str, service: str | None
+) -> dict[str, Any]:
     request: dict[str, Any] = {
         "connection": _connection(password),
         "serviceType": "Database",
@@ -117,7 +121,9 @@ def _test_connection(om: httpx.Client, token: str, password: str, service: str |
             time.sleep(1)
         raise AssertionError("测试连接 60 秒未完成")
     finally:
-        om.delete(f"/automations/workflows/{wid}", headers=_bearer(token), params={"hardDelete": "true"})
+        om.delete(
+            f"/automations/workflows/{wid}", headers=_bearer(token), params={"hardDelete": "true"}
+        )
 
 
 @pytest.fixture(scope="module")
@@ -144,7 +150,9 @@ def tokens(om: httpx.Client) -> Iterator[dict[str, str]]:
         ).raise_for_status()
 
 
-def test_service_account_cannot_create_source_services(om: httpx.Client, tokens: dict[str, str]) -> None:
+def test_service_account_cannot_create_source_services(
+    om: httpx.Client, tokens: dict[str, str]
+) -> None:
     """建档身份只能建用户、改团队成员，不能创建数据源（OM 默认 Organization 策略允许其查看，密码仍为掩码）。"""
     resp = om.put(
         "/services/databaseServices",
@@ -223,7 +231,9 @@ def test_native_ingestion_chain(om: httpx.Client, tokens: dict[str, str]) -> Non
     assert {s["name"] for s in status["status"]} >= {"Mysql", "OpenMetadata"}
 
     tables = om.get(
-        "/tables", headers=_bearer(eng), params={"service": SERVICE, "limit": 100, "fields": "columns"}
+        "/tables",
+        headers=_bearer(eng),
+        params={"service": SERVICE, "limit": 100, "fields": "columns"},
     ).json()["data"]
     assert len(tables) == 13  # 003 金标准
     assert sum(len(t["columns"]) for t in tables) == 79

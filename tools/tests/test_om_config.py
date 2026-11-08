@@ -122,7 +122,12 @@ def test_access_creates_policies_roles_teams_and_service_user() -> None:
     rules = {tuple(r["resources"]): set(r["operations"]) for r in source["rules"]}
     assert rules[("databaseService",)] == {"Create", "ViewAll", "EditAll", "Deploy", "Trigger"}
     assert rules[("ingestionPipeline", "workflow")] == {
-        "Create", "ViewAll", "EditAll", "Deploy", "Trigger", "Delete"
+        "Create",
+        "ViewAll",
+        "EditAll",
+        "Deploy",
+        "Trigger",
+        "Delete",
     }
     assert rules[("database", "databaseSchema", "table")] == {"ViewAll", "EditAll"}
     assert all(r["effect"] == "allow" for r in source["rules"])

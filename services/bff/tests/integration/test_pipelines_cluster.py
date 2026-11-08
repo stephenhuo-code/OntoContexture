@@ -27,7 +27,10 @@ class UserExchanger:
 
     async def exchange(self, subject_token: str, audience: str) -> str:
         if time.monotonic() - self.at > 240:
-            self.token, self.at = exchange(user_token(self.user, self.user), audience), time.monotonic()
+            self.token, self.at = (
+                exchange(user_token(self.user, self.user), audience),
+                time.monotonic(),
+            )
         return self.token
 
 
@@ -45,39 +48,94 @@ print(json.load(urllib.request.urlopen(dag))["is_paused"])
 
 def _dag_paused(dag_id: str) -> bool:
     """测试经 Airflow 自身 REST 接口核对 DAG 暂停状态（仅测试；BFF 不直连 Airflow）。"""
-    out = subprocess.run(
-        ["kubectl", "-n", "contexture", "exec", "deploy/airflow-api-server", "-c", "api-server", "--",
-         "python", "-c", _PAUSED_PY, dag_id],
-        check=True, capture_output=True, text=True,
-    ).stdout.strip().splitlines()[-1]
+    out = (
+        subprocess.run(
+            [
+                "kubectl",
+                "-n",
+                "contexture",
+                "exec",
+                "deploy/airflow-api-server",
+                "-c",
+                "api-server",
+                "--",
+                "python",
+                "-c",
+                _PAUSED_PY,
+                dag_id,
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        .stdout.strip()
+        .splitlines()[-1]
+    )
     return out == "True"
 
 
 def _pw() -> str:
     raw = subprocess.run(
-        ["kubectl", "-n", "mock-sources", "get", "secret", "mock-readonly", "-o", "jsonpath={.data.mes-meta-ro}"],
-        check=True, capture_output=True, text=True,
+        [
+            "kubectl",
+            "-n",
+            "mock-sources",
+            "get",
+            "secret",
+            "mock-readonly",
+            "-o",
+            "jsonpath={.data.mes-meta-ro}",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
     ).stdout
     return base64.b64decode(raw).decode()
 
 
 async def _run(url: str) -> None:
-    eng = SourcesService(OmClient(om_url=url, exchanger=UserExchanger("engineer1")), poll_interval=2)
+    eng = SourcesService(
+        OmClient(om_url=url, exchanger=UserExchanger("engineer1")), poll_interval=2
+    )
     adm = SourcesService(OmClient(om_url=url, exchanger=UserExchanger("admin1")), poll_interval=2)
-    ctx = RequestContext(tenant_id="local", user_id="it", agent_id="bff", roles=("ai-engineer",), token_id="it", token="x")
+    ctx = RequestContext(
+        tenant_id="local",
+        user_id="it",
+        agent_id="bff",
+        roles=("ai-engineer",),
+        token_id="it",
+        token="x",
+    )
 
     async def cleanup() -> None:
-        await adm.om.request(ctx, "DELETE", f"/services/databaseServices/name/{NAME}",
-                             params={"hardDelete": "true", "recursive": "true"}, allow_404=True)
+        await adm.om.request(
+            ctx,
+            "DELETE",
+            f"/services/databaseServices/name/{NAME}",
+            params={"hardDelete": "true", "recursive": "true"},
+            allow_404=True,
+        )
 
     await cleanup()
     try:
-        await eng.create_source(ctx, {
-            "name": NAME, "displayName": NAME, "serviceType": "Mysql",
-            "connection": {"hostPort": "mock-mes.mock-sources.svc:3306", "username": "mes_meta_ro",
-                           "password": _pw(), "database": "mes", "tls": False},
-            "scope": {"includeViews": True}, "metadataSchedule": {"cron": "0 2 * * *"}, "createLineageTask": False,
-        })
+        await eng.create_source(
+            ctx,
+            {
+                "name": NAME,
+                "displayName": NAME,
+                "serviceType": "Mysql",
+                "connection": {
+                    "hostPort": "mock-mes.mock-sources.svc:3306",
+                    "username": "mes_meta_ro",
+                    "password": _pw(),
+                    "database": "mes",
+                    "tls": False,
+                },
+                "scope": {"includeViews": True},
+                "metadataSchedule": {"cron": "0 2 * * *"},
+                "createLineageTask": False,
+            },
+        )
         dag = (await eng.get_source(ctx, NAME))["pipelines"][0]["name"]
         view = await eng.set_schedule(ctx, NAME, "metadata", enabled=False)
         assert view["scheduleEnabled"] is False

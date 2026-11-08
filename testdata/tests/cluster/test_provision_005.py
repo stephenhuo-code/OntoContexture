@@ -14,22 +14,31 @@ def test_cluster_readonly_accounts_and_viewlab() -> None:
     with local_targets() as targets:
         assert targets.mes is not None
         host, port = targets.mes["host"], targets.mes["port"]
-        ro = pymysql.connect(host=host, port=port, user="mes_meta_ro", password=passwords["mes_meta_ro"])
+        ro = pymysql.connect(
+            host=host, port=port, user="mes_meta_ro", password=passwords["mes_meta_ro"]
+        )
         try:
             with ro.cursor() as cur:
-                cur.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='mes'")
+                cur.execute(
+                    "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='mes'"
+                )
                 assert cur.fetchone() == (13,)  # 003 金标准：MES 13 张表
                 with pytest.raises(pymysql.err.MySQLError):
                     cur.execute("DELETE FROM mes.operation_report")
         finally:
             ro.close()
         lab = pymysql.connect(
-            host=host, port=port, user="viewlab_ro", password=passwords["viewlab_ro"], database=DATABASE
+            host=host,
+            port=port,
+            user="viewlab_ro",
+            password=passwords["viewlab_ro"],
+            database=DATABASE,
         )
         try:
             with lab.cursor() as cur:
                 cur.execute(
-                    "SELECT table_name FROM information_schema.tables WHERE table_schema=%s", (DATABASE,)
+                    "SELECT table_name FROM information_schema.tables WHERE table_schema=%s",
+                    (DATABASE,),
                 )
                 assert {r[0] for r in cur.fetchall()} == set(TABLES) | set(VIEWS)
         finally:

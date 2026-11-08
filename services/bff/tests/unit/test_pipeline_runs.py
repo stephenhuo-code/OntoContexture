@@ -23,7 +23,13 @@ async def test_runs_are_projected_new_to_old_without_trigger_type() -> None:
     runs = await svc.list_runs(user_context(), "mock-mes", "metadata")
     assert [r["runId"] for r in runs] == [new, old]
     assert runs[0]["steps"][0] == {
-        "name": "Mysql", "records": 15, "updatedRecords": 0, "warnings": 0, "errors": 0, "filtered": 0, "failures": [],
+        "name": "Mysql",
+        "records": 15,
+        "updatedRecords": 0,
+        "warnings": 0,
+        "errors": 0,
+        "filtered": 0,
+        "failures": [],
     }
     assert "trigger" not in runs[0] and "triggerType" not in runs[0]
     partial = await svc.list_runs(user_context(), "mock-mes", "metadata", state="partialSuccess")
@@ -45,7 +51,10 @@ async def test_schedule_toggle_uses_om_toggle_and_requires_cron() -> None:
     svc = await created(om)
     view = await svc.set_schedule(user_context(), "mock-mes", "metadata", enabled=False)
     assert view["scheduleEnabled"] is False
-    assert ("POST", f"/services/ingestionPipelines/toggleIngestion/{next(iter(om.pipelines))}") in om.calls
+    assert (
+        "POST",
+        f"/services/ingestionPipelines/toggleIngestion/{next(iter(om.pipelines))}",
+    ) in om.calls
     same = await svc.set_schedule(user_context(), "mock-mes", "metadata", enabled=False)
     assert same["scheduleEnabled"] is False
     assert sum(1 for c in om.calls if "toggleIngestion" in c[1]) == 1  # 已是目标状态不重复切换

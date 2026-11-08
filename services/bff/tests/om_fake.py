@@ -12,11 +12,41 @@ import httpx
 
 MASK = "*********"
 TEST_STEPS = {
-    "Mysql": [("CheckAccess", True), ("GetSchemas", True), ("GetTables", True), ("GetViews", False), ("GetQueries", False)],
-    "Postgres": [("CheckAccess", True), ("GetDatabases", True), ("GetSchemas", True), ("GetTables", True), ("GetViews", False)],
-    "Doris": [("CheckAccess", True), ("GetSchemas", True), ("GetTables", True), ("GetViews", False)],
-    "Mssql": [("CheckAccess", True), ("GetDatabases", True), ("GetSchemas", True), ("GetTables", True), ("GetViews", False), ("GetQueries", False)],
-    "Oracle": [("CheckAccess", True), ("PackageAccess", False), ("GetSchemas", True), ("GetTables", True), ("GetViews", False)],
+    "Mysql": [
+        ("CheckAccess", True),
+        ("GetSchemas", True),
+        ("GetTables", True),
+        ("GetViews", False),
+        ("GetQueries", False),
+    ],
+    "Postgres": [
+        ("CheckAccess", True),
+        ("GetDatabases", True),
+        ("GetSchemas", True),
+        ("GetTables", True),
+        ("GetViews", False),
+    ],
+    "Doris": [
+        ("CheckAccess", True),
+        ("GetSchemas", True),
+        ("GetTables", True),
+        ("GetViews", False),
+    ],
+    "Mssql": [
+        ("CheckAccess", True),
+        ("GetDatabases", True),
+        ("GetSchemas", True),
+        ("GetTables", True),
+        ("GetViews", False),
+        ("GetQueries", False),
+    ],
+    "Oracle": [
+        ("CheckAccess", True),
+        ("PackageAccess", False),
+        ("GetSchemas", True),
+        ("GetTables", True),
+        ("GetViews", False),
+    ],
 }
 
 
@@ -88,8 +118,22 @@ class FakeOM:
                 "timestamp": start,
                 "endDate": end,
                 "status": [
-                    {"name": "Mysql", "records": 15, "updated_records": 0, "warnings": 0, "errors": 0, "filtered": 0},
-                    {"name": "OpenMetadata", "records": 15, "updated_records": 0, "warnings": 0, "errors": 0, "filtered": 0},
+                    {
+                        "name": "Mysql",
+                        "records": 15,
+                        "updated_records": 0,
+                        "warnings": 0,
+                        "errors": 0,
+                        "filtered": 0,
+                    },
+                    {
+                        "name": "OpenMetadata",
+                        "records": 15,
+                        "updated_records": 0,
+                        "warnings": 0,
+                        "errors": 0,
+                        "filtered": 0,
+                    },
                 ],
             },
         )
@@ -112,7 +156,12 @@ class FakeOM:
         m = req.method
 
         if path == "/services/databaseServices" and m == "GET":
-            return self._ok({"data": [self._service_view(s) for s in self.services.values()], "paging": {"total": len(self.services)}})
+            return self._ok(
+                {
+                    "data": [self._service_view(s) for s in self.services.values()],
+                    "paging": {"total": len(self.services)},
+                }
+            )
         if path == "/services/databaseServices" and m == "PUT":
             assert body is not None
             name = body["name"]
@@ -122,15 +171,30 @@ class FakeOM:
                 self.secrets[name] = pw
             existing = self.services.get(name)
             sid = existing["id"] if existing else str(uuid.uuid4())
-            self.services[name] = {**(existing or {}), **body, "id": sid, "fullyQualifiedName": name}
+            self.services[name] = {
+                **(existing or {}),
+                **body,
+                "id": sid,
+                "fullyQualifiedName": name,
+            }
             return self._ok(self._service_view(self.services[name]), 201 if not existing else 200)
         if mm := re.fullmatch(r"/services/databaseServices/name/(.+)", path):
             svc = self.services.get(mm.group(1))
-            return self._ok(self._service_view(svc)) if svc else httpx.Response(404, json={"message": "not found"})
+            return (
+                self._ok(self._service_view(svc))
+                if svc
+                else httpx.Response(404, json={"message": "not found"})
+            )
 
         if path == "/services/ingestionPipelines" and m == "GET":
-            data = [p for p in self.pipelines.values() if not q.get("service") or p["service"]["name"] == q["service"]]
-            return self._ok({"data": [self._pipeline_view(p) for p in data], "paging": {"total": len(data)}})
+            data = [
+                p
+                for p in self.pipelines.values()
+                if not q.get("service") or p["service"]["name"] == q["service"]
+            ]
+            return self._ok(
+                {"data": [self._pipeline_view(p) for p in data], "paging": {"total": len(data)}}
+            )
         if path == "/services/ingestionPipelines" and m in ("POST", "PUT"):
             assert body is not None
             svc = next(s for s in self.services.values() if s["id"] == body["service"]["id"])
@@ -149,7 +213,12 @@ class FakeOM:
             return self._ok(self._pipeline_view(self.pipelines[pid]), 201)
         if mm := re.fullmatch(r"/services/ingestionPipelines/deploy/(.+)", path):
             if self.fail_deploy:
-                return httpx.Response(400, json={"message": "Failed to deploy Ingestion Pipeline due to airflow API returned Internal Server Error"})
+                return httpx.Response(
+                    400,
+                    json={
+                        "message": "Failed to deploy Ingestion Pipeline due to airflow API returned Internal Server Error"
+                    },
+                )
             self.pipelines[mm.group(1)]["deployed"] = True
             return self._ok({"code": 200, "reason": "deployed"})
         if mm := re.fullmatch(r"/services/ingestionPipelines/trigger/(.+)", path):
@@ -168,7 +237,9 @@ class FakeOM:
             if m == "DELETE":
                 self.pipelines.pop(mm.group(1), None)
                 return self._ok({})
-        if mm := re.fullmatch(r"/services/testConnectionDefinitions/name/(\w+)\.testConnectionDefinition", path):
+        if mm := re.fullmatch(
+            r"/services/testConnectionDefinitions/name/(\w+)\.testConnectionDefinition", path
+        ):
             steps = TEST_STEPS[mm.group(1)]
             return self._ok({"steps": [{"name": n, "mandatory": mand} for n, mand in steps]})
 
@@ -185,7 +256,14 @@ class FakeOM:
                 result = [{"name": n, "mandatory": mand, "passed": True} for n, mand in steps]
                 wf["status"] = "Successful"
             else:
-                result = [{"name": "CheckAccess", "mandatory": True, "passed": False, "message": "Access denied for user"}]
+                result = [
+                    {
+                        "name": "CheckAccess",
+                        "mandatory": True,
+                        "passed": False,
+                        "message": "Access denied for user",
+                    }
+                ]
                 wf["status"] = "Failed"
             wf["response"] = {"status": wf["status"], "steps": result}
             return self._ok({"code": 200})
@@ -204,19 +282,39 @@ class FakeOM:
             else:
                 depth = 2 if kind == "databases" else 3
                 fqns = {".".join(t["fullyQualifiedName"].split(".")[:depth]) for t in self.tables}
-                hit = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, fqn)), "name": fqn.split(".")[-1],
-                       "fullyQualifiedName": fqn, "tags": [], "owners": [], "domains": []} if fqn in fqns else None
+                hit = (
+                    {
+                        "id": str(uuid.uuid5(uuid.NAMESPACE_URL, fqn)),
+                        "name": fqn.split(".")[-1],
+                        "fullyQualifiedName": fqn,
+                        "tags": [],
+                        "owners": [],
+                        "domains": [],
+                    }
+                    if fqn in fqns
+                    else None
+                )
             return self._ok(hit) if hit else httpx.Response(404, json={"message": "not found"})
         if path == "/databaseSchemas" and m == "GET":
             db = q.get("database")
-            fqns = sorted({".".join(t["fullyQualifiedName"].split(".")[:3]) for t in self.tables
-                           if t["fullyQualifiedName"].startswith(f"{db}.")})
+            fqns = sorted(
+                {
+                    ".".join(t["fullyQualifiedName"].split(".")[:3])
+                    for t in self.tables
+                    if t["fullyQualifiedName"].startswith(f"{db}.")
+                }
+            )
             data = [{"name": f.split(".")[-1], "fullyQualifiedName": f} for f in fqns]
             return self._ok({"data": data, "paging": {"total": len(data)}})
         if path == "/databases" and m == "GET":
             # OM：DatabaseResource 支持 service 过滤
-            fqns = sorted({".".join(t["fullyQualifiedName"].split(".")[:2]) for t in self.tables
-                           if t["service"]["name"] == q.get("service")})
+            fqns = sorted(
+                {
+                    ".".join(t["fullyQualifiedName"].split(".")[:2])
+                    for t in self.tables
+                    if t["service"]["name"] == q.get("service")
+                }
+            )
             data = [{"name": f.split(".")[1], "fullyQualifiedName": f} for f in fqns]
             return self._ok({"data": data, "paging": {"total": len(data)}})
         if path == "/tables" and m == "GET":

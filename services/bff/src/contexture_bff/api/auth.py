@@ -89,7 +89,6 @@ async def login(request: Request, return_to: str | None = None) -> RedirectRespo
         return _failure("internal", target)
 
 
-
 async def sync_om_user(svc: "Services", claims: dict[str, Any]) -> None:
     """005：按令牌中的织境角色在 OpenMetadata 建档并同步团队（research R13）；OM 不可用则登录失败。"""
     if svc.om_users is None:
@@ -99,6 +98,7 @@ async def sync_om_user(svc: "Services", claims: dict[str, Any]) -> None:
         return
     roles = (claims.get("realm_access") or {}).get("roles") or []
     await svc.om_users.sync(username, [str(r) for r in roles])
+
 
 @router.get("/callback", status_code=302)
 async def callback(request: Request) -> RedirectResponse:

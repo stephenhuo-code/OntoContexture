@@ -90,16 +90,15 @@ class OmClient:
             ) from exc
         if resp.status_code >= 500:
             raise UpstreamUnavailable(
-                "OpenMetadata 不可用", details={"upstream": "openmetadata", "status": resp.status_code}
+                "OpenMetadata 不可用",
+                details={"upstream": "openmetadata", "status": resp.status_code},
             )
         if resp.status_code == 404:
             if allow_404:
                 return None
             raise ContextureError("upstream.not_found", _om_message(resp), status_code=404)
         if resp.status_code in (401, 403):
-            raise ContextureError(
-                "auth.om_forbidden", _om_message(resp), status_code=403
-            )
+            raise ContextureError("auth.om_forbidden", _om_message(resp), status_code=403)
         if resp.status_code >= 400:
             raise ContextureError(
                 "upstream.rejected", _om_message(resp), status_code=resp.status_code

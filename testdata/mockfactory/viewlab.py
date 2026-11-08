@@ -106,7 +106,9 @@ def provision_mysql(admin: dict[str, Any], passwords: dict[str, str]) -> None:
                     cur.execute(stmt)
                 cols = ", ".join(f"`{c[0]}`" for c in TABLES[table])
                 marks = ", ".join(["%s"] * len(TABLES[table]))
-                cur.executemany(f"INSERT IGNORE INTO `{table}` ({cols}) VALUES ({marks})", ROWS[table])
+                cur.executemany(
+                    f"INSERT IGNORE INTO `{table}` ({cols}) VALUES ({marks})", ROWS[table]
+                )
             for view, sql in VIEWS.items():
                 cur.execute(f"CREATE OR REPLACE VIEW `{view}` AS {sql}")
             grants = {
@@ -117,7 +119,9 @@ def provision_mysql(admin: dict[str, Any], passwords: dict[str, str]) -> None:
             }
             for user, stmts in grants.items():
                 # 带参数执行时主机通配符须写作 %%
-                cur.execute(f"CREATE USER IF NOT EXISTS '{user}'@'%%' IDENTIFIED BY %s", (passwords[user],))
+                cur.execute(
+                    f"CREATE USER IF NOT EXISTS '{user}'@'%%' IDENTIFIED BY %s", (passwords[user],)
+                )
                 cur.execute(f"ALTER USER '{user}'@'%%' IDENTIFIED BY %s", (passwords[user],))
                 for stmt in stmts:
                     cur.execute(stmt)
@@ -154,7 +158,8 @@ async def _provision_postgres(admin_dsn: str, passwords: dict[str, str]) -> None
             cols = ", ".join(f'"{c[0]}"' for c in TABLES[table])
             marks = ", ".join(f"${i + 1}" for i in range(len(TABLES[table])))
             await lab.executemany(
-                f'INSERT INTO "{table}" ({cols}) VALUES ({marks}) ON CONFLICT DO NOTHING', ROWS[table]
+                f'INSERT INTO "{table}" ({cols}) VALUES ({marks}) ON CONFLICT DO NOTHING',
+                ROWS[table],
             )
         for view, sql in VIEWS.items():
             await lab.execute(f'CREATE OR REPLACE VIEW "{view}" AS {sql}')
@@ -189,9 +194,21 @@ def local_passwords(context: str = "kind-contexture") -> dict[str, str]:
     for user in ACCOUNTS:
         key = user.replace("_", "-")
         raw = subprocess.run(  # noqa: S603
-            ["kubectl", "--context", context, "-n", "mock-sources", "get", "secret", SECRET,  # noqa: S607
-             "-o", f"jsonpath={{.data.{key}}}"],
-            check=True, capture_output=True, text=True,
+            [
+                "kubectl",
+                "--context",
+                context,
+                "-n",
+                "mock-sources",
+                "get",
+                "secret",
+                SECRET,  # noqa: S607
+                "-o",
+                f"jsonpath={{.data.{key}}}",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
         ).stdout
         out[user] = base64.b64decode(raw).decode()
     return out
