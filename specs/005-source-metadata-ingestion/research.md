@@ -222,6 +222,8 @@
 - 视图血缘实测（viewlab）：MySQL / PostgreSQL 的表级与字段级血缘与标准答案完全一致；MySQL 受限账号（无 `SHOW VIEW`）
   的元数据采集为 `failed`，失败对象为两个视图（`SHOW VIEW command denied`），两张表及字段正常入库、视图不入库；
   随后的视图血缘运行为 `success` 且处理 0 条记录，不产生血缘边。
+- 视图血缘任务从 OM 搜索索引读取视图定义（`lineage_source.py` 的 `yield_es_view_def`）：元数据采集刚完成、视图尚未建好索引时，
+  血缘运行为 `success` 但处理 0 条（并行端到端中实测）。按 OM 原生行为保留，记为已知限制；测试在触发血缘前等待视图进入索引。
 - 删除数据源时，managed-apis 在 Airflow 3 上删除 DAG 记录因外键（`task_instance.dag_version_id`）失败，DAG 文件与配置已删除，
   Airflow 元数据库中残留历史 DAG 记录（OM 的删除本身成功）。记为已知限制。
 - R12 授予采集任务的 `EditAll` 覆盖 toggleIngestion 所需的 `EditIngestionPipelineStatus`（US2 集群测试以 engineer1 验证）。

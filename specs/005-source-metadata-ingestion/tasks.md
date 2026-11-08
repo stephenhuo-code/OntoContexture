@@ -153,9 +153,9 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### Tests for User Story 3（先写、先失败）
 
-- [ ] T054 [P] [US3] 在 `services/bff/tests/contract/test_catalog_contract.py` 编写 `getCatalogEntity` 契约测试（四种 `entityType`、子项与计数、表的 `tableType` / `constraints` / `columns[].constraint`、404）
-- [ ] T055 [P] [US3] 在 `services/bff/tests/integration/test_catalog_cluster.py`（`-m cluster`）编写测试：在 US1 采集结果上逐层读取，层级与子项数量与 OM 一致；同名表按完整 FQN 隔离
-- [ ] T056 [P] [US3] 在 `apps/web/src/__tests__/catalog.test.tsx` 编写组件测试（夹具）：目录树展开与服务节点表数 / “未采集”；资产页眉标、标题、FQN、面包屑只到当前层级、“返回所属数据源”；资产页不显示连接配置、采集页签与源级状态；表详情“选择数据表”切换、结构信息（只显示 OM 实际约束，未提供不伪造）、字段 `PK` 徽章；≤ 850px 时“目录”抽屉
+- [X] T054 [P] [US3] 在 `services/bff/tests/contract/test_catalog_contract.py` 编写 `getCatalogEntity` 契约测试（四种 `entityType`、子项与计数、表的 `tableType` / `constraints` / `columns[].constraint`、404）
+- [X] T055 [P] [US3] 在 `services/bff/tests/integration/test_catalog_cluster.py`（`-m cluster`）编写测试：在 US1 采集结果上逐层读取，层级与子项数量与 OM 一致；同名表按完整 FQN 隔离
+- [X] T056 [P] [US3] 在 `apps/web/src/__tests__/catalog.test.tsx` 编写组件测试（夹具）：目录树展开与服务节点表数 / “未采集”；资产页眉标、标题、FQN、面包屑只到当前层级、“返回所属数据源”；资产页不显示连接配置、采集页签与源级状态；表详情“选择数据表”切换、结构信息（只显示 OM 实际约束，未提供不伪造）、字段 `PK` 徽章；≤ 850px 时“目录”抽屉
 
 ### Implementation for User Story 3
 
@@ -214,8 +214,8 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 - [X] T076 [P] 在 `tests/e2e/sources.spec.ts` 增加依赖异常场景：OM 不可用时 `/sources` 显示真实错误、不显示示例数据（quickstart 场景 F）
 - [X] T077 [P] 代码审查清单核对：`services/bff/src/`、`apps/web/src/` 中无示例数据源 / 表 / 运行、无失败回退分支、无 Airflow 直连、无源库驱动依赖（`pymysql`、`asyncpg` 等不得出现在 `services/bff/pyproject.toml`）；结果记入 acceptance.md
 - [X] T078 测量并记录：列表与目录读取 p95、测试连接耗时、MES 接入到首采完成耗时（SC-002），写入 `specs/005-source-metadata-ingestion/research.md` R11 与 acceptance.md
-- [ ] T079 运行 `make lint`、`make test`（含覆盖率 ≥ 80%）、`pnpm --filter @contexture/web test`、`make components-check`、`make patches-check`、`make e2e`，全部通过；失败项如实记录原因
-- [ ] T080 编写 `specs/005-source-metadata-ingestion/acceptance.md`（宪法“开发流程与质量门禁”），内容须包含：前置条件与数据准备（`make up`、`make seed`、`make mock-data` 等）、预计用时；逐步操作与每一步的预期结果，每一步的命令可直接复制执行、不要求验收人另装开发环境以外的工具，产品负责人不读代码即可独立执行；每一步与 US1–US5、SC-001–SC-007 的对应关系；开发方已执行的验证结果（T079 的 `make lint`、`make test` 及覆盖率、`make e2e` 等结论，因环境原因未通过的项写明原因与处理方式）；已知限制至少包括：Oracle / SQL Server 无本地实例仅契约与单元测试覆盖、Doris UNIQUE KEY 不识别（键列显示为主键）、仅提供最近一次运行日志、T019 的 PostgreSQL 结论、T020 中 R5 验证项的结论、T077 代码审查结果、T078 实测耗时；验收记录栏目（日期、验收人、结果、发现的问题）留空待负责人填写
+- [X] T079 运行 `make lint`、`make test`（含覆盖率 ≥ 80%）、`pnpm --filter @contexture/web test`、`make components-check`、`make patches-check`、`make e2e`，全部通过；失败项如实记录原因
+- [X] T080 编写 `specs/005-source-metadata-ingestion/acceptance.md`（宪法“开发流程与质量门禁”），内容须包含：前置条件与数据准备（`make up`、`make seed`、`make mock-data` 等）、预计用时；逐步操作与每一步的预期结果，每一步的命令可直接复制执行、不要求验收人另装开发环境以外的工具，产品负责人不读代码即可独立执行；每一步与 US1–US5、SC-001–SC-007 的对应关系；开发方已执行的验证结果（T079 的 `make lint`、`make test` 及覆盖率、`make e2e` 等结论，因环境原因未通过的项写明原因与处理方式）；已知限制至少包括：Oracle / SQL Server 无本地实例仅契约与单元测试覆盖、Doris UNIQUE KEY 不识别（键列显示为主键）、仅提供最近一次运行日志、T019 的 PostgreSQL 结论、T020 中 R5 验证项的结论、T077 代码审查结果、T078 实测耗时；验收记录栏目（日期、验收人、结果、发现的问题）留空待负责人填写
 
 ---
 

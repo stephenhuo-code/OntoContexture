@@ -1,0 +1,122 @@
+# 005 用户验收：源系统元数据采集
+
+**状态：待产品负责人验收。**
+验收入口：[织境 · 数据源](http://localhost:8080/sources)。建议预留 **60 分钟**（其中采集运行等待约 10 分钟）。
+
+## 1. 你需要验收的内容
+
+在织境中接入三个模拟源系统并采集元数据，管理采集任务，浏览四层目录，维护治理属性，以及生成视图血缘。
+页面上的数字、时间、运行记录和表结构都来自 OpenMetadata、Airflow 与模拟源库的真实结果；
+原型里的示例数值不会出现在页面上。没有数据时显示空状态，出错时显示真实错误码。
+
+使用 `engineer1`（AI 工程师）账号操作；`admin1` 用于第 7 步在 OpenMetadata 中查看血缘。
+
+## 2. 准备（开发环境已就绪时只需第 4 条）
+
+在仓库根目录执行（每条命令可直接复制）：
+
+```bash
+make up          # 部署平台组件（OpenMetadata、Airflow、Keycloak 等）；已部署可跳过
+make seed        # 示例本体、OM 团队与角色；已执行可跳过
+make mock-data   # 003 模拟库 + 只读元数据账号 + viewlab 视图测试库；已执行可跳过
+make ports       # 转发界面端口，并打印下文用到的只读账号与密码
+```
+
+`make ports` 输出的“只读账号”一节给出各源的地址、账号和密码，下文写作“（见 make ports）”。
+开始前，`/sources` 应为空列表（如有上次验收留下的数据源，可保留或在 OpenMetadata 中删除）。
+
+## 3. 操作步骤
+
+| 步骤 | 操作 | 预期 | 对应 |
+| --- | --- | --- | --- |
+| 1. 空状态 | 以 `engineer1` 登录，点击左侧“资产”→“数据源” | 无数据源时显示“还没有数据源”，不出现任何示例数据源；左侧目录显示“还没有数据源” | SC-007 |
+| 2. 接入 MES | 点击“添加数据源”：显示名称 `MES 生产执行系统`、服务标识 `mock-mes`、连接器 MySQL →“下一步”；主机地址 `mock-mes.mock-sources.svc`、数据库 `mes`、用户名 `mes_meta_ro`、密码（见 make ports）→“测试连接” | 逐项显示 CheckAccess、GetSchemas、GetTables、GetViews、GetQueries 的检查结果，必需项通过 | US1 |
+| 3. 错误密码 | 把密码改错，再点“测试连接” | CheckAccess 失败并显示 OpenMetadata 返回的原因，后续步骤“未执行”，不能进入下一步；改回正确密码重测通过 | US1 |
+| 4. 完成接入 | “下一步”（采集范围保持默认，不创建视图血缘任务）→“下一步”，元数据采集调度选“每天”02:00 →“保存配置” | 进入数据源详情；“采集任务”页签有 1 条元数据采集任务，名称形如 `mock_mes_metadata_xxxxxxxx` | US1 |
+| 5. 首次采集 | “采集任务”页签点任务名 →“立即运行” | 状态依次显示排队中 → 采集中 → 成功（约 1–2 分钟）；开始时间、耗时为真实值；“概览”显示 13 张表、79 个字段 | US1、US2、SC-001 |
+| 6. 接入 QMS、数仓 | 同样接入 QMS：连接器 PostgreSQL、主机 `mock-qms-rw.mock-sources.svc`、数据库 `qms`、账号 `qms_meta_ro`；第 3 步 Schema 包含填 `^public$`。数仓：连接器 Doris、主机 `doris-fe-service.contexture.svc`、数据库 `mock_dw`、账号 `mock_dw_reader`。各自“立即运行” | QMS 7 张表 / 53 个字段，数仓 8 张表 / 66 个字段；列表顶部合计 28 张表、198 个字段 | US1、SC-001 |
+| 7. 任务控制 | 在 MES 元数据采集任务上点“暂停调度”并确认，再“恢复调度”；运行中再次点击“立即运行”；打开最近一次运行的“查看运行” | 暂停后列表“调度”列显示“已暂停”，恢复后显示“每天 02:00”；运行中按钮不可再次触发；运行详情显示 Mysql 与 OpenMetadata 两个步骤的记录 / 警告 / 错误 / 过滤数和脱敏日志；较早的运行注明只提供最近一次日志 | US2、SC-003 |
+| 8. 目录浏览 | 左侧目录展开 `mock-mes → default → mes`，点任一表；再展开 `mock-qms → qms → public` | 资产页显示 `METADATA CATALOG`、表名与完整名称，面包屑只到当前层级，有“← 返回所属数据源”；结构信息显示表类型、字段数、主键约束；字段表中主键带 `PK`；“选择数据表”可切换同 Schema 下的表；资产页没有连接配置和采集页签 | US3 |
+| 9. 窄屏 | 把浏览器窗口缩到手机宽度（约 390px） | 页面无整体横向滚动；出现“目录”按钮，点开为目录抽屉 | SC-007 |
+| 10. 属性与继承 | 数据源“概览”→“数据源属性”→“编辑属性”：填写描述、重要程度 Tier2，保存；进入 `default` 数据库，保留周期填 `P30D`；进入 `mes` Schema 与任一表 | 保存后立即回显；Schema 和表的保留周期显示 `P30D` 与“继承自 数据库 · mock-mes.default” | US4、SC-004 |
+| 11. 单独设置与恢复 | 在表上把保留周期改为 `PT24H` 保存；再清空保存；保留周期填 `30 days` 保存 | 先显示“单独设置”，清空后恢复为继承 `P30D`；`30 days` 被拦截并提示 ISO 8601 格式 | US4 |
+| 12. 字段属性与重采保护 | 在“字段元数据”中点某字段“编辑属性”，填写描述、勾选分类标签 `PII.Sensitive`；回到任务“立即运行”，成功后再看该表 | 字段行回显描述与标签；重新采集后表、字段上的人工属性均保留 | US4、SC-004 |
+| 13. 视图血缘 | 新建数据源：MySQL，服务标识 `viewlab-ro`，主机 `mock-mes.mock-sources.svc`、数据库 `viewlab`、账号 `viewlab_ro`；第 3 步勾选“创建视图血缘任务”；保存后先运行“元数据采集”，成功后约 1 分钟再运行“视图血缘”（见已知限制 13） | 两条任务都成功；在 [OpenMetadata](http://localhost:8585)（`admin1` 登录）搜索 `v_supplier_orders`，“Lineage”显示来自 `purchase_order` 与 `supplier` 的边，字段 `supplier_name ← supplier.supplier_name`；`v_order_qty_by_supplier` 来自 `purchase_order`，`total_quantity ← quantity` | US5、SC-005 |
+| 14. 视图定义不可读 | 再新建数据源 `viewlab-noview`：同上但账号 `viewlab_noview`；运行元数据采集 | 运行显示“失败”，运行详情的失败对象为两个视图，原因含 `SHOW VIEW command denied`；`supplier`、`purchase_order` 两张表与字段照常出现在目录中；不产生血缘 | US5、SC-005 |
+| 15. 不泄露密码 | 浏览器开发者工具“网络”中查看 `/bff/v1/sources` 相关响应；查看运行日志 | 任何响应和日志都不含源库密码明文（显示为 `*********`） | SC-006 |
+
+本次范围为数据源接入、采集任务、四层目录、治理属性与视图血缘。资产搜索、Agent 对话与审批随后续特性开放。
+业务域与数据产品：本期不在织境中创建治理实体，OpenMetadata 中当前没有业务域与数据产品。
+如需验收这两项，先在 OpenMetadata 中创建一个业务域及其数据产品，再在第 10 步中选择。
+
+## 4. 开发侧已完成的验证（2026-11-08，本地 kind 集群）
+
+| 检查 | 结果 |
+| --- | --- |
+| `make lint`（ruff、ruff format、pyright、eslint、prettier） | 通过；pyright 0 错误 |
+| `make test`（Python 单元、契约、Docker 集成测试） | 402 项通过；总覆盖率 89.39% |
+| 变更行覆盖率（`make coverage-check DIFF_BASE=59428d9`） | 1481 / 1593 = 92.97%（门槛 80%） |
+| `pnpm --filter @contexture/web test` / `@contexture/ui` | 94 项 / 24 项通过；Web 行覆盖率 92.36% |
+| `make components-check`、`make patches-check`、`ts-api check` | 通过 |
+| 集群集成测试（真实 OM，`-m cluster`） | 三源采集等于 003 金标准（28 表 / 198 字段）；任务启停 / 触发 / 日志；目录层级；五层治理属性在重新采集与修改连接配置后保持；viewlab 血缘与标准答案一致 |
+| `tests/e2e/sources.spec.ts`（真实环境） | US1–US5、SC-007 三视口、场景 F（OpenMetadata 停机显示真实错误、恢复后正常）通过 |
+| `make e2e`（全部端到端） | 浏览器阶段 20 项全部通过（1 项为默认跳过的性能实测）；集群 pytest 阶段 14 项中 13 项通过，001 的 trace 测试受本地 Langfuse 容量影响未通过，见下文 |
+
+**make e2e 结果**：`make e2e` 先跑集群 pytest、再跑浏览器 e2e，前者失败时不会执行后者，因此两阶段分别执行：
+
+- 浏览器阶段（与 `make e2e` 相同的命令与环境变量）：20 项通过，含 004 外壳、登录外观、UI 示例与 005 全部场景。
+- 集群 pytest 阶段：13 项通过；`tests/e2e/test_trace_and_audit.py::test_trace_spans_all_services`（001）失败。
+  原因：本地 Langfuse 的 ClickHouse 反复内存超限（上限 1536Mi，worker 日志 5 分钟内 656 次 `memory limit exceeded`），
+  查询 observations 返回 422，或 3 分钟内未写全四个服务的 span。重启 ClickHouse 后单独运行该测试通过（2 passed），
+  当日大量端到端运行产生的 trace 积压后又复现。005 未改动 Langfuse、ClickHouse 或该测试。
+  处理建议：由负责人决定是否调大本地 ClickHouse 内存（`deploy/components` 中 Langfuse 组件的取值，属 001 范围）。
+- 本轮修正的测试问题：004 导航 e2e 在 005 适配“资产”入口时漏了展开已收起的二级菜单；
+  US5 在并行运行时，视图血缘可能先于搜索索引运行（见已知限制 13），测试改为等视图建好索引后再触发。
+
+**T077 代码审查**：`services/bff/src/`、`apps/web/src/` 中没有示例数据源 / 表 / 运行，没有失败后回退到示例数据或伪造成功的分支，
+没有直连 Airflow，也没有源库驱动。`services/bff/pyproject.toml` 中的 `asyncpg` 是 001 起 BFF 自身会话库（`pg-rw/bff`）的驱动，
+不用于连接源系统。
+
+**T078 实测**（`CTX_PERF=1 pnpm e2e:browser tests/e2e/sources-perf.spec.ts`，经浏览器 → 网关 → BFF → OM）：
+
+| 项目 | 实测 |
+| --- | --- |
+| 测试连接 | 0.5 s |
+| 保存配置（创建服务与任务并部署） | 0.6 s |
+| 保存到首采成功 | 109.5 s；e2e US1 从打开向导到首采成功 34–46 s。波动来自 Airflow 拉起任务 Pod，以及部署后的 20 s 稳定等待 |
+| 读取 p95（n=20） | 数据源列表 152 ms、详情 91 ms、目录·服务 34 ms、目录·数据库 79 ms、目录·Schema 85 ms |
+
+SC-002（3 分钟内完成接入与首采）以第 2–5 步的人工操作计时为准。
+
+## 5. 已知限制
+
+1. **Oracle、SQL Server 无本地实例**：连接字段映射、管道配置与测试连接步骤仅由契约与单元测试覆盖，未在真实实例上采集。
+2. **Doris UNIQUE KEY 不识别**：OpenMetadata 原生 Doris 连接器把键列记为主键（`PK`），不区分 UNIQUE / DUPLICATE / AGGREGATE 键模型。
+3. **只提供最近一次运行的日志**：OpenMetadata 默认日志存储忽略运行编号，较早运行注明“仅提供最近一次日志”。
+4. **PostgreSQL 无法复现“视图定义不可读”**（T019）：OM 以 `pg_get_viewdef` 读取，对所有人可读；该场景只用 MySQL 验收。
+5. **PostgreSQL 默认采集 `information_schema`**：OM 原生无默认排除，按原生行为保留；验收时 QMS 以 Schema 包含 `^public$` 限定。
+6. **T020（R5 委托令牌）结论**：用户委托令牌调用 OM 已验证可行。OM 只对 bot 身份返回明文密码，用户令牌下 BFF 拿不到源库密码。
+   但 OM 默认 Organization 策略对全员开放查看，并允许任何人给无负责人的实体设置负责人，本期按 OM 默认保留。
+7. **Airflow managed-apis 不校验凭证**：在 Airflow 3 下以网络策略限制，只允许 Airflow 组件与 OM 访问 api-server。
+8. **部署后立即触发的空运行**：Airflow 3 在任务登记前触发会产生“无任务即成功”的空运行。“立即运行”在部署后 20 s 内会先等待，
+   因此新建后第一次点击可能等待十余秒；BFF 路由超时相应设为 60 s。
+9. **OpenMetadata 不可用时无法登录织境**：登录与会话刷新时需在 OM 建档用户并同步团队（R13），OM 停机期间新登录失败；
+   已登录用户在 `/sources` 看到真实错误码与“重试”。用户同步不会删除已在 Keycloak 中删除的用户。
+10. **删除数据源后 Airflow 残留历史 DAG 记录**：Airflow 3 上 managed-apis 删除 DAG 时因外键失败；DAG 文件与配置已删除，OM 的删除本身成功。
+11. **lineage-bot 令牌**：本地 OM 存量的 lineage-bot 令牌曾失效，导致视图血缘任务部署失败；
+    `make up` 时由 `tools/om_config.py` 检查，失效时经 OM 原生接口重新生成。其他未使用的 bot 不处理。
+12. **业务域与数据产品**：本期不创建治理实体；“数据产品须与有效业务域一致”的校验由单元、组件与契约测试覆盖，端到端环境中没有可选的域与产品。
+13. **视图血缘依赖 OM 搜索索引**：OM 的视图血缘任务从搜索索引读取视图定义（`yield_es_view_def`）。元数据采集刚完成就立即运行
+    视图血缘时，视图可能尚未建好索引，运行“成功”但处理 0 条记录、不产生血缘边；稍后重新运行即可。向导提示把视图血缘安排在元数据采集之后。
+14. **本地 Langfuse 容量**：ClickHouse 内存上限偏小，trace 积压时查询失败（见 make e2e 结果）。属 001 组件配置，本期未改动。
+15. **测试先行的例外**：少数修复的失败测试与修复同一提交（表约束合并列级约束、目录树重试的部分 e2e 断言）；
+    lineage 管道行为在 US1 已实现，US5 的单元测试为补充的验收测试，编写后直接通过；
+    `make test` 发现的回归（身份集成测试无 OM 时登录失败）与 e2e 测试流程的修正均为测试与修复同一提交。
+
+## 6. 验收记录
+
+发现问题时，记录“所在页面、做了什么、实际出现什么、期望是什么”，可以附截图。
+
+| 日期 | 验收人 | 实际用时 | 步骤 | 结果 | 问题 |
+| --- | --- | --- | --- | --- | --- |
+|  |  |  |  |  |  |

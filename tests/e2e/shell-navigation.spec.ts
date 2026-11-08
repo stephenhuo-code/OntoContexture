@@ -30,6 +30,10 @@ for (const viewport of [
     await expect(
       page.getByRole("heading", { name: "数据源", level: 1 }),
     ).toBeVisible();
+    // 切页时保留收起状态；展开后进入二级“资产搜索”，再收起以延续后续断言
+    const expand = page.getByRole("button", { name: "展开二级菜单" });
+    await expect(expand).toBeVisible();
+    await expand.click();
     await page
       .getByRole("navigation", { name: "数据资产导航" })
       .getByRole("link", { name: "资产搜索" })
@@ -37,6 +41,7 @@ for (const viewport of [
     await expect(
       page.getByRole("heading", { name: "资产搜索尚未开放" }),
     ).toBeVisible();
+    await page.getByRole("button", { name: "收起二级菜单" }).click();
     await page.goBack();
     await page.goBack();
     await expect(

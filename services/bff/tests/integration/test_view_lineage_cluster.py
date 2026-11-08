@@ -132,6 +132,28 @@ async def _lineage(svc: SourcesService, ctx: RequestContext, view_fqn: str) -> d
     return {"tables": sorted(tables), "columns": {k: sorted(v) for k, v in columns.items()}}
 
 
+async def _views_indexed(svc: SourcesService, ctx: RequestContext, service: str) -> None:
+    """视图血缘任务从 OM 搜索索引读取视图定义（research R14）：等元数据采集写入的视图建好索引。"""
+    deadline = time.monotonic() + 180
+    while True:
+        r = await svc.om.request(
+            ctx,
+            "GET",
+            "/search/query",
+            params={"q": " OR ".join(VIEWS), "index": "table_search_index", "size": 50},
+        )
+        found = {
+            h["_source"]["name"]
+            for h in r["hits"]["hits"]
+            if h["_source"]["fullyQualifiedName"].startswith(f"{service}.")
+            and h["_source"].get("schemaDefinition")
+        }
+        if set(VIEWS) <= found:
+            return
+        assert time.monotonic() < deadline, f"搜索索引未出现视图：{sorted(set(VIEWS) - found)}"
+        await asyncio.sleep(3)
+
+
 async def _run(url: str) -> dict[str, Any]:
     svc = SourcesService(
         OmClient(om_url=url, exchanger=UserExchanger("engineer1")), poll_interval=2
@@ -169,6 +191,8 @@ async def _run(url: str) -> dict[str, Any]:
             await svc.create_source(ctx, _body(name))
         for name in CASES:
             meta = await run(name, "metadata")
+            if meta["pipelineState"] == "success":
+                await _views_indexed(svc, ctx, name)
             lin = await run(name, "lineage")
             schema_fqn = f"{name}.{CASES[name][3]}"
             schema = await svc.get_catalog_entity(ctx, "databaseSchema", schema_fqn)

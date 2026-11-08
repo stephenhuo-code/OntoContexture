@@ -415,8 +415,18 @@ test("US5：viewlab 接入并创建视图血缘任务，两条任务依次运行
   await dialog.getByRole("button", { name: "保存配置" }).click();
   await expect(dialog).toBeHidden({ timeout: 60_000 });
 
-  // 依次运行：先元数据采集（视图定义），再视图血缘
+  const views = ["v_order_qty_by_supplier", "v_supplier_orders"];
+  // 依次运行：先元数据采集（视图定义），再视图血缘；视图血缘从 OM 搜索索引读取视图定义，
+  // 须等元数据采集写入的视图建好索引（research R14）
   for (const kind of ["metadata", "lineage"]) {
+    if (kind === "lineage")
+      execFileSync(
+        "uv",
+        ["run", "python", "tests/e2e/om_views_indexed.py", name, ...views],
+        {
+          stdio: "inherit",
+        },
+      );
     await page.goto(`/sources/${name}?tab=tasks&task=${kind}`);
     await page.getByRole("button", { name: "立即运行" }).click();
     await expect(
@@ -424,7 +434,6 @@ test("US5：viewlab 接入并创建视图血缘任务，两条任务依次运行
     ).toBeVisible({ timeout: 240_000 });
   }
 
-  const views = ["v_order_qty_by_supplier", "v_supplier_orders"];
   const observed = JSON.parse(
     execFileSync("uv", [
       "run",
