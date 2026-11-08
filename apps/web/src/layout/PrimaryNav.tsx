@@ -7,7 +7,7 @@ export function PrimaryNav({ current }: { current: RouteEntry | undefined }) {
   return (
     <div className="primary-rail">
       <Link className="brand" to="/home" aria-label={zh.brand}>
-        <span aria-hidden="true">织</span>
+        <NavIcon name="brand" />
       </Link>
       <span className="rail-divider" aria-hidden="true" />
       <nav aria-label={zh.nav.primary}>

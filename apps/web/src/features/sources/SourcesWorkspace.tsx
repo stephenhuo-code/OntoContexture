@@ -1,19 +1,19 @@
 import { useState } from "react";
 import { Route, Routes, useNavigate } from "react-router";
 import type { SourceDetail } from "@contexture/ts-api";
-import { listSources } from "./api";
 import { SourcesList } from "./SourcesList";
 import { SourceDetailView } from "./SourceDetailView";
 import { SourceWizardModal } from "./SourceWizardModal";
 import { CatalogAssetDetailView } from "./CatalogAssetDetailView";
 import { CatalogTree } from "./CatalogTree";
-import { useLoad } from "./useLoad";
+import { useInvalidateSources, useSources } from "./queries";
 import "./sources.css";
 
 /** 数据源工作空间（005）：页面结构与交互对齐原型；数字、时间、运行与表结构全部来自 BFF。 */
 export function SourcesWorkspace() {
   const navigate = useNavigate();
-  const sources = useLoad(listSources, []);
+  const sources = useSources();
+  const invalidate = useInvalidateSources();
   const [wizard, setWizard] = useState<{
     open: boolean;
     source?: SourceDetail;
@@ -73,7 +73,7 @@ export function SourcesWorkspace() {
           onClose={() => setWizard({ open: false })}
           onSaved={(saved) => {
             setWizard({ open: false });
-            sources.reload(true);
+            void invalidate();
             navigate(`/sources/${saved.name}`, {
               state: { saved: Date.now() },
             });

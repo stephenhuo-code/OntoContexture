@@ -219,9 +219,12 @@ summary:focus-visible {
   background: linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%);
   box-shadow: 0 8px 18px #3b5bdb40;
   color: white;
-  font-size: 22px;
-  font-weight: 600;
   text-decoration: none;
+}
+.primary-rail .brand svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 1.8;
 }
 .rail-divider {
   width: 28px;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Button, PageState, StatusBadge } from "@contexture/ui";
 import type {
@@ -26,6 +26,7 @@ import {
   taskState,
 } from "./format";
 import { asApiError, useLoad } from "./useLoad";
+import { useInvalidateSources } from "./queries";
 
 const RUN_FILTERS: [PipelineState | "", string][] = [
   ["", "全部状态"],
@@ -241,6 +242,13 @@ function TaskRuns({
     }, POLL_MS);
     return () => clearInterval(t);
   }, [running]);
+  // 运行由进行中变为结束：数据源列表与目录（含已展开的各层）全部失效，自动重新读取
+  const invalidate = useInvalidateSources();
+  const wasRunning = useRef(running);
+  useEffect(() => {
+    if (wasRunning.current && !running) void invalidate();
+    wasRunning.current = running;
+  }, [running, invalidate]);
 
   async function act(fn: () => Promise<unknown>) {
     setBusy(true);

@@ -16,6 +16,7 @@ import { AssetProperties } from "./AssetProperties";
 import { Field } from "./Field";
 import { INHERITABLE, KIND_NAME, assetChain } from "./format";
 import { asApiError, useLoad } from "./useLoad";
+import { useInvalidateSources } from "./queries";
 
 type Column = NonNullable<
   NonNullable<CatalogEntity["table"]>["columns"]
@@ -510,6 +511,7 @@ export function EditableProperties({
   onSaved: (e: CatalogEntity) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const invalidate = useInvalidateSources();
   return (
     <>
       <AssetProperties entity={entity} onEdit={() => setEditing(true)} />
@@ -520,6 +522,7 @@ export function EditableProperties({
           onSaved={(e) => {
             setEditing(false);
             onSaved(e);
+            void invalidate(); // 目录中的显示名称随之更新
           }}
         />
       )}

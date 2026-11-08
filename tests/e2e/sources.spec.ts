@@ -97,6 +97,13 @@ test("US1：接入 MES 并首采，统计等于 003 金标准，响应无明文�
     page.getByRole("table", { name: "运行记录" }).getByText("成功"),
   ).toBeVisible({ timeout: 240_000 });
 
+  // 不刷新页面：左侧目录随运行结束自动更新（负责人 2026-11-08 反馈）
+  await expect(
+    page
+      .getByRole("navigation", { name: "数据源目录" })
+      .getByRole("button", { name: new RegExp(`^${SERVICE}`) }),
+  ).toContainText("13", { timeout: 30_000 });
+
   await page.getByRole("tab", { name: "概览" }).click();
   await expect(page.locator(".metric", { hasText: "已采集表" })).toContainText(
     "13",
@@ -236,9 +243,17 @@ test("US3：MES / QMS / Doris 四层目录浏览、面包屑与表结构", async
   await expect(tree.getByRole("button", { name: /^e2e-qms/ })).toContainText(
     "7",
   );
-  await tree.getByRole("button", { name: "展开 e2e-qms" }).click();
-  await tree.getByRole("button", { name: "展开 qms" }).click();
-  await tree.getByRole("button", { name: /^public/ }).click();
+  // 精确匹配并限定在服务节点内：环境中可能有同名前缀的其他数据源（如验收时接入的 qms-sys）
+  const node = (service: string) =>
+    tree.getByRole("listitem").filter({
+      has: page.getByRole("button", {
+        name: new RegExp(`^(展开|收起) ${service}$`),
+      }),
+    });
+  await tree.getByRole("button", { name: "展开 e2e-qms", exact: true }).click();
+  const qms = node("e2e-qms");
+  await qms.getByRole("button", { name: "展开 qms", exact: true }).click();
+  await qms.getByRole("button", { name: /^public/ }).click();
   await expect(page.getByRole("navigation", { name: "资产层级" })).toHaveText(
     "e2e-qms›qms›public",
   );
@@ -247,9 +262,10 @@ test("US3：MES / QMS / Doris 四层目录浏览、面包屑与表结构", async
   ).toHaveCount(8);
 
   // Doris：default → 物理库 → 表，键列按 OM 原生连接器标为主键
-  await tree.getByRole("button", { name: "展开 e2e-dw" }).click();
-  await tree.getByRole("button", { name: "展开 default" }).last().click();
-  await tree.getByRole("button", { name: /^mock_dw/ }).click();
+  await tree.getByRole("button", { name: "展开 e2e-dw", exact: true }).click();
+  const dw = node("e2e-dw");
+  await dw.getByRole("button", { name: "展开 default", exact: true }).click();
+  await dw.getByRole("button", { name: /^mock_dw/ }).click();
   await expect(page.getByRole("navigation", { name: "资产层级" })).toHaveText(
     "e2e-dw›default›mock_dw",
   );

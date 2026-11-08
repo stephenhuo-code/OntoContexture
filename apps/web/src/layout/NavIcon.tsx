@@ -32,6 +32,13 @@ const ICONS: Record<string, string[]> = {
     "M10 4v16",
   ],
   chevron: ["m9 6 6 6-6 6"],
+  // 品牌：两条经线穿过两条纬线（织）
+  brand: [
+    "M9 4v16",
+    "M15 4v16",
+    "M3 9.5c3-2.6 6-2.6 9 0s6 2.6 9 0",
+    "M3 14.5c3-2.6 6-2.6 9 0s6 2.6 9 0",
+  ],
   overview: ["M4 4h7v7H4Z", "M13 4h7v4h-7Z", "M13 10h7v10h-7Z", "M4 13h7v7H4Z"],
   approval: [
     "M9 11l2 2 4-4",
