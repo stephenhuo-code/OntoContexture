@@ -534,6 +534,8 @@ export interface components {
                 entityType?: string;
                 name?: string;
                 fullyQualifiedName?: string;
+                displayName?: string | null;
+                description?: string | null;
                 childCount?: number;
             }[];
             /** @description 仅 entityType=table */

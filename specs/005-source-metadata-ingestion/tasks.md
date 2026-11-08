@@ -132,7 +132,7 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 - [X] T046 [P] [US2] 在 `services/bff/tests/contract/test_pipelines_contract.py` 编写 `listPipelineRuns`（含 `state` 筛选）、`triggerPipeline`（202、409 `source.pipeline_in_flight`）、`setPipelineScheduleEnabled`（200、400 `source.schedule_not_set`）、`getLastPipelineLogs` 契约测试；`kind` 仅允许 `metadata`、`lineage`
 - [X] T047 [P] [US2] 在 `services/bff/tests/unit/test_pipeline_runs.py` 编写测试：`PipelineStatus` 原样投影为 `PipelineRun`（runId、pipelineState、startDate、endDate、steps 的 records / updatedRecords / warnings / errors / filtered / failures），新到旧排序，无触发方式字段；存在 queued / running 时拒绝触发；暂停 / 恢复调用 OM `toggleIngestion`；日志经脱敏
 - [X] T048 [P] [US2] 在 `services/bff/tests/integration/test_pipelines_cluster.py`（`-m cluster`）编写测试：对 MES 元数据采集任务暂停后 Airflow DAG `is_paused=true`、恢复后为 false；立即运行产生新的 `PipelineStatus`；最近一次日志可读
-- [ ] T049 [P] [US2] 在 `apps/web/src/__tests__/source-tasks.test.tsx` 编写组件测试（夹具数据）：任务列表按 `pipelines` 渲染 1 或 2 条；运行记录列为开始时间 / 状态 / 耗时 / 运行编号；筛选仅作用于当前任务；运行中禁用“立即运行”；暂停确认弹窗；运行详情展示步骤统计与失败对象，仅最近一次运行显示日志，其余注明；异常运行提供“立即运行”
+- [X] T049 [P] [US2] 在 `apps/web/src/__tests__/source-tasks.test.tsx` 编写组件测试（夹具数据）：任务列表按 `pipelines` 渲染 1 或 2 条；运行记录列为开始时间 / 状态 / 耗时 / 运行编号；筛选仅作用于当前任务；运行中禁用“立即运行”；暂停确认弹窗；运行详情展示步骤统计与失败对象，仅最近一次运行显示日志，其余注明；异常运行提供“立即运行”
 
 ### Implementation for User Story 2
 

@@ -686,6 +686,8 @@ components:
               entityType: { type: string }
               name: { type: string }
               fullyQualifiedName: { type: string }
+              displayName: { type: [string, "null"] }
+              description: { type: [string, "null"] }
               childCount: { type: integer }
         table:
           type: object
