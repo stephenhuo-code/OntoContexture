@@ -362,28 +362,56 @@
   align-items: center;
   font-size: 14px;
 }
+/* 原型每行 3 列；窄屏按可用宽度减少列数 */
 .connector-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(max(180px, calc((100% - 24px) / 3)), 1fr)
+  );
+  gap: 12px;
 }
+.connector-card span {
+  min-width: 0;
+}
+.connector-card b,
+.connector-card small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 结构对齐原型：缩写图标 + 名称 + “数据库元数据”；显式文字颜色，不受全局 button 白字样式影响 */
 .connector-card {
   border: 1px solid var(--ctx-border);
   background: var(--ctx-surface);
+  color: var(--ctx-ink, #1f2a3d);
   border-radius: 10px;
-  padding: 12px;
+  padding: 14px;
   text-align: left;
   cursor: pointer;
   font: inherit;
-  display: grid;
-  gap: 2px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.connector-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 .connector-card.active {
+  background: #f7faff;
   border-color: var(--ctx-primary);
   box-shadow: 0 0 0 1px var(--ctx-primary);
 }
+.connector-card b {
+  display: block;
+  font-weight: 600;
+}
 .connector-card small {
+  display: block;
+  margin-top: 4px;
   color: var(--ctx-muted);
+  font-size: 12px;
 }
 .field-error {
   color: #b42318;

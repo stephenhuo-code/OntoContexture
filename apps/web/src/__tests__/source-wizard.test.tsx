@@ -274,6 +274,6 @@ it("连接器卡片显示缩写图标与连接器名称（按原型）", async (
     ["Do", "Doris", "数据库元数据"],
   ]);
   expect(
-    within(dialog).getByRole("button", { name: "PostgreSQL 数据库元数据" }),
+    within(dialog).getByRole("button", { name: /^PostgreSQL/ }),
   ).toHaveAttribute("aria-pressed", "false");
 });

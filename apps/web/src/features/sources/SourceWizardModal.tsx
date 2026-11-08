@@ -9,6 +9,7 @@ import type {
 } from "@contexture/ts-api";
 import { ErrorBanner } from "../../components/ErrorBanner";
 import { Field } from "./Field";
+import { ConnectorBadge } from "./SourcesList";
 import {
   createSource,
   getTestConnection,
@@ -331,8 +332,12 @@ export function SourceWizardModal({
                   />
                 )}
               </Field>
-              <h3>选择数据库连接器</h3>
-              <div className="connector-grid">
+              <h3 id="connector-grid-title">选择数据库连接器</h3>
+              <div
+                className="connector-grid"
+                role="group"
+                aria-labelledby="connector-grid-title"
+              >
                 {CONNECTORS.map((c) => (
                   <button
                     key={c.type}
@@ -345,7 +350,11 @@ export function SourceWizardModal({
                       set("port", String(c.port));
                     }}
                   >
-                    <b>{c.label}</b> <small>数据库元数据</small>
+                    <ConnectorBadge type={c.type} />
+                    <span>
+                      <b>{c.label}</b>
+                      <small>数据库元数据</small>
+                    </span>
                   </button>
                 ))}
               </div>

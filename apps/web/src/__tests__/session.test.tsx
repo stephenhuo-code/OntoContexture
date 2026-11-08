@@ -155,7 +155,7 @@ it("重新聚焦时后台核验：页面保留但不可操作，换用户后旧�
   fireEvent.focus(window);
   await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
   // 核验期间：提示正在确认身份，旧用户页面不可操作（inert），不切换为整页加载
-  expect(screen.getByRole("status")).toHaveTextContent("正在确认身份");
+  expect(screen.getByRole("status", { name: "正在确认身份" })).toBeVisible();
   expect(old.closest("[inert]")).not.toBeNull();
   await act(async () =>
     finish(
@@ -199,7 +199,9 @@ it("同一用户重新聚焦：核验后页面状态保留（打开的弹窗与�
   await waitFor(() => expect(meCalls).toBe(2));
   await act(async () => finish(response(200)));
   await waitFor(() =>
-    expect(screen.queryByRole("status")).not.toBeInTheDocument(),
+    expect(
+      screen.queryByRole("status", { name: "正在确认身份" }),
+    ).not.toBeInTheDocument(),
   );
   const still = screen.getByRole("dialog", { name: "添加数据源" });
   expect(within(still).getByLabelText("显示名称 *")).toHaveValue("华东 MES");

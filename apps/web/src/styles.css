@@ -461,3 +461,22 @@ summary:focus-visible {
     max-width: 120px;
   }
 }
+
+/* 后台核验身份：内容容器不参与布局；提示浮在顶部，不遮挡页面结构 */
+.session-content {
+  display: contents;
+}
+.session-rechecking {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--ctx-surface, #fff);
+  border: 1px solid var(--ctx-border, #dbe3ef);
+  box-shadow: 0 6px 20px #18305220;
+  font-size: 13px;
+  color: var(--ctx-muted, #5b6b82);
+}

@@ -64,6 +64,11 @@ test("US1：接入 MES 并首采，统计等于 003 金标准，响应无明文�
   await page.getByRole("button", { name: "添加数据源" }).click();
   const dialog = page.getByRole("dialog", { name: "添加数据源" });
   await dialog.getByLabel("显示名称 *").fill("E2E MES");
+  // 切回窗口时后台核验身份，弹窗与已填内容保留（负责人 2026-11-08 反馈）
+  const recheck = page.waitForResponse((r) => r.url().endsWith("/bff/v1/me"));
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await recheck;
+  await expect(dialog.getByLabel("显示名称 *")).toHaveValue("E2E MES");
   await dialog.getByLabel("服务标识 *").fill(SERVICE);
   await dialog.getByRole("button", { name: /MySQL/ }).click();
   await dialog.getByRole("button", { name: "下一步" }).click();
