@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import type { CatalogEntityType } from "@contexture/ts-api";
+import type { CatalogEntityType, ServiceType } from "@contexture/ts-api";
+import { NavIcon } from "../../layout/NavIcon";
+import { ConnectorBadge } from "./SourcesList";
 import { getCatalogEntity, listSources } from "./api";
 import { CHILD_TYPE, assetChain, assetHref, splitFqn } from "./format";
 import { asApiError, useLoad, type Load } from "./useLoad";
@@ -12,6 +14,14 @@ type Node = {
   label: string;
   hint?: string;
   expandable: boolean;
+  serviceType?: ServiceType;
+};
+
+const TYPE_ICON: Record<CatalogEntityType, string> = {
+  databaseService: "database",
+  database: "database",
+  databaseSchema: "schema",
+  table: "table",
 };
 type Child = {
   entityType?: string;
@@ -125,7 +135,10 @@ export function CatalogTree({ onPick }: { onPick?: () => void }) {
                   aria-expanded={open}
                   onClick={() => toggle(n)}
                 >
-                  {open ? "⌄" : "›"}
+                  <NavIcon
+                    name="chevron"
+                    className={open ? "open" : undefined}
+                  />
                 </button>
               ) : (
                 <span className="catalog-toggle" />
@@ -140,6 +153,11 @@ export function CatalogTree({ onPick }: { onPick?: () => void }) {
                   onPick?.();
                 }}
               >
+                {n.serviceType ? (
+                  <ConnectorBadge type={n.serviceType} />
+                ) : (
+                  <NavIcon name={TYPE_ICON[n.type]} className="catalog-icon" />
+                )}
                 <span>{n.label}</span>
                 {n.hint && <small>{n.hint}</small>}
               </button>
@@ -195,6 +213,7 @@ export function CatalogTree({ onPick }: { onPick?: () => void }) {
                   ? String(s.tableCount)
                   : "未采集",
               expandable: s.configured && s.tableCount > 0,
+              serviceType: s.serviceType,
             })),
             0,
           )

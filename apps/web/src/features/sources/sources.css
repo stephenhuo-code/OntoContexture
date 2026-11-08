@@ -484,38 +484,61 @@
 .catalog-row {
   display: flex;
   align-items: center;
-  min-height: 33px;
-  border-radius: 5px;
+  min-height: 38px;
+  border-radius: 10px;
+  margin-bottom: 2px;
 }
 .catalog-row:hover {
-  background: #f5f8fd;
+  background: #f3f6fb;
 }
 .catalog-row.selected {
-  background: #edf3ff;
+  background: #f1f4f9;
 }
 .catalog-toggle {
-  width: 23px;
-  min-width: 23px;
-  height: 29px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  min-width: 24px;
+  height: 30px;
   border: 0;
+  padding: 0;
   background: none;
-  color: #90a1b8;
-  font-size: 14px;
+  color: #7a889c;
   cursor: pointer;
+}
+.catalog-toggle svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.15s;
+}
+.catalog-toggle svg.open {
+  transform: rotate(90deg);
 }
 .catalog-pick {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
   width: 100%;
-  padding: 7px 5px 7px 0;
+  padding: 7px 8px 7px 2px;
   background: none;
   border: 0;
   text-align: left;
-  color: #6d7e96;
-  font-size: 12px;
+  color: #344256;
+  font-size: 14px;
   cursor: pointer;
+}
+.catalog-pick .connector-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 9px;
+}
+.catalog-icon {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: #6b7a90;
 }
 .catalog-pick span {
   overflow: hidden;
@@ -524,13 +547,17 @@
 }
 .catalog-pick small {
   margin-left: auto;
-  font-size: 10px;
-  color: #9aa8b9;
-  padding-right: 5px;
+  padding: 1px 8px;
+  border: 1px solid #dfe5ef;
+  border-radius: 7px;
+  background: #f7f9fc;
+  font-size: 12px;
+  color: #4b5b74;
   white-space: nowrap;
 }
 .catalog-row.selected .catalog-pick {
-  color: var(--ctx-primary);
+  color: var(--ctx-ink);
+  font-weight: 600;
 }
 .catalog-note {
   margin: 4px 0 4px 24px;
