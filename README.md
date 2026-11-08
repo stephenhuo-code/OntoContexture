@@ -81,4 +81,5 @@ make e2e KUBE_CONTEXT=kind-contexture # 临时 kubeconfig 隔离上下文；只�
 003 的双规模重建测试单独执行 `make e2e-mock-data`；此命令会重建模拟 MES / QMS / mock_dw，004 回归不要运行。
 
 2026-11-03：004 已经产品负责人验收通过并关闭，见 [验收记录](specs/004-web-shell/acceptance.md)。
-下一项为 005 源系统元数据采集；后续按 006 → 007 → 008 推进。
+2026-11-08：005 源系统元数据采集已经产品负责人验收通过并关闭，见 [验收记录](specs/005-source-metadata-ingestion/acceptance.md)。
+下一项为 006 资产搜索与摘要；后续按 007 → 008 推进。
