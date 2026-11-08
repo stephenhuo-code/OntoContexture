@@ -51,9 +51,7 @@ export const zh = {
   greeting: (name: string) => `你好，${name}`,
   homeDescription: "从这里了解数据资产与治理工作的进展。",
   // 005 源系统元数据采集
-  sources: {
-    ingestionGroup: "数据接入",
-  },
+  sources: {},
   nav: {
     primary: "一级导航",
     secondary: "首页导航",

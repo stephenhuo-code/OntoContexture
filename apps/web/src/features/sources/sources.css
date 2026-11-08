@@ -435,11 +435,6 @@
   display: flex;
   gap: 8px;
 }
-.secondary-group-label {
-  color: var(--ctx-muted);
-  font-size: 12px;
-  margin: 12px 0 4px;
-}
 @media (max-width: 600px) {
   .kv {
     grid-template-columns: 1fr;

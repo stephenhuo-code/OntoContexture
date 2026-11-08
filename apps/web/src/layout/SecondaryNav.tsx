@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { zh } from "../i18n/zh-CN";
 import type { RouteEntry } from "./navigation";
@@ -30,19 +30,13 @@ export function SecondaryNav({
       <div className="module-label">{text.title ?? route.label}</div>
       <nav aria-label={text.aria}>
         {route.secondaryItems.map((item) => (
-          <Fragment key={item.id}>
-            {item.id === "sources" && (
-              <div className="secondary-group-label">
-                {zh.sources.ingestionGroup}
-              </div>
-            )}
-            <Link
-              to={item.path}
-              aria-current={current === item.path ? "page" : undefined}
-            >
-              {item.label}
-            </Link>
-          </Fragment>
+          <Link
+            key={item.id}
+            to={item.path}
+            aria-current={current === item.path ? "page" : undefined}
+          >
+            {item.label}
+          </Link>
         ))}
       </nav>
       {children}
