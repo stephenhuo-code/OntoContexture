@@ -108,3 +108,17 @@ async def test_trigger_waits_for_dag_settle_after_recent_deploy() -> None:
     started = time.monotonic()
     await svc.trigger(user_context(), "mock-mes", "metadata")
     assert time.monotonic() - started < 0.2
+
+
+async def test_wait_for_run_ignores_the_previous_run() -> None:
+    """触发后新运行登记前，最近一条仍是上一次运行；指定 after_run_id 时须等到新运行结束。"""
+    om = FakeOM()
+    svc = await created(om)
+    fqn = next(iter(om.pipelines.values()))["fullyQualifiedName"]
+    old = om.add_run(fqn, "success", 1_000, 2_000)
+    with pytest.raises(ContextureError) as exc:
+        await svc.wait_for_run(user_context(), "mock-mes", "metadata", timeout=0, after_run_id=old)
+    assert exc.value.code == "source.run_timeout"
+    new = om.add_run(fqn, "success", 5_000, 9_000)
+    run = await svc.wait_for_run(user_context(), "mock-mes", "metadata", timeout=0, after_run_id=old)
+    assert run["runId"] == new
