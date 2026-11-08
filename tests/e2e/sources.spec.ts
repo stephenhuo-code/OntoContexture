@@ -519,8 +519,13 @@ test("场景 F：OpenMetadata 不可用时 /sources 显示真实错误与重试�
   test.setTimeout(600_000);
   const kubectl = (...args: string[]) =>
     execFileSync("kubectl", ["-n", "contexture", ...args], { stdio: "pipe" });
+  // 正常态：数据源列表，或（单独运行本场景时）空状态
+  const main = page.getByRole("main");
+  const healthy = main
+    .getByRole("table", { name: "数据源列表" })
+    .or(main.getByRole("heading", { name: "还没有数据源" }));
   await login(page, "engineer1", "/sources");
-  await expect(page.getByRole("table", { name: "数据源列表" })).toBeVisible();
+  await expect(healthy).toBeVisible();
   kubectl("scale", "deploy/openmetadata", "--replicas=0");
   try {
     kubectl(
@@ -535,7 +540,9 @@ test("场景 F：OpenMetadata 不可用时 /sources 显示真实错误与重试�
     await expect(page.getByText("错误码 upstream.unavailable")).toBeVisible({
       timeout: 60_000,
     });
-    await expect(page.getByRole("button", { name: "重试" })).toBeVisible();
+    await expect(
+      page.getByRole("main").getByRole("button", { name: "重试" }),
+    ).toBeVisible();
     await expect(page.getByRole("table", { name: "数据源列表" })).toHaveCount(
       0,
     );
@@ -550,13 +557,14 @@ test("场景 F：OpenMetadata 不可用时 /sources 显示真实错误与重试�
     .poll(
       async () => {
         await page
+          .getByRole("main")
           .getByRole("button", { name: "重试" })
-          .first()
           .click({ timeout: 1000 })
           .catch(() => undefined);
-        return page.getByRole("table", { name: "数据源列表" }).count();
+        return healthy.count();
       },
       { timeout: 240_000, intervals: [5000] },
     )
     .toBe(1);
+  await expect(page.getByText("错误码 upstream.unavailable")).toHaveCount(0);
 });

@@ -561,8 +561,17 @@
 .pre {
   white-space: pre-wrap;
 }
-.tree-mobile {
+/* 与 .ctx-button 同时使用，提高优先级以免宽屏显示 */
+.sources-workspace .tree-mobile {
   display: none;
+}
+.link-button {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--ctx-primary);
+  cursor: pointer;
+  font: inherit;
 }
 .catalog-drawer {
   position: fixed;
@@ -582,7 +591,7 @@
   .secondary-rail .catalog-nav {
     display: none;
   }
-  .tree-mobile {
+  .sources-workspace .tree-mobile {
     display: inline-flex;
     margin-bottom: 12px;
   }

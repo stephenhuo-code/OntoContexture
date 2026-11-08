@@ -172,7 +172,14 @@ export function CatalogTree({ onPick }: { onPick?: () => void }) {
       )}
       {sources.state.status === "error" && (
         <p className="catalog-note error" role="alert">
-          目录读取失败 · {sources.state.error.code}
+          目录读取失败 · {sources.state.error.code}{" "}
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => sources.reload()}
+          >
+            重试
+          </button>
         </p>
       )}
       {sources.state.status === "ready" &&
