@@ -281,7 +281,9 @@ summary:focus-visible {
   color: #4b5b74;
 }
 .secondary-rail {
+  position: relative;
   flex: 0 0 236px;
+  min-width: 0;
   background: var(--ctx-surface);
   border-right: 1px solid var(--ctx-border);
   padding: 0 12px;
@@ -521,4 +523,29 @@ summary:focus-visible {
   box-shadow: 0 6px 20px #18305220;
   font-size: 13px;
   color: var(--ctx-muted, #5b6b82);
+}
+
+/* 二级栏右边缘拖动条 */
+.rail-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 5;
+}
+.rail-resizer:hover,
+.rail-resizer:focus-visible {
+  background: linear-gradient(
+    90deg,
+    transparent 2px,
+    var(--ctx-primary) 2px 4px,
+    transparent 4px
+  );
+  outline: none;
+}
+body.resizing {
+  cursor: col-resize;
+  user-select: none;
 }

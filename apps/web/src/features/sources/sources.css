@@ -468,8 +468,12 @@
 }
 
 /* ---------- US3 目录树与资产详情（结构对齐 005 原型） ---------- */
+/* 目录树也是 nav：不沿用二级导航链接组的 grid（grid 列按最长内容撑开会造成横向溢出） */
+.secondary-rail nav.catalog-nav,
 .catalog-nav {
-  overflow: auto;
+  display: block;
+  overflow-x: hidden;
+  overflow-y: auto;
   min-height: 100px;
   max-height: calc(100dvh - 370px);
   margin: 12px -5px;
@@ -518,8 +522,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  /* 占满行内剩余宽度且可收缩：深层缩进时名称省略，数量胶囊始终可见 */
+  flex: 1 1 0;
   min-width: 0;
-  width: 100%;
   padding: 7px 8px 7px 2px;
   background: none;
   border: 0;
@@ -529,6 +534,7 @@
   cursor: pointer;
 }
 .catalog-pick .connector-badge {
+  flex: none;
   width: 22px;
   height: 22px;
   border-radius: 6px;
@@ -541,11 +547,14 @@
   color: #6b7a90;
 }
 .catalog-pick span {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .catalog-pick small {
+  flex: none;
   margin-left: auto;
   padding: 1px 8px;
   border: 1px solid #dfe5ef;
