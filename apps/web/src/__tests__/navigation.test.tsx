@@ -171,3 +171,11 @@ it("一级与二级导航每个入口带对应图标（2026-11-08 负责人按�
     document.querySelector(".module-label svg")?.getAttribute("data-icon"),
   ).toBe("module-asset");
 });
+
+it("品牌位为经纬交织图标（2026-11-08 负责人确认），无障碍名称为织境", async () => {
+  stubIdentity();
+  await openShell();
+  const brand = screen.getByRole("link", { name: "织境" });
+  expect(brand.querySelector("svg")?.getAttribute("data-icon")).toBe("brand");
+  expect(brand.textContent).toBe("");
+});

@@ -1,6 +1,7 @@
-import { render, screen, within } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
+import { renderQ } from "./query-wrapper";
 import { afterEach, expect, it, vi } from "vitest";
 import { SourcesWorkspace } from "../features/sources/SourcesWorkspace";
 import { sourcesFixture, stubBff } from "./sources-fixtures";
@@ -8,7 +9,7 @@ import { sourcesFixture, stubBff } from "./sources-fixtures";
 afterEach(() => vi.unstubAllGlobals());
 
 function open(path = "/sources") {
-  return render(
+  return renderQ(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/sources/*" element={<SourcesWorkspace />} />

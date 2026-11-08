@@ -1,6 +1,7 @@
-import { render, screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
+import { renderQ } from "./query-wrapper";
 import { afterEach, expect, it, vi } from "vitest";
 import { CatalogTree } from "../features/sources/CatalogTree";
 import { SourcesWorkspace } from "../features/sources/SourcesWorkspace";
@@ -183,7 +184,7 @@ function Where() {
 }
 
 function open(path: string, withTree = false) {
-  return render(
+  return renderQ(
     <MemoryRouter initialEntries={[path]}>
       {withTree && <CatalogTree />}
       <Routes>
@@ -434,7 +435,7 @@ it("目录读取失败时如实显示错误码并可重试", async () => {
       },
     },
   ]);
-  render(
+  renderQ(
     <MemoryRouter initialEntries={["/sources"]}>
       <CatalogTree />
     </MemoryRouter>,
@@ -446,4 +447,71 @@ it("目录读取失败时如实显示错误码并可重试", async () => {
   expect(
     await within(tree).findByRole("button", { name: /^fixture-mes/ }),
   ).toBeVisible();
+});
+
+it("采集运行结束后左侧目录自动更新，无需刷新页面", async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  try {
+    const mes = sourcesFixture[0]!;
+    const meta = mes.pipelines[0]!;
+    const running = {
+      runId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      pipelineState: "running",
+      startDate: Date.now() - 5_000,
+      endDate: null,
+      steps: [],
+    };
+    const before = {
+      ...mes,
+      tableCount: 0,
+      columnCount: 0,
+      pipelines: [{ ...meta, lastRun: running }],
+    };
+    const list = {
+      path: "/bff/v1/sources",
+      body: { data: [before] } as unknown,
+    };
+    const detail = {
+      path: "/bff/v1/sources/fixture-mes",
+      body: {
+        ...before,
+        connection: {
+          hostPort: "h:3306",
+          username: "u",
+          database: "mes",
+          tls: false,
+        },
+        scope: { includeViews: true },
+      } as unknown,
+    };
+    const runs = {
+      path: "/bff/v1/sources/fixture-mes/pipelines/metadata/runs",
+      body: { data: [running] } as unknown,
+    };
+    stubBff([list, detail, runs, ...routes]);
+    open("/sources/fixture-mes?tab=tasks&task=metadata", true);
+    const tree = await screen.findByRole("navigation", { name: "数据源目录" });
+    expect(
+      await within(tree).findByRole("button", { name: /^fixture-mes/ }),
+    ).toHaveTextContent("未采集");
+
+    // OM 中运行结束：列表统计与运行记录变为成功（BFF 下一次读取即返回新值）
+    const done = { ...running, pipelineState: "success", endDate: Date.now() };
+    const after = { ...mes, pipelines: [{ ...meta, lastRun: done }] };
+    list.body = { data: [after] };
+    detail.body = { ...(detail.body as object), ...after };
+    runs.body = { data: [done] };
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    await waitFor(() =>
+      expect(
+        within(tree).getByRole("button", { name: /^fixture-mes/ }),
+      ).toHaveTextContent("13"),
+    );
+    expect(
+      within(tree).getByRole("button", { name: "展开 fixture-mes" }),
+    ).toBeVisible();
+  } finally {
+    vi.useRealTimers();
+  }
 });

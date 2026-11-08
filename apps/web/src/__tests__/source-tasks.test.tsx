@@ -1,6 +1,7 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
+import { renderQ } from "./query-wrapper";
 import { afterEach, expect, it, vi } from "vitest";
 import { SourcesWorkspace } from "../features/sources/SourcesWorkspace";
 import { T0, sourcesFixture, stubBff } from "./sources-fixtures";
@@ -70,7 +71,7 @@ const runs = [
 const base = "/bff/v1/sources/fixture-mes/pipelines";
 
 function open(path: string) {
-  render(
+  renderQ(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/sources/*" element={<SourcesWorkspace />} />

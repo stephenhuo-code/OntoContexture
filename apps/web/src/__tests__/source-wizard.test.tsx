@@ -1,6 +1,7 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
+import { renderQ } from "./query-wrapper";
 import { afterEach, expect, it, vi } from "vitest";
 import { SourcesWorkspace } from "../features/sources/SourcesWorkspace";
 import { sourcesFixture, stubBff } from "./sources-fixtures";
@@ -22,7 +23,7 @@ const okSteps = [
 ];
 
 function open() {
-  render(
+  renderQ(
     <MemoryRouter initialEntries={["/sources"]}>
       <Routes>
         <Route path="/sources/*" element={<SourcesWorkspace />} />
