@@ -159,6 +159,10 @@
 
 - **实测（2026-11-07，本地 kind，MES 13 张表）**：测试连接 0.6–0.7 s；部署到可触发约 2 s（dag-processor 刷新间隔 10 s）；
   首次元数据采集（触发到 success）约 25 s。
+- **T078 实测（2026-11-08，本地 kind；`CTX_PERF=1 pnpm e2e:browser tests/e2e/sources-perf.spec.ts`，浏览器 → Envoy → BFF → OM）**：
+  测试连接 0.5 s；保存配置（创建服务与任务并部署）0.6 s；保存到首采成功 109.5 s（含部署后 20 s 稳定等待、任务 Pod 启动；
+  同日 e2e US1 从打开向导到首采成功 34–46 s，波动来自 KubernetesExecutor 拉起 Pod 与 dag-processor 扫描）；
+  读取 p95（n=20）：数据源列表 152 ms、数据源详情 91 ms、目录·服务 34 ms、目录·数据库 79 ms、目录·Schema 85 ms。
 - **实施中发现并修正的部署问题**：① 镜像须含 `pii-processor` 依赖，否则生成的 DAG 导入失败；② Chart 默认不给 api-server 挂 dags 卷，
   须显式挂载，否则任务 Pod 报 “Dag not found during start up”；③ dag-processor 默认 300 s 才发现新 DAG，缩短为 10 s；
   ④ managed-apis 在 Airflow 3 下不校验凭证，以网络策略限制访问方（R3）。
