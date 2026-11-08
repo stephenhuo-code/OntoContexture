@@ -179,3 +179,27 @@ it("品牌位为经纬交织图标（2026-11-08 负责人确认），无障碍�
   expect(brand.querySelector("svg")?.getAttribute("data-icon")).toBe("brand");
   expect(brand.textContent).toBe("");
 });
+
+it("二级栏可拖动调整宽度：分隔条可用键盘调整，宽度有上下限（负责人 2026-11-08 反馈）", async () => {
+  localStorage.removeItem("ctx.secondaryWidth");
+  stubIdentity();
+  await openShell("/assets");
+  const rail = document.getElementById("secondary-navigation")!;
+  const handle = screen.getByRole("separator", { name: "调整二级栏宽度" });
+  expect(handle).toHaveAttribute("aria-orientation", "vertical");
+  const start = Number(handle.getAttribute("aria-valuenow"));
+  handle.focus();
+  fireEvent.keyDown(handle, { key: "ArrowRight" });
+  expect(Number(handle.getAttribute("aria-valuenow"))).toBe(start + 16);
+  expect(rail.style.width).toBe(`${start + 16}px`);
+  for (let i = 0; i < 60; i++) fireEvent.keyDown(handle, { key: "ArrowRight" });
+  expect(handle).toHaveAttribute(
+    "aria-valuenow",
+    handle.getAttribute("aria-valuemax"),
+  );
+  fireEvent.keyDown(handle, { key: "Home" });
+  expect(handle).toHaveAttribute(
+    "aria-valuenow",
+    handle.getAttribute("aria-valuemin"),
+  );
+});

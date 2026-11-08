@@ -254,6 +254,24 @@ test("US3：MES / QMS / Doris 四层目录浏览、面包屑与表结构", async
   const qms = node("e2e-qms");
   await qms.getByRole("button", { name: "展开 qms", exact: true }).click();
   await qms.getByRole("button", { name: /^public/ }).click();
+  // 展开较深时，目录行不超出二级栏，数量胶囊仍可见（负责人 2026-11-08 反馈）
+  await expect(
+    qms.getByRole("button", { name: /^(展开|收起) public$/ }),
+  ).toBeVisible();
+  await qms.getByRole("button", { name: "展开 public", exact: true }).click();
+  await expect(qms.getByRole("listitem").nth(3)).toBeVisible();
+  const overflow = await tree.evaluate((nav) => {
+    const box = nav.getBoundingClientRect();
+    const pills = [...nav.querySelectorAll(".catalog-pick small")].map((el) =>
+      el.getBoundingClientRect(),
+    );
+    return {
+      scroll: nav.scrollWidth - nav.clientWidth,
+      hidden: pills.filter((r) => r.right > box.right + 0.5 || r.width === 0)
+        .length,
+    };
+  });
+  expect(overflow).toEqual({ scroll: 0, hidden: 0 });
   await expect(page.getByRole("navigation", { name: "资产层级" })).toHaveText(
     "e2e-qms›qms›public",
   );
