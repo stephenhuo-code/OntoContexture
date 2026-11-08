@@ -175,17 +175,17 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### Tests for User Story 4（先写、先失败）
 
-- [ ] T062 [P] [US4] 在 `services/bff/tests/contract/test_governance_contract.py` 编写 `patchCatalogEntity` 与 `getGovernanceOptions` 契约测试（`null` 清空恢复继承；字段仅允许 displayName / description / tags / glossaryTerms；400 校验错误）
-- [ ] T063 [P] [US4] 在 `services/bff/tests/unit/test_governance.py` 编写测试：转换为 OM JSON Patch；数据产品所属域须与有效业务域（含继承）一致；同一 `mutuallyExclusive` 分类只保留一个标签；保留周期须为 ISO 8601 时长（如 `P30D`、`PT24H`）；继承来源计算——业务域 服务 → 库 → Schema → 表，负责人与保留周期 库 → Schema → 表（数据库不继承服务负责人）
-- [ ] T064 [P] [US4] 在 `services/bff/tests/integration/test_governance_cluster.py`（`-m cluster`）编写测试：在五个层级写入属性后重新运行元数据采集（`overrideMetadata=false`），属性保持不变；修改数据源连接配置后服务级治理属性保持不变
-- [ ] T065 [P] [US4] 在 `apps/web/src/__tests__/property-edit.test.tsx` 编写组件测试（夹具）：选项来自 BFF；保存回显、取消不保存、清空恢复继承、“单独设置 / 继承自 <上级类型> · <上级 FQN>”标注、域与产品不匹配提示、互斥标签替换、周期校验、HTML 输入转义
+- [X] T062 [P] [US4] 在 `services/bff/tests/contract/test_governance_contract.py` 编写 `patchCatalogEntity` 与 `getGovernanceOptions` 契约测试（`null` 清空恢复继承；字段仅允许 displayName / description / tags / glossaryTerms；400 校验错误）
+- [X] T063 [P] [US4] 在 `services/bff/tests/unit/test_governance.py` 编写测试：转换为 OM JSON Patch；数据产品所属域须与有效业务域（含继承）一致；同一 `mutuallyExclusive` 分类只保留一个标签；保留周期须为 ISO 8601 时长（如 `P30D`、`PT24H`）；继承来源计算——业务域 服务 → 库 → Schema → 表，负责人与保留周期 库 → Schema → 表（数据库不继承服务负责人）
+- [X] T064 [P] [US4] 在 `services/bff/tests/integration/test_governance_cluster.py`（`-m cluster`）编写测试：在五个层级写入属性后重新运行元数据采集（`overrideMetadata=false`），属性保持不变；修改数据源连接配置后服务级治理属性保持不变
+- [X] T065 [P] [US4] 在 `apps/web/src/__tests__/property-edit.test.tsx` 编写组件测试（夹具）：选项来自 BFF；保存回显、取消不保存、清空恢复继承、“单独设置 / 继承自 <上级类型> · <上级 FQN>”标注、域与产品不匹配提示、互斥标签替换、周期校验、HTML 输入转义
 
 ### Implementation for User Story 4
 
-- [ ] T066 [US4] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现治理选项读取、属性 Patch 与继承来源计算（使 T063 通过）
-- [ ] T067 [US4] 在 `services/bff/src/contexture_bff/api/catalog.py` 实现 `PATCH /bff/v1/catalog/{entityType}/{fqn}` 与 `GET /bff/v1/governance/options`，写操作记审计（使 T062、T064 通过）
-- [ ] T068 [US4] 新增 `apps/web/src/features/sources/PropertyEditModal.tsx`，并接入概览、库 / Schema / 表详情与字段行（使 T065 通过）
-- [ ] T069 [US4] 在 `tests/e2e/sources.spec.ts` 增加 US4 端到端：五层级编辑、继承与恢复、重采集保留
+- [X] T066 [US4] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现治理选项读取、属性 Patch 与继承来源计算（使 T063 通过）
+- [X] T067 [US4] 在 `services/bff/src/contexture_bff/api/catalog.py` 实现 `PATCH /bff/v1/catalog/{entityType}/{fqn}` 与 `GET /bff/v1/governance/options`，写操作记审计（使 T062、T064 通过）
+- [X] T068 [US4] 新增 `apps/web/src/features/sources/PropertyEditModal.tsx`，并接入概览、库 / Schema / 表详情与字段行（使 T065 通过）
+- [X] T069 [US4] 在 `tests/e2e/sources.spec.ts` 增加 US4 端到端：五层级编辑、继承与恢复、重采集保留
 
 ---
 

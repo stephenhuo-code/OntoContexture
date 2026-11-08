@@ -196,3 +196,11 @@ export function assetChain(type: CatalogEntityType, fqn: string) {
     label: fqnLabel(parts[i] ?? ""),
   }));
 }
+
+/** OM 继承规则：域 服务→库→Schema→表；负责人与保留周期 库→Schema→表（数据库不继承服务负责人） */
+export const INHERITABLE: Record<CatalogEntityType, string[]> = {
+  databaseService: [],
+  database: ["domains"],
+  databaseSchema: ["domains", "owners", "retentionPeriod"],
+  table: ["domains", "owners", "retentionPeriod"],
+};

@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { PageState } from "@contexture/ui";
+import { Button, PageState } from "@contexture/ui";
 import type { CatalogEntity, CatalogEntityType } from "@contexture/ts-api";
 import { getCatalogEntity } from "./api";
-import { AssetProperties, Chips } from "./AssetProperties";
+import { Chips } from "./AssetProperties";
+import { EditableProperties, PropertyEditModal } from "./PropertyEditModal";
 import { KIND_NAME, LEVELS, assetChain, assetHref } from "./format";
 import { useLoad } from "./useLoad";
 
@@ -123,7 +125,16 @@ function TableSwitch({ service, fqn }: { service: string; fqn: string }) {
   );
 }
 
-function Structure({ t }: { t: Table }) {
+function Structure({
+  entity,
+  t,
+  onSaved,
+}: {
+  entity: CatalogEntity;
+  t: Table;
+  onSaved: (e: CatalogEntity) => void;
+}) {
+  const [editing, setEditing] = useState<string | null>(null);
   const cols = t.columns ?? [];
   // OM：单列约束记在 columns[].constraint，多列约束记在 tableConstraints；两处合并展示，均为 OM 原始数据
   const tableLevel = t.constraints ?? [];
@@ -198,6 +209,7 @@ function Structure({ t }: { t: Table }) {
                 <th>显示名称 / 描述</th>
                 <th>分类标签</th>
                 <th>业务术语</th>
+                <th>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -223,12 +235,31 @@ function Structure({ t }: { t: Table }) {
                   <td>
                     <Chips items={c.glossaryTerms ?? []} />
                   </td>
+                  <td>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setEditing(c.name ?? null)}
+                    >
+                      编辑属性
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </section>
+      {editing && (
+        <PropertyEditModal
+          entity={entity}
+          column={cols.find((c) => c.name === editing)}
+          onClose={() => setEditing(null)}
+          onSaved={(e) => {
+            setEditing(null);
+            onSaved(e);
+          }}
+        />
+      )}
     </>
   );
 }
@@ -300,9 +331,9 @@ export function CatalogAssetDetailView() {
       {e.entityType === "table" && (
         <TableSwitch service={name} fqn={e.fullyQualifiedName} />
       )}
-      <AssetProperties entity={e} />
+      <EditableProperties entity={e} onSaved={entity.set} />
       {e.entityType === "table" && e.table ? (
-        <Structure t={e.table} />
+        <Structure entity={e} t={e.table} onSaved={entity.set} />
       ) : (
         <Folder service={name} entity={e} />
       )}

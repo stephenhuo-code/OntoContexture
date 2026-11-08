@@ -589,13 +589,25 @@ class SourcesService:
                 await asyncio.sleep(self.poll_interval)
 
     async def wait_for_run(
-        self, ctx: RequestContext, name: str, kind: str, timeout: float = 600
+        self,
+        ctx: RequestContext,
+        name: str,
+        kind: str,
+        timeout: float = 600,
+        after_run_id: str | None = None,
     ) -> dict[str, Any]:
+        """等待最近一次运行结束；after_run_id 为触发前的最近运行，新运行登记前不把它当作结果。"""
         deadline = time.monotonic() + timeout
         while True:
             pipe = await self._pipeline(ctx, name, kind)
             last = latest_status(pipe) or {}
-            if last.get("pipelineState") in ("success", "partialSuccess", "failed", "stopped"):
+            fresh = after_run_id is None or last.get("runId") != after_run_id
+            if fresh and last.get("pipelineState") in (
+                "success",
+                "partialSuccess",
+                "failed",
+                "stopped",
+            ):
                 return run_view(last)
             if time.monotonic() >= deadline:
                 raise ContextureError(
@@ -609,9 +621,7 @@ class SourcesService:
         total = (page.get("paging") or {}).get("total")
         return int(total) if isinstance(total, int) else len(page.get("data") or [])
 
-    async def get_catalog_entity(
-        self, ctx: RequestContext, entity_type: str, fqn: str
-    ) -> dict[str, Any]:
+    async def _raw_entity(self, ctx: RequestContext, entity_type: str, fqn: str) -> dict[str, Any]:
         spec = CATALOG[entity_type]
         raw = await self.om.request(
             ctx,
@@ -624,12 +634,205 @@ class SourcesService:
             entity_type == "databaseService" and raw.get("serviceType") not in SERVICE_TYPES
         ):
             raise ContextureError("catalog.not_found", f"目录中不存在 {fqn}", status_code=404)
+        return dict(raw)
+
+    async def _governance(
+        self, ctx: RequestContext, entity_type: str, raw: dict[str, Any]
+    ) -> dict[str, Any]:
+        """本级单独设置的值优先；未设置时按 OM 继承规则（INHERIT）取最近一个单独设置的上级，并标注来源。"""
+        g = governance_view(raw)
+        g["inheritedFrom"] = {}
+        missing = [f for f in INHERIT.get(entity_type, {}) if not g[f]]
+        if not missing:
+            return g
+        chain = _ancestors(entity_type, raw["fullyQualifiedName"])
+        cache: dict[str, dict[str, Any]] = {}
+        for field in missing:
+            for anc_type, anc_fqn in chain:
+                if anc_type not in INHERIT[entity_type][field]:
+                    continue
+                if anc_fqn not in cache:
+                    cache[anc_fqn] = governance_view(await self._raw_entity(ctx, anc_type, anc_fqn))
+                if cache[anc_fqn][field]:
+                    g[field] = cache[anc_fqn][field]
+                    g["inheritedFrom"][field] = {
+                        "entityType": anc_type,
+                        "fullyQualifiedName": anc_fqn,
+                    }
+                    break
+        return g
+
+    async def governance_options(self, ctx: RequestContext) -> dict[str, Any]:
+        """治理选项实时读取 OM；本期不创建治理实体。Tier / Certification 在 OM 中是独立属性，不列入分类标签。"""
+        users, teams, domains, products, classes, terms = await asyncio.gather(
+            self._paged(ctx, "/users", {"isBot": "false"}),
+            self._paged(ctx, "/teams", {}),
+            self._paged(ctx, "/domains", {}),
+            self._paged(ctx, "/dataProducts", {"fields": "domains"}),
+            self._paged(ctx, "/classifications", {}),
+            self._paged(ctx, "/glossaryTerms", {}),
+        )
+        classes = [c for c in classes if c["name"] not in ("Tier", "Certification")]
+        tags = await asyncio.gather(
+            *(self._paged(ctx, "/tags", {"parent": c["name"]}) for c in classes)
+        )
+        return {
+            "users": [_ref({**u, "type": "user"}) for u in users if not u.get("isBot")],
+            # OM 只允许 Group 类型团队作为负责人
+            "teams": [_ref({**t, "type": "team"}) for t in teams if t.get("teamType") == "Group"],
+            "domains": [_ref({**d, "type": "domain"}) for d in domains],
+            "dataProducts": [
+                {
+                    **_ref({**p, "type": "dataProduct"}),
+                    "domains": [
+                        _ref({**d, "type": d.get("type") or "domain"})
+                        for d in p.get("domains") or []
+                    ],
+                }
+                for p in products
+            ],
+            "classifications": [
+                {
+                    "name": c["name"],
+                    "mutuallyExclusive": bool(c.get("mutuallyExclusive")),
+                    "tags": [t["fullyQualifiedName"] for t in ts],
+                }
+                for c, ts in zip(classes, tags, strict=True)
+            ],
+            "glossaryTerms": [t["fullyQualifiedName"] for t in terms],
+        }
+
+    async def patch_catalog_entity(
+        self, ctx: RequestContext, entity_type: str, fqn: str, body: dict[str, Any]
+    ) -> dict[str, Any]:
+        """治理属性 → OM JSON Patch。body 只含要改的字段；值为 None 表示清空（恢复继承）。"""
+        raw = await self._raw_entity(ctx, entity_type, fqn)
+        keys = set(body) - {"columnName"}
+        column = body.get("columnName")
+        base: dict[str, Any] = raw
+        prefix = ""
+        if column is not None:
+            if entity_type != "table" or keys - COLUMN_FIELDS:
+                raise _governance_error(
+                    "governance.field_not_allowed",
+                    "字段属性只能修改显示名称、描述、分类标签与业务术语",
+                )
+            idx = next(
+                (i for i, c in enumerate(raw.get("columns") or []) if c["name"] == column), None
+            )
+            if idx is None:
+                raise ContextureError(
+                    "catalog.column_not_found", f"{fqn} 中不存在字段 {column}", status_code=404
+                )
+            base, prefix = raw["columns"][idx], f"/columns/{idx}"
+        elif "retentionPeriod" in keys and entity_type == "databaseService":
+            raise _governance_error("governance.field_not_allowed", "数据源不设置保留周期")
+        await self._validate_governance(ctx, entity_type, raw, body, keys)
+
+        ops: list[dict[str, Any]] = []
+        for field in ("displayName", "description", "retentionPeriod"):
+            if field in keys:
+                if body[field] is None:
+                    if base.get(field) is not None:
+                        ops.append({"op": "remove", "path": f"{prefix}/{field}"})
+                else:
+                    ops.append({"op": "add", "path": f"{prefix}/{field}", "value": body[field]})
+        for field, om_field in (("owners", "owners"), ("dataProducts", "dataProducts")):
+            if field in keys:
+                value = [{"id": r["id"], "type": r["type"]} for r in body[field] or []]
+                ops.append({"op": "add", "path": f"/{om_field}", "value": value})
+        if "domain" in keys:
+            d = body["domain"]
+            ops.append(
+                {
+                    "op": "add",
+                    "path": "/domains",
+                    "value": [{"id": d["id"], "type": d["type"]}] if d else [],
+                }
+            )
+        if keys & {"tier", "tags", "glossaryTerms"}:
+            ops.append(
+                {
+                    "op": "add",
+                    "path": f"{prefix}/tags",
+                    "value": _merge_tags(base.get("tags"), body, keys),
+                }
+            )
+        if ops:
+            await self.om.request(
+                ctx, "PATCH", f"{CATALOG[entity_type]['path']}/{raw['id']}", patch=ops
+            )
+        return await self.get_catalog_entity(ctx, entity_type, raw["fullyQualifiedName"])
+
+    async def _validate_governance(
+        self,
+        ctx: RequestContext,
+        entity_type: str,
+        raw: dict[str, Any],
+        body: dict[str, Any],
+        keys: set[str],
+    ) -> None:
+        if body.get("tier") is not None and not TIER.fullmatch(body["tier"]):
+            raise _governance_error("governance.invalid_tier", "重要程度须为 Tier.Tier1–Tier.Tier5")
+        if body.get("retentionPeriod") is not None and not ISO_DURATION.fullmatch(
+            body["retentionPeriod"]
+        ):
+            raise _governance_error(
+                "governance.invalid_retention", "保留周期须为 ISO 8601 时长，例如 P30D 或 PT24H"
+            )
+        owners = body.get("owners") or []
+        types = {o["type"] for o in owners}
+        if owners and not (types == {"user"} or (types == {"team"} and len(owners) == 1)):
+            raise _governance_error(
+                "governance.owners_invalid", "负责人须为一名或多名用户，或单个团队"
+            )
+        by_class: dict[str, list[str]] = {}
+        for tag in body.get("tags") or []:
+            by_class.setdefault(tag.split(".", 1)[0], []).append(tag)
+        for name, tags in by_class.items():
+            if len(tags) > 1:
+                cls = await self.om.request(
+                    ctx, "GET", f"/classifications/name/{quote(name, safe='')}", allow_404=True
+                )
+                if cls and cls.get("mutuallyExclusive"):
+                    raise _governance_error(
+                        "governance.exclusive_tags",
+                        f"分类 {name} 互斥，只能选择一个标签：{'、'.join(tags)}",
+                    )
+        if keys & {"domain", "dataProducts"}:
+            products = body["dataProducts"] if "dataProducts" in keys else raw.get("dataProducts")
+            if not products:
+                return
+            if "domain" in keys and body["domain"]:
+                domain: str | None = body["domain"]["id"]
+            else:
+                current = await self._governance(
+                    ctx,
+                    entity_type,
+                    {**raw, "domains": [] if "domain" in keys else raw.get("domains")},
+                )
+                domain = (current["domains"] or [{}])[0].get("id")
+            catalog = {
+                p["id"]: p for p in await self._paged(ctx, "/dataProducts", {"fields": "domains"})
+            }
+            for p in products:
+                own = {d["id"] for d in (catalog.get(p["id"]) or {}).get("domains") or []}
+                if domain not in own:
+                    raise _governance_error(
+                        "governance.domain_mismatch",
+                        "数据产品与业务域不匹配，请调整业务域或数据产品",
+                    )
+
+    async def get_catalog_entity(
+        self, ctx: RequestContext, entity_type: str, fqn: str
+    ) -> dict[str, Any]:
+        raw = await self._raw_entity(ctx, entity_type, fqn)
         out: dict[str, Any] = {
             "entityType": entity_type,
             "id": raw["id"],
             "name": raw["name"],
             "fullyQualifiedName": raw["fullyQualifiedName"],
-            "governance": governance_view(raw),
+            "governance": await self._governance(ctx, entity_type, raw),
         }
         rfqn = raw["fullyQualifiedName"]
         if entity_type == "databaseService":
@@ -665,7 +868,10 @@ class SourcesService:
 KIND_TITLE = {"metadata": "元数据采集", "lineage": "视图血缘"}
 
 CATALOG: dict[str, dict[str, str]] = {
-    "databaseService": {"path": "/services/databaseServices", "fields": "owners,tags,domains"},
+    "databaseService": {
+        "path": "/services/databaseServices",
+        "fields": "owners,tags,domains,dataProducts",
+    },
     "database": {"path": "/databases", "fields": "owners,tags,domains,dataProducts"},
     "databaseSchema": {"path": "/databaseSchemas", "fields": "owners,tags,domains,dataProducts"},
     "table": {
@@ -704,6 +910,82 @@ def _ref(r: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# 继承规则（OM 2.0.3 DatabaseRepository / DatabaseSchemaRepository / TableRepository.setInheritedFields）：
+# 域 服务 → 库 → Schema → 表；负责人与保留周期 库 → Schema → 表（数据库不继承服务负责人）
+_UP_TO_SERVICE = ("databaseService", "database", "databaseSchema")
+_UP_TO_DATABASE = ("database", "databaseSchema")
+INHERIT: dict[str, dict[str, tuple[str, ...]]] = {
+    "database": {"domains": _UP_TO_SERVICE},
+    "databaseSchema": {
+        "domains": _UP_TO_SERVICE,
+        "owners": _UP_TO_DATABASE,
+        "retentionPeriod": _UP_TO_DATABASE,
+    },
+    "table": {
+        "domains": _UP_TO_SERVICE,
+        "owners": _UP_TO_DATABASE,
+        "retentionPeriod": _UP_TO_DATABASE,
+    },
+}
+COLUMN_FIELDS = {"displayName", "description", "tags", "glossaryTerms"}
+TIER = re.compile(r"Tier\.Tier[1-5]")
+# ISO 8601 时长：周单独使用，或 年月日 + T 时分秒（秒可带小数）
+ISO_DURATION = re.compile(
+    r"P\d+W|P(?=\d|T\d)(?:\d+Y)?(?:\d+M)?(?:\d+D)?(?:T(?=\d)(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?"
+)
+_LEVELS = ("databaseService", "database", "databaseSchema", "table")
+
+
+def _governance_error(code: str, message: str) -> ContextureError:
+    return ContextureError(code, message, status_code=400)
+
+
+def _split_fqn(fqn: str) -> list[str]:
+    """OM FQN：以点分隔，含点的名称以双引号包裹。"""
+    parts, cur, quoted = [], "", False
+    for ch in fqn:
+        if ch == '"':
+            quoted = not quoted
+        if ch == "." and not quoted:
+            parts.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    parts.append(cur)
+    return parts
+
+
+def _ancestors(entity_type: str, fqn: str) -> list[tuple[str, str]]:
+    """上级链（最近的在前）。"""
+    parts = _split_fqn(fqn)
+    depth = _LEVELS.index(entity_type)
+    return [(_LEVELS[i], ".".join(parts[: i + 1])) for i in range(depth - 1, -1, -1)]
+
+
+def _label(tag_fqn: str, source: str) -> dict[str, Any]:
+    return {"tagFQN": tag_fqn, "source": source, "labelType": "Manual", "state": "Confirmed"}
+
+
+def _merge_tags(
+    current: list[dict[str, Any]] | None, body: dict[str, Any], keys: set[str]
+) -> list[dict[str, Any]]:
+    """OM 的 Tier、分类标签与术语同存于 tags；只替换本次修改的类别，其余标签原样保留。"""
+
+    def category(t: dict[str, Any]) -> str:
+        if t.get("source") == "Glossary":
+            return "glossaryTerms"
+        return "tier" if (t.get("tagFQN") or "").startswith("Tier.") else "tags"
+
+    out = [t for t in current or [] if category(t) not in keys]
+    if "tier" in keys and body["tier"]:
+        out.append(_label(body["tier"], "Classification"))
+    if "tags" in keys:
+        out += [_label(t, "Classification") for t in body["tags"] or []]
+    if "glossaryTerms" in keys:
+        out += [_label(t, "Glossary") for t in body["glossaryTerms"] or []]
+    return out
+
+
 def governance_view(e: dict[str, Any]) -> dict[str, Any]:
     tier = next(
         (t["tagFQN"] for t in e.get("tags") or [] if (t.get("tagFQN") or "").startswith("Tier.")),
@@ -712,8 +994,9 @@ def governance_view(e: dict[str, Any]) -> dict[str, Any]:
     return {
         "displayName": e.get("displayName"),
         "description": e.get("description"),
-        "owners": [_ref(r) for r in e.get("owners") or []],
-        "domains": [_ref(r) for r in e.get("domains") or []],
+        # OM 把继承得到的引用标为 inherited；这里只取本级单独设置的值，继承由 _governance 计算并标注来源
+        "owners": [_ref(r) for r in e.get("owners") or [] if not r.get("inherited")],
+        "domains": [_ref(r) for r in e.get("domains") or [] if not r.get("inherited")],
         "tier": tier,
         "tags": _tag_fqns(e.get("tags"), glossary=False),
         "glossaryTerms": _tag_fqns(e.get("tags"), glossary=True),

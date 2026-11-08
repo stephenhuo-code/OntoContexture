@@ -1183,6 +1183,8 @@ export interface operations {
             400: components["responses"]["Error"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            /** @description 实体不存在 catalog.not_found，或字段不存在 catalog.column_not_found */
+            404: components["responses"]["Error"];
             /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
             422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];

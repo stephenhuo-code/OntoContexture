@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, StatusBadge } from "@contexture/ui";
 import type {
   ApiError,
@@ -8,6 +8,7 @@ import type {
   TestConnectionResult,
 } from "@contexture/ts-api";
 import { ErrorBanner } from "../../components/ErrorBanner";
+import { Field } from "./Field";
 import {
   createSource,
   getTestConnection,
@@ -92,34 +93,6 @@ function initial(source?: SourceDetail): Draft {
     lineageMode: lin && !lin.schedule?.cron ? "manual" : "daily",
     lineageTime: cronToTime(lin?.schedule?.cron) ?? "03:00",
   };
-}
-
-function Field({
-  label,
-  help,
-  full,
-  children,
-}: {
-  label: string;
-  help?: string;
-  full?: boolean;
-  children: (props: {
-    id: string;
-    "aria-describedby"?: string;
-  }) => React.ReactNode;
-}) {
-  const id = useId();
-  return (
-    <div className={`field${full ? " full" : ""}`}>
-      <label htmlFor={id}>{label}</label>
-      {children({ id, "aria-describedby": help ? `${id}-help` : undefined })}
-      {help && (
-        <small className="help" id={`${id}-help`}>
-          {help}
-        </small>
-      )}
-    </div>
-  );
 }
 
 const STEPS = ["选择连接器", "连接验证", "采集范围", "调度与确认"];

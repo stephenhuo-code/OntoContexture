@@ -490,6 +490,11 @@ paths:
             description: "校验失败：域与数据产品不一致、保留周期非 ISO 8601、互斥分类多选",
             $ref: "#/components/responses/Error",
           }
+        "404":
+          {
+            description: "实体不存在 catalog.not_found，或字段不存在 catalog.column_not_found",
+            $ref: "#/components/responses/Error",
+          }
         "502": { $ref: "#/components/responses/Unavailable" }
   /bff/v1/governance/options:
     get:
@@ -857,6 +862,7 @@ components:
         columnName:
           {
             type: string,
+            minLength: 1,
             description: 编辑字段属性时提供；仅允许 displayName / description / tags / glossaryTerms,
           }
         displayName: { type: [string, "null"] }
@@ -930,7 +936,7 @@ components:
       required: [id, type]
       properties:
         id: { type: string, format: uuid }
-        type: { type: string, example: user }
+        type: { type: string, minLength: 1, example: user }
         name: { type: string }
         displayName: { type: string }
         fullyQualifiedName: { type: string }

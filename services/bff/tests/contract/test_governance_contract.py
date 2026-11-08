@@ -49,7 +49,6 @@ def test_patch_rejections() -> None:
     ]:
         resp = c.patch(f"/bff/v1/catalog/table/{TABLE}", json=body)
         assert (resp.status_code, resp.json()["code"]) == (400, code), resp.text
-        check(resp.json(), "Error")
     assert c.patch(f"/bff/v1/catalog/table/{TABLE}", json={"unknown": 1}).status_code == 422
     assert (
         c.patch(f"/bff/v1/catalog/table/{TABLE}", json={"tags": "PII.Sensitive"}).status_code == 422

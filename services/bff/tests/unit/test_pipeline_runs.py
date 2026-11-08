@@ -120,5 +120,7 @@ async def test_wait_for_run_ignores_the_previous_run() -> None:
         await svc.wait_for_run(user_context(), "mock-mes", "metadata", timeout=0, after_run_id=old)
     assert exc.value.code == "source.run_timeout"
     new = om.add_run(fqn, "success", 5_000, 9_000)
-    run = await svc.wait_for_run(user_context(), "mock-mes", "metadata", timeout=0, after_run_id=old)
+    run = await svc.wait_for_run(
+        user_context(), "mock-mes", "metadata", timeout=0, after_run_id=old
+    )
     assert run["runId"] == new

@@ -23,13 +23,13 @@ NAME = "ctx005-it-governance"
 DB, SCHEMA = f"{NAME}.default", f"{NAME}.default.mes"
 
 
-class EngineerExchanger:
-    def __init__(self) -> None:
-        self.token, self.at = "", 0.0
+class UserExchanger:
+    def __init__(self, user: str) -> None:
+        self.user, self.token, self.at = user, "", 0.0
 
     async def exchange(self, subject_token: str, audience: str) -> str:
         if time.monotonic() - self.at > 240:
-            self.token = exchange(user_token("engineer1", "engineer1"), audience)
+            self.token = exchange(user_token(self.user, self.user), audience)
             self.at = time.monotonic()
         return self.token
 
@@ -72,7 +72,11 @@ def _body(password: str, display: str) -> dict[str, Any]:
 
 
 async def _run(url: str) -> None:
-    svc = SourcesService(OmClient(om_url=url, exchanger=EngineerExchanger()), poll_interval=2)
+    svc = SourcesService(
+        OmClient(om_url=url, exchanger=UserExchanger("engineer1")), poll_interval=2
+    )
+    # 清理用 admin1：按 R12，数据工程角色不能删除数据源
+    admin = OmClient(om_url=url, exchanger=UserExchanger("admin1"))
     ctx = RequestContext(
         tenant_id="local",
         user_id="engineer1",
@@ -84,7 +88,7 @@ async def _run(url: str) -> None:
     pw = _password()
 
     async def cleanup() -> None:
-        await svc.om.request(
+        await admin.request(
             ctx,
             "DELETE",
             f"/services/databaseServices/name/{NAME}",
@@ -93,8 +97,10 @@ async def _run(url: str) -> None:
         )
 
     async def ingest() -> None:
+        runs = await svc.list_runs(ctx, NAME, "metadata")
+        prev = runs[0]["runId"] if runs else None
         await svc.trigger(ctx, NAME, "metadata")
-        run = await svc.wait_for_run(ctx, NAME, "metadata", timeout=300)
+        run = await svc.wait_for_run(ctx, NAME, "metadata", timeout=300, after_run_id=prev)
         assert run["pipelineState"] == "success"
 
     await cleanup()

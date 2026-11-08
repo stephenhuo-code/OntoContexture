@@ -252,3 +252,133 @@ test("US3：MES / QMS / Doris 四层目录浏览、面包屑与表结构", async
     page.getByRole("table", { name: "数据表列表" }).getByRole("row"),
   ).toHaveCount(9);
 });
+
+test("US4：五层级编辑属性、保留周期继承与恢复、重新采集后保留", async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
+  const enc = encodeURIComponent;
+  const save = async (dialogName: string) => {
+    const dialog = page.getByRole("dialog", { name: dialogName });
+    await dialog.getByRole("button", { name: "保存属性" }).click();
+    await expect(dialog).toBeHidden();
+  };
+  const card = (name: string) => page.getByRole("region", { name });
+
+  // 数据源：描述与 Tier
+  await login(page, "engineer1", `/sources/${SERVICE}`);
+  await card("数据源属性").getByRole("button", { name: "编辑属性" }).click();
+  let dialog = page.getByRole("dialog", { name: "编辑数据源属性" });
+  await dialog.getByLabel("描述").fill("E2E 服务说明");
+  await dialog.getByLabel("重要程度（Tier）").selectOption("Tier.Tier2");
+  await save("编辑数据源属性");
+  await expect(card("数据源属性")).toContainText("E2E 服务说明");
+  await expect(card("数据源属性")).toContainText("Tier.Tier2");
+
+  // 数据库：保留周期
+  await page.goto(
+    `/sources/${SERVICE}/assets/database/${enc(`${SERVICE}.default`)}`,
+  );
+  await card("数据库属性").getByRole("button", { name: "编辑属性" }).click();
+  await page
+    .getByRole("dialog", { name: "编辑数据库属性" })
+    .getByLabel("保留周期")
+    .fill("P30D");
+  await save("编辑数据库属性");
+  await expect(card("数据库属性")).toContainText("P30D");
+
+  // Schema：显示名称；保留周期继承自数据库
+  await page.goto(
+    `/sources/${SERVICE}/assets/databaseSchema/${enc(`${SERVICE}.default.mes`)}`,
+  );
+  await expect(card("Schema属性")).toContainText(
+    `继承自 数据库 · ${SERVICE}.default`,
+  );
+  await card("Schema属性").getByRole("button", { name: "编辑属性" }).click();
+  await page
+    .getByRole("dialog", { name: "编辑Schema属性" })
+    .getByLabel("显示名称")
+    .fill("E2E 生产库");
+  await save("编辑Schema属性");
+  await expect(
+    page.getByRole("heading", { level: 2, name: "E2E 生产库" }),
+  ).toBeVisible();
+
+  // 表：单独设置保留周期后清空，恢复继承；分类标签
+  await page
+    .getByRole("table", { name: "数据表列表" })
+    .getByRole("link")
+    .first()
+    .click();
+  const tableUrl = page.url();
+  await expect(card("数据表属性")).toContainText(
+    `继承自 数据库 · ${SERVICE}.default`,
+  );
+  await card("数据表属性").getByRole("button", { name: "编辑属性" }).click();
+  dialog = page.getByRole("dialog", { name: "编辑数据表属性" });
+  await dialog.getByLabel("显示名称").fill("E2E 表");
+  await dialog.getByLabel("保留周期").fill("PT24H");
+  await dialog.getByRole("checkbox", { name: "PII.Sensitive" }).check();
+  await save("编辑数据表属性");
+  await expect(card("数据表属性")).toContainText("PT24H");
+  await expect(card("数据表属性")).toContainText("单独设置");
+  await expect(card("数据表属性")).toContainText("PII.Sensitive");
+  await card("数据表属性").getByRole("button", { name: "编辑属性" }).click();
+  await page
+    .getByRole("dialog", { name: "编辑数据表属性" })
+    .getByLabel("保留周期")
+    .fill("");
+  await save("编辑数据表属性");
+  await expect(card("数据表属性")).toContainText("P30D");
+  await expect(card("数据表属性")).toContainText(
+    `继承自 数据库 · ${SERVICE}.default`,
+  );
+
+  // 字段：描述
+  const cols = page.getByRole("table", { name: "字段元数据" });
+  await cols.getByRole("button", { name: "编辑属性" }).first().click();
+  await page
+    .getByRole("dialog", { name: "编辑字段属性" })
+    .getByLabel("描述")
+    .fill("E2E 字段说明");
+  await save("编辑字段属性");
+  await expect(cols).toContainText("E2E 字段说明");
+
+  // 重新采集（overrideMetadata=false）后人工维护的属性保留；等待触发后的新运行成功（不是上一次运行）
+  const runs = async () =>
+    JSON.parse(
+      (
+        await bff(
+          page,
+          "GET",
+          `/bff/v1/sources/${SERVICE}/pipelines/metadata/runs`,
+        )
+      ).body,
+    ).data as { runId: string; pipelineState: string }[];
+  const previous = (await runs())[0]?.runId;
+  const t = await bff(
+    page,
+    "POST",
+    `/bff/v1/sources/${SERVICE}/pipelines/metadata/trigger`,
+  );
+  expect(t.status, t.body).toBe(202);
+  await expect
+    .poll(
+      async () => {
+        const latest = (await runs())[0];
+        return latest?.runId !== previous ? latest?.pipelineState : "old";
+      },
+      { timeout: 240_000, intervals: [3000] },
+    )
+    .toBe("success");
+  await page.goto(tableUrl);
+  await expect(
+    page.getByRole("heading", { level: 2, name: "E2E 表" }),
+  ).toBeVisible();
+  await expect(card("数据表属性")).toContainText("PII.Sensitive");
+  await expect(page.getByRole("table", { name: "字段元数据" })).toContainText(
+    "E2E 字段说明",
+  );
+  await page.goto(`/sources/${SERVICE}`);
+  await expect(card("数据源属性")).toContainText("E2E 服务说明");
+});

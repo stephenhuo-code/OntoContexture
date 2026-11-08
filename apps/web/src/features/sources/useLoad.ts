@@ -28,5 +28,10 @@ export function useLoad<T>(fetcher: () => Promise<T>, deps: unknown[]) {
     );
   }, deps);
   useEffect(() => reload(), [reload]);
-  return { state, reload };
+  /** 以写操作返回的最新数据替换（BFF 返回即 OM 的最新状态） */
+  const set = useCallback((data: T) => {
+    seq.current++;
+    setState({ status: "ready", data });
+  }, []);
+  return { state, reload, set };
 }
