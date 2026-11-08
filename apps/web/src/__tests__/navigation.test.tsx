@@ -134,13 +134,14 @@ it.each(["/unknown/path", "/objects/a/b"])(
   },
 );
 
-// 005：资产工作空间（原型 2026-11-06 确认）：二级为“资产搜索（未开放）”与“数据接入 → 数据源”
+// 005：资产工作空间：二级为“资产搜索（未开放）”与“数据源”；不显示“数据接入”分组标题（负责人 2026-11-08 验收反馈）
 it("资产工作空间的二级导航含数据源入口，指向 /sources", async () => {
   stubIdentity();
   await openShell("/assets");
   const secondary = screen.getByRole("navigation", { name: "数据资产导航" });
   const links = within(secondary).getAllByRole("link");
   expect(links.map((e) => e.textContent)).toEqual(["资产搜索", "数据源"]);
+  expect(screen.queryByText("数据接入")).not.toBeInTheDocument();
   expect(
     within(secondary).getByRole("link", { name: "数据源" }),
   ).toHaveAttribute("href", "/sources");
