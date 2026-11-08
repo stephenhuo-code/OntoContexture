@@ -486,6 +486,22 @@ test("SC-007：1280 / 768 / 390 视口下列表、详情四页签、向导、资
       page.getByRole("dialog", { name: "添加数据源" }),
     ).toBeVisible();
     await check("接入向导");
+    // 连接器名称须可见：文字颜色不能与卡片背景相同（曾因全局 button 白字样式而隐形）
+    const unreadable = await page
+      .locator(".connector-card")
+      .evaluateAll((cards) =>
+        cards
+          .filter((c) => {
+            const b = c.querySelector("b");
+            return (
+              !b ||
+              !b.textContent ||
+              getComputedStyle(b).color === getComputedStyle(c).backgroundColor
+            );
+          })
+          .map((c) => c.textContent),
+      );
+    expect(unreadable, `${width}px · 连接器名称不可见`).toEqual([]);
     await page.keyboard.press("Escape");
     for (const tab of ["overview", "metadata", "scope", "tasks"]) {
       await page.goto(`/sources/${SERVICE}?tab=${tab}`);

@@ -249,3 +249,31 @@ it("保存失败显示真实错误", async () => {
     "Failed to deploy Ingestion Pipeline",
   );
 });
+
+it("连接器卡片显示缩写图标与连接器名称（按原型）", async () => {
+  stubBff([{ path: "/bff/v1/sources", body: { data: [] } }]);
+  open();
+  await userEvent.click(
+    await screen.findByRole("button", { name: "添加数据源" }),
+  );
+  const dialog = screen.getByRole("dialog", { name: "添加数据源" });
+  const cards = within(dialog)
+    .getByRole("group", { name: "选择数据库连接器" })
+    .querySelectorAll("button");
+  expect(
+    [...cards].map((c) => [
+      c.querySelector(".connector-badge")?.textContent,
+      c.querySelector("b")?.textContent,
+      c.querySelector("small")?.textContent,
+    ]),
+  ).toEqual([
+    ["My", "MySQL", "数据库元数据"],
+    ["Pg", "PostgreSQL", "数据库元数据"],
+    ["Or", "Oracle", "数据库元数据"],
+    ["MS", "SQL Server", "数据库元数据"],
+    ["Do", "Doris", "数据库元数据"],
+  ]);
+  expect(
+    within(dialog).getByRole("button", { name: "PostgreSQL 数据库元数据" }),
+  ).toHaveAttribute("aria-pressed", "false");
+});
