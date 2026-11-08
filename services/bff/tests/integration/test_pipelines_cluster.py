@@ -3,7 +3,6 @@
 
 import asyncio
 import base64
-import json
 import subprocess
 import sys
 import time
@@ -32,15 +31,26 @@ class UserExchanger:
         return self.token
 
 
+_PAUSED_PY = """
+import json, os, sys, urllib.request
+base = "http://localhost:8080"
+req = urllib.request.Request(base + "/auth/token", method="POST",
+    data=json.dumps({"username": "openmetadata", "password": os.environ["OM_AIRFLOW_PASSWORD"]}).encode(),
+    headers={"Content-Type": "application/json"})
+token = json.load(urllib.request.urlopen(req))["access_token"]
+dag = urllib.request.Request(base + "/api/v2/dags/" + sys.argv[1], headers={"Authorization": "Bearer " + token})
+print(json.load(urllib.request.urlopen(dag))["is_paused"])
+"""
+
+
 def _dag_paused(dag_id: str) -> bool:
+    """测试经 Airflow 自身 REST 接口核对 DAG 暂停状态（仅测试；BFF 不直连 Airflow）。"""
     out = subprocess.run(
-        ["kubectl", "-n", "contexture", "exec", "deploy/airflow-scheduler", "-c", "scheduler", "--",
-         "airflow", "dags", "details", dag_id, "-o", "json"],
+        ["kubectl", "-n", "contexture", "exec", "deploy/airflow-api-server", "-c", "api-server", "--",
+         "python", "-c", _PAUSED_PY, dag_id],
         check=True, capture_output=True, text=True,
-    ).stdout
-    data = json.loads(out)
-    row = data[0] if isinstance(data, list) else data
-    return str(row.get("is_paused")).lower() == "true"
+    ).stdout.strip().splitlines()[-1]
+    return out == "True"
 
 
 def _pw() -> str:

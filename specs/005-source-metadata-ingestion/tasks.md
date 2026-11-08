@@ -129,15 +129,15 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### Tests for User Story 2（先写、先失败）
 
-- [ ] T046 [P] [US2] 在 `services/bff/tests/contract/test_pipelines_contract.py` 编写 `listPipelineRuns`（含 `state` 筛选）、`triggerPipeline`（202、409 `source.pipeline_in_flight`）、`setPipelineScheduleEnabled`（200、400 `source.schedule_not_set`）、`getLastPipelineLogs` 契约测试；`kind` 仅允许 `metadata`、`lineage`
-- [ ] T047 [P] [US2] 在 `services/bff/tests/unit/test_pipeline_runs.py` 编写测试：`PipelineStatus` 原样投影为 `PipelineRun`（runId、pipelineState、startDate、endDate、steps 的 records / updatedRecords / warnings / errors / filtered / failures），新到旧排序，无触发方式字段；存在 queued / running 时拒绝触发；暂停 / 恢复调用 OM `toggleIngestion`；日志经脱敏
-- [ ] T048 [P] [US2] 在 `services/bff/tests/integration/test_pipelines_cluster.py`（`-m cluster`）编写测试：对 MES 元数据采集任务暂停后 Airflow DAG `is_paused=true`、恢复后为 false；立即运行产生新的 `PipelineStatus`；最近一次日志可读
+- [X] T046 [P] [US2] 在 `services/bff/tests/contract/test_pipelines_contract.py` 编写 `listPipelineRuns`（含 `state` 筛选）、`triggerPipeline`（202、409 `source.pipeline_in_flight`）、`setPipelineScheduleEnabled`（200、400 `source.schedule_not_set`）、`getLastPipelineLogs` 契约测试；`kind` 仅允许 `metadata`、`lineage`
+- [X] T047 [P] [US2] 在 `services/bff/tests/unit/test_pipeline_runs.py` 编写测试：`PipelineStatus` 原样投影为 `PipelineRun`（runId、pipelineState、startDate、endDate、steps 的 records / updatedRecords / warnings / errors / filtered / failures），新到旧排序，无触发方式字段；存在 queued / running 时拒绝触发；暂停 / 恢复调用 OM `toggleIngestion`；日志经脱敏
+- [X] T048 [P] [US2] 在 `services/bff/tests/integration/test_pipelines_cluster.py`（`-m cluster`）编写测试：对 MES 元数据采集任务暂停后 Airflow DAG `is_paused=true`、恢复后为 false；立即运行产生新的 `PipelineStatus`；最近一次日志可读
 - [ ] T049 [P] [US2] 在 `apps/web/src/__tests__/source-tasks.test.tsx` 编写组件测试（夹具数据）：任务列表按 `pipelines` 渲染 1 或 2 条；运行记录列为开始时间 / 状态 / 耗时 / 运行编号；筛选仅作用于当前任务；运行中禁用“立即运行”；暂停确认弹窗；运行详情展示步骤统计与失败对象，仅最近一次运行显示日志，其余注明；异常运行提供“立即运行”
 
 ### Implementation for User Story 2
 
-- [ ] T050 [US2] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现运行记录读取、触发（含在途校验）、暂停 / 恢复与最近日志（使 T047 通过）
-- [ ] T051 [US2] 在 `services/bff/src/contexture_bff/api/sources.py` 实现 `/bff/v1/sources/{name}/pipelines/{kind}/runs|trigger|schedule|logs/last`，写操作记审计（使 T046、T048 通过）
+- [X] T050 [US2] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现运行记录读取、触发（含在途校验）、暂停 / 恢复与最近日志（使 T047 通过）
+- [X] T051 [US2] 在 `services/bff/src/contexture_bff/api/sources.py` 实现 `/bff/v1/sources/{name}/pipelines/{kind}/runs|trigger|schedule|logs/last`，写操作记审计（使 T046、T048 通过）
 - [ ] T052 [US2] 在 `apps/web/src/features/sources/SourceDetailView.tsx` 实现采集任务页签：任务列表、任务运行视图（轮询刷新、筛选、暂停 / 恢复确认、调度详情弹窗显示 DAG 标识 = 任务名）与运行详情弹窗（使 T049 通过）
 - [ ] T053 [US2] 在 `tests/e2e/sources.spec.ts` 增加 US2 端到端：暂停 / 恢复、立即运行、运行详情与日志
 

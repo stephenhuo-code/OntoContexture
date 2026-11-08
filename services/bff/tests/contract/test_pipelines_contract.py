@@ -1,16 +1,9 @@
 """US2 契约：/bff/v1/sources/{name}/pipelines/{kind}/*。"""
 
-from typing import Any
-
 import jsonschema
-from bff_fakes import user_context
+from contract_helpers import ERROR, check, make
 from om_fake import FakeOM
 from sources_helpers import upsert
-from test_sources_contract import ERROR, SPEC, make
-
-
-def check(body: Any, name: str) -> None:
-    jsonschema.validate(body, {"$ref": f"#/components/schemas/{name}", "components": SPEC["components"]})
 
 
 def test_runs_trigger_schedule_logs_match_contract() -> None:
@@ -43,5 +36,3 @@ def test_manual_task_schedule_toggle_rejected() -> None:
     resp = c.put("/bff/v1/sources/mock-mes/pipelines/metadata/schedule", json={"enabled": True})
     assert resp.status_code == 400 and resp.json()["code"] == "source.schedule_not_set"
 
-
-_ = user_context

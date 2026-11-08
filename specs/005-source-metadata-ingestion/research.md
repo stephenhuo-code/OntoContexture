@@ -206,3 +206,6 @@
 - `GET /tables` 只支持 `database` / `databaseSchema` 过滤（`TableResource`），不支持 `service`；按服务统计须先 `GET /databases?service=` 再逐库计数。
 - OM 2.0.3 的 PostgreSQL 元数据采集默认包含 `information_schema`（原生配置与界面均无默认排除；连接器仅在连接检查中识别系统 Schema，
   `postgres/connection.py:149`）。按“与 OM 一致”，BFF 不加默认排除；验收时 QMS 用 Schema 包含 `^public$`（原型示例同此），并在 acceptance.md 注明。
+- 保存后 Airflow 登记 DAG 前（约 1–10 s），OM 的 trigger 返回 400、toggleIngestion 因 Airflow 404 不改 `enabled`（且把 `deployed` 置为 false）。
+  BFF 以 OM 回读结果为准，在 20 s 内重试；超时如实返回 `source.pipeline_not_ready`，不伪造已触发 / 已切换。
+- R12 授予采集任务的 `EditAll` 覆盖 toggleIngestion 所需的 `EditIngestionPipelineStatus`（US2 集群测试以 engineer1 验证）。

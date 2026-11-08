@@ -289,6 +289,7 @@ paths:
       operationId: triggerPipeline
       summary: 立即运行（OM trigger）；该任务已有 queued / running 运行时拒绝
       responses:
+        "404": { description: "数据源或任务不存在 source.not_found", $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
@@ -312,6 +313,8 @@ paths:
               properties:
                 enabled: { type: boolean }
       responses:
+        "409": { description: "Airflow 尚未登记该任务 source.pipeline_not_ready", $ref: "#/components/responses/Error" }
+        "404": { description: "数据源或任务不存在 source.not_found", $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }
@@ -330,6 +333,7 @@ paths:
       operationId: getLastPipelineLogs
       summary: 该任务最近一次运行的日志（OM 仅提供最近一次，research R7），已脱敏
       responses:
+        "404": { description: "数据源或任务不存在 source.not_found", $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "422": { description: "请求参数不合法 request.invalid（py-core 统一处理）", $ref: "#/components/responses/Error" }

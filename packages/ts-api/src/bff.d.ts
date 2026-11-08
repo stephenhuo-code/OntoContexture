@@ -1038,6 +1038,8 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            /** @description 数据源或任务不存在 source.not_found */
+            404: components["responses"]["Error"];
             /** @description source.pipeline_in_flight */
             409: components["responses"]["Error"];
             /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
@@ -1076,6 +1078,10 @@ export interface operations {
             400: components["responses"]["Error"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            /** @description 数据源或任务不存在 source.not_found */
+            404: components["responses"]["Error"];
+            /** @description Airflow 尚未登记该任务 source.pipeline_not_ready */
+            409: components["responses"]["Error"];
             /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
             422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
@@ -1108,6 +1114,8 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            /** @description 数据源或任务不存在 source.not_found */
+            404: components["responses"]["Error"];
             /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
             422: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];

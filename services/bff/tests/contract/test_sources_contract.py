@@ -1,44 +1,10 @@
 """005 契约：/bff/v1/sources* 的状态码与响应结构（contracts/openapi/bff.yaml），以内存 OM 夹具运行真实代码。"""
 
-import json
-from pathlib import Path
-from typing import Any
-
 import jsonschema
 import pytest
-import yaml
-from bff_fakes import FakeObjectData, FakeObjectTypes, FakeOidc, FakeSessions, user_context
-from fastapi.testclient import TestClient
+from contract_helpers import ERROR, check, make
 from om_fake import FakeOM
-from sources_helpers import service, upsert
-
-from contexture_bff.api.deps import current_context
-from contexture_bff.main import Services, create_app
-from contexture_bff.settings import BffSettings
-
-CONTRACTS = Path(__file__).resolve().parents[4] / "contracts"
-SPEC = yaml.safe_load((CONTRACTS / "openapi" / "bff.yaml").read_text())
-ERROR = json.loads((CONTRACTS / "schemas" / "error.json").read_text())
-
-
-def schema(name: str) -> dict[str, Any]:
-    return {"$ref": f"#/components/schemas/{name}", "components": SPEC["components"]}
-
-
-def check(body: Any, name: str) -> None:
-    jsonschema.validate(body, schema(name))
-
-
-def make(om: FakeOM, roles: tuple[str, ...] = ("ai-engineer",)) -> TestClient:
-    app = create_app(
-        BffSettings(tenant_id="local", public_url="http://testserver"),
-        services=Services(
-            sessions=FakeSessions(), oidc=FakeOidc(), object_types=FakeObjectTypes(),
-            object_data=FakeObjectData(), authenticator=None, sources=service(om),
-        ),
-    )
-    app.dependency_overrides[current_context] = lambda: user_context(roles=roles)
-    return TestClient(app)
+from sources_helpers import upsert
 
 
 def test_create_get_list_match_contract_and_mask_password() -> None:

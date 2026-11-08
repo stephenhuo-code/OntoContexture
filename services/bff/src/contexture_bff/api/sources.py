@@ -145,3 +145,39 @@ async def update_source(
     audited(request, ctx)
     return await svc.update_source(ctx, name, body.model_dump())
 
+
+# ---------- US2：采集任务 ----------
+Kind = Annotated[Literal["metadata", "lineage"], Path()]
+State = Literal["queued", "running", "success", "partialSuccess", "failed", "stopped"]
+
+
+class ScheduleToggle(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    enabled: bool
+
+
+@router.get("/sources/{name:source_name}/pipelines/{kind}/runs")
+async def list_runs(
+    name: Name, kind: Kind, ctx: WebContext, svc: Sources, state: State | None = None
+) -> dict[str, Any]:
+    return {"data": await svc.list_runs(ctx, name, kind, state)}
+
+
+@router.post("/sources/{name:source_name}/pipelines/{kind}/trigger", status_code=status.HTTP_202_ACCEPTED)
+async def trigger_pipeline(request: Request, name: Name, kind: Kind, ctx: WebContext, svc: Sources) -> dict[str, Any]:
+    audited(request, ctx)
+    await svc.trigger(ctx, name, kind)
+    return {}
+
+
+@router.put("/sources/{name:source_name}/pipelines/{kind}/schedule")
+async def set_schedule(
+    request: Request, name: Name, kind: Kind, body: ScheduleToggle, ctx: WebContext, svc: Sources
+) -> dict[str, Any]:
+    audited(request, ctx)
+    return await svc.set_schedule(ctx, name, kind, enabled=body.enabled)
+
+
+@router.get("/sources/{name:source_name}/pipelines/{kind}/logs/last")
+async def last_logs(name: Name, kind: Kind, ctx: WebContext, svc: Sources) -> dict[str, Any]:
+    return await svc.last_logs(ctx, name, kind)

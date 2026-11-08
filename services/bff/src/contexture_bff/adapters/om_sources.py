@@ -153,6 +153,16 @@ def _cron(schedule: dict[str, Any] | None) -> str | None:
     return str(cron).strip() or None if cron else None
 
 
+_SECRET_RE = re.compile(
+    r"""(?i)(["']?(?:password|passwd|pwd|secret|token)["']?\s*[:=]\s*)(["']?)[^\s,;"'}]+\2"""
+)
+
+
+def redact(text: str) -> str:
+    """日志脱敏（防御性）：密码、密钥、令牌类字段值替换为掩码。OM 采集框架本身已对凭证脱敏。"""
+    return _SECRET_RE.sub(lambda m: f"{m.group(1)}{m.group(2)}{MASK}{m.group(2)}", text)
+
+
 def run_view(status: dict[str, Any]) -> dict[str, Any]:
     """OM PipelineStatus → PipelineRun（原样投影；OM 不记录触发方式）。"""
     steps = []
@@ -439,7 +449,61 @@ class SourcesService:
         )
         return {"workflowId": workflow_id, "status": status, "steps": steps}
 
-    # ---------- 运行（US2 在此扩展） ----------
+    # ---------- 运行（US2：FR-005） ----------
+
+    async def list_runs(
+        self, ctx: RequestContext, name: str, kind: str, state: str | None = None
+    ) -> list[dict[str, Any]]:
+        pipe = await self._pipeline(ctx, name, kind)
+        page = await self.om.request(
+            ctx,
+            "GET",
+            f"/services/ingestionPipelines/{pipe['fullyQualifiedName']}/pipelineStatus",
+            params={"startTs": 0, "endTs": int(time.time() * 1000) + 86_400_000},
+        )
+        runs = [run_view(r) for r in (page or {}).get("data") or [] if r.get("runId")]
+        runs.sort(key=lambda r: r.get("startDate") or 0, reverse=True)
+        return [r for r in runs if not state or r["pipelineState"] == state]
+
+    async def trigger(self, ctx: RequestContext, name: str, kind: str) -> None:
+        pipe = await self._pipeline(ctx, name, kind)
+        last = latest_status(pipe)
+        if last and last.get("pipelineState") in ("queued", "running"):
+            raise ContextureError(
+                "source.pipeline_in_flight", "该任务已有排队中或运行中的运行，请勿重复触发", status_code=409
+            )
+        # 刚保存的任务需 Airflow 扫描登记 DAG（research R11），短时重试
+        await self.trigger_when_ready(ctx, name, kind, timeout=20)
+
+    async def set_schedule(self, ctx: RequestContext, name: str, kind: str, *, enabled: bool) -> dict[str, Any]:
+        pipe = await self._pipeline(ctx, name, kind)
+        if not (pipe.get("airflowConfig") or {}).get("scheduleInterval"):
+            raise ContextureError(
+                "source.schedule_not_set", "该任务为手动触发，请先在采集配置中设置定时计划", status_code=400
+            )
+        # 刚保存的任务在 Airflow 登记 DAG 前，OM 的 toggle 会因 Airflow 404 而不改状态（2026-11-08 实测）；
+        # 切换后以 OM 回读结果为准，未生效则在超时内重试，超时如实返回，不伪造已切换
+        deadline = time.monotonic() + 20
+        while bool(pipe.get("enabled", True)) != enabled:
+            if time.monotonic() >= deadline:
+                raise ContextureError(
+                    "source.pipeline_not_ready",
+                    "Airflow 尚未登记该任务，暂时无法切换调度，请稍后重试",
+                    status_code=409,
+                )
+            await self.om.request(ctx, "POST", f"/services/ingestionPipelines/toggleIngestion/{pipe['id']}")
+            pipe = await self._pipeline(ctx, name, kind)
+            if bool(pipe.get("enabled", True)) != enabled:
+                await asyncio.sleep(self.poll_interval)
+        return _pipeline_view(pipe)
+
+    async def last_logs(self, ctx: RequestContext, name: str, kind: str) -> dict[str, Any]:
+        """OM 只提供最近一次运行日志（DefaultLogStorage 忽略 runId，research R7）。"""
+        pipe = await self._pipeline(ctx, name, kind)
+        body = await self.om.request(ctx, "GET", f"/services/ingestionPipelines/logs/{pipe['id']}/last")
+        parts = [str(v) for k, v in (body or {}).items() if k not in ("total", "after") and isinstance(v, str)]
+        last = latest_status(pipe)
+        return {"runId": last.get("runId") if last else None, "logs": redact("\n".join(parts))}
 
     async def _pipeline(self, ctx: RequestContext, name: str, kind: str) -> dict[str, Any]:
         await self._service(ctx, name)
