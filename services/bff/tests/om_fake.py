@@ -59,6 +59,42 @@ def _mask(config: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _asset(fqn: str) -> dict[str, Any]:
+    return {
+        "id": str(uuid.uuid5(uuid.NAMESPACE_URL, fqn)),
+        "name": fqn.split(".")[-1],
+        "fullyQualifiedName": fqn,
+        "tags": [],
+        "owners": [],
+        "domains": [],
+        "dataProducts": [],
+    }
+
+
+def _apply(doc: dict[str, Any], ops: list[dict[str, Any]]) -> None:
+    """JSON Patch（RFC 6902）的 add / replace / remove 子集。"""
+    for op in ops:
+        *parents, last = [
+            p.replace("~1", "/").replace("~0", "~") for p in op["path"].split("/")[1:]
+        ]
+        node: Any = doc
+        for p in parents:
+            node = node[int(p)] if isinstance(node, list) else node[p]
+        key: Any = int(last) if isinstance(node, list) else last
+        if op["op"] == "remove":
+            assert key in node if isinstance(node, dict) else True, (
+                f"remove 不存在的路径 {op['path']}"
+            )
+            del node[key]
+        elif op["op"] == "replace":
+            assert key in node if isinstance(node, dict) else True, (
+                f"replace 不存在的路径 {op['path']}"
+            )
+            node[key] = op["value"]
+        else:
+            node[key] = op["value"]
+
+
 class FakeOM:
     def __init__(self) -> None:
         self.services: dict[str, dict[str, Any]] = {}
@@ -67,6 +103,17 @@ class FakeOM:
         self.statuses: dict[str, list[dict[str, Any]]] = {}  # pipeline fqn -> runs（新到旧）
         self.workflows: dict[str, dict[str, Any]] = {}
         self.tables: list[dict[str, Any]] = []
+        self.assets: dict[str, dict[str, Any]] = {}  # 数据库 / Schema：fqn -> 实体
+        self.options: dict[str, list[dict[str, Any]]] = {
+            "users": [],
+            "teams": [],
+            "domains": [],
+            "dataProducts": [],
+            "classifications": [],
+            "tags": [],
+            "glossaryTerms": [],
+        }
+        self.patches: list[tuple[str, list[dict[str, Any]]]] = []
         self.calls: list[tuple[str, str]] = []
         self.fail_deploy = False
         self.test_connection_ok = True
@@ -84,6 +131,8 @@ class FakeOM:
         constraints: dict[str, list[dict[str, Any]]] | None = None,
     ) -> None:
         """列可写为名称，或 (名称, dataTypeDisplay, 列约束)。"""
+        for fqn in (f"{service}.{database}", f"{service}.{database}.{schema}"):
+            self.assets.setdefault(fqn, _asset(fqn))
         for name, cols in tables.items():
             columns = []
             for c in cols:
@@ -277,35 +326,48 @@ class FakeOM:
 
         if mm := re.fullmatch(r"/(databases|databaseSchemas|tables)/name/(.+)", path):
             kind, fqn = mm.groups()
-            if kind == "tables":
-                hit = next((t for t in self.tables if t["fullyQualifiedName"] == fqn), None)
-            else:
-                depth = 2 if kind == "databases" else 3
-                fqns = {".".join(t["fullyQualifiedName"].split(".")[:depth]) for t in self.tables}
-                hit = (
-                    {
-                        "id": str(uuid.uuid5(uuid.NAMESPACE_URL, fqn)),
-                        "name": fqn.split(".")[-1],
-                        "fullyQualifiedName": fqn,
-                        "tags": [],
-                        "owners": [],
-                        "domains": [],
-                    }
-                    if fqn in fqns
-                    else None
-                )
-            return self._ok(hit) if hit else httpx.Response(404, json={"message": "not found"})
+            hit = self._entity(fqn)
+            if hit is None or (kind == "tables") != (hit in self.tables):
+                return httpx.Response(404, json={"message": "not found"})
+            return self._ok(self._inherited(hit))
+        if mm := re.fullmatch(
+            r"/(databases|databaseSchemas|tables|services/databaseServices)/([0-9a-f-]{36})", path
+        ):
+            if m == "PATCH":
+                assert req.headers["content-type"] == "application/json-patch+json"
+                target = self._by_id(mm.group(2))
+                if target is None:
+                    return httpx.Response(404, json={"message": "not found"})
+                ops = json.loads(req.content)
+                self.patches.append((target["fullyQualifiedName"], ops))
+                _apply(target, ops)
+                return self._ok(self._inherited(target))
         if path == "/databaseSchemas" and m == "GET":
             db = q.get("database")
-            fqns = sorted(
-                {
-                    ".".join(t["fullyQualifiedName"].split(".")[:3])
-                    for t in self.tables
-                    if t["fullyQualifiedName"].startswith(f"{db}.")
-                }
-            )
-            data = [{"name": f.split(".")[-1], "fullyQualifiedName": f} for f in fqns]
+            data = [
+                a
+                for f, a in sorted(self.assets.items())
+                if f.count(".") == 2 and f.startswith(f"{db}.")
+            ]
             return self._ok({"data": data, "paging": {"total": len(data)}})
+        if (opt := path.strip("/")) in (
+            "users",
+            "teams",
+            "domains",
+            "dataProducts",
+            "classifications",
+            "tags",
+            "glossaryTerms",
+        ) and m == "GET":
+            data = self.options[opt]
+            if opt == "tags" and q.get("parent"):
+                data = [t for t in data if t["fullyQualifiedName"].startswith(q["parent"] + ".")]
+            return self._ok({"data": data, "paging": {"total": len(data)}})
+        if mm := re.fullmatch(r"/classifications/name/(.+)", path):
+            hit = next(
+                (c for c in self.options["classifications"] if c["name"] == mm.group(1)), None
+            )
+            return self._ok(hit) if hit else httpx.Response(404, json={"message": "not found"})
         if path == "/databases" and m == "GET":
             # OM：DatabaseResource 支持 service 过滤
             fqns = sorted(
@@ -324,6 +386,32 @@ class FakeOM:
             data = [t for t in self.tables if t["fullyQualifiedName"].startswith(f"{prefix}.")]
             return self._ok({"data": data, "paging": {"total": len(data)}})
         return httpx.Response(404, json={"message": f"fake OM: {m} {path}"})
+
+    def _entity(self, fqn: str) -> dict[str, Any] | None:
+        if fqn in self.assets:
+            return self.assets[fqn]
+        if fqn in self.services:
+            return self.services[fqn]
+        return next((t for t in self.tables if t["fullyQualifiedName"] == fqn), None)
+
+    def _by_id(self, eid: str) -> dict[str, Any] | None:
+        pool = [*self.assets.values(), *self.services.values(), *self.tables]
+        return next((e for e in pool if e["id"] == eid), None)
+
+    def _inherited(self, e: dict[str, Any]) -> dict[str, Any]:
+        """按 OM 2.0.3 setInheritedFields：域 服务→库→Schema→表；负责人 库→Schema→表；
+        带 fields 读取时不解析保留周期继承（DatabaseSchemaRepository / TableRepository）。"""
+        out = json.loads(json.dumps(e))
+        fqn = e["fullyQualifiedName"]
+        if "." not in fqn:
+            return out
+        parent = self._inherited(self._entity(fqn.rsplit(".", 1)[0]) or {"fullyQualifiedName": ""})
+        for field in ("domains", "owners"):
+            if field == "owners" and fqn.count(".") == 1:
+                continue  # 数据库不继承服务负责人
+            if not out.get(field) and parent.get(field):
+                out[field] = [{**r, "inherited": True} for r in parent[field]]
+        return out
 
     def _service_view(self, svc: dict[str, Any]) -> dict[str, Any]:
         out = json.loads(json.dumps(svc))
