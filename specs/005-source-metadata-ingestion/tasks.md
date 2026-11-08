@@ -197,14 +197,14 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 ### Tests for User Story 5（先写、先失败）
 
-- [ ] T070 [P] [US5] 在 `services/bff/tests/unit/test_lineage_pipeline.py` 编写测试：`createLineageTask=true` 且 `includeViews=true` 时创建 `pipelineType=lineage` 管道，配置 `processViewLineage=true`、`processQueryLineage=false`、`processStoredProcedureLineage=false`，任务名 `<服务>_lineage_<8 位随机串>`、独立调度；`includeViews=false` 时 `createLineageTask=true` 返回 400；修改为关闭时删除 lineage 管道
-- [ ] T071 [P] [US5] 在 `services/bff/tests/integration/test_view_lineage_cluster.py`（`-m cluster`）编写测试：viewlab（MySQL；PostgreSQL 视 T019 结论）先运行元数据采集再运行视图血缘，OM 血缘接口中每个视图的上游表与 `columnsLineage` 与 `testdata/mockfactory/viewlab.py` 标准答案完全一致、无多余边；改用受限账号重新采集后表与字段仍入库、不新增血缘边、运行结果如实反映视图定义不可读（以 OM 实际状态为准）
+- [X] T070 [P] [US5] 在 `services/bff/tests/unit/test_lineage_pipeline.py` 编写测试：`createLineageTask=true` 且 `includeViews=true` 时创建 `pipelineType=lineage` 管道，配置 `processViewLineage=true`、`processQueryLineage=false`、`processStoredProcedureLineage=false`，任务名 `<服务>_lineage_<8 位随机串>`、独立调度；`includeViews=false` 时 `createLineageTask=true` 返回 400；修改为关闭时删除 lineage 管道
+- [X] T071 [P] [US5] 在 `services/bff/tests/integration/test_view_lineage_cluster.py`（`-m cluster`）编写测试：viewlab（MySQL；PostgreSQL 视 T019 结论）先运行元数据采集再运行视图血缘，OM 血缘接口中每个视图的上游表与 `columnsLineage` 与 `testdata/mockfactory/viewlab.py` 标准答案完全一致、无多余边；改用受限账号重新采集后表与字段仍入库、不新增血缘边、运行结果如实反映视图定义不可读（以 OM 实际状态为准）
 
 ### Implementation for User Story 5
 
-- [ ] T072 [US5] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现 lineage 管道的创建、部署、调度与删除（使 T070、T071 通过）
-- [ ] T073 [US5] 在 `apps/web/src/features/sources/SourceWizardModal.tsx` 与 `SourceDetailView.tsx` 中联通视图血缘任务的创建、调度与任务列表展示（复用 US2 任务视图）
-- [ ] T074 [US5] 在 `tests/e2e/sources.spec.ts` 增加 US5 端到端：viewlab 接入、两条任务依次运行、血缘结果与标准答案一致
+- [X] T072 [US5] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现 lineage 管道的创建、部署、调度与删除（使 T070、T071 通过）
+- [X] T073 [US5] 在 `apps/web/src/features/sources/SourceWizardModal.tsx` 与 `SourceDetailView.tsx` 中联通视图血缘任务的创建、调度与任务列表展示（复用 US2 任务视图）
+- [X] T074 [US5] 在 `tests/e2e/sources.spec.ts` 增加 US5 端到端：viewlab 接入、两条任务依次运行、血缘结果与标准答案一致
 
 ---
 

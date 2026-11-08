@@ -211,4 +211,13 @@
 - 部署后立即触发存在竞态：Airflow 3 生成“无任务即成功”的空运行（实测立即触发 2/4 次为空运行，部署后等待 20 s 为 4/4 正常）。
   BFF 的“立即运行”在距部署（pipeline `updatedAt`）不足 20 s 时先等待剩余时间再触发；该请求最长约 40 s，
   故 bff 的 HTTPRoute 设置 `timeouts.request: 60s`（Envoy 默认 15 s 会返回 504）。在 acceptance.md 注明。
+- OM 按管道类型选用 bot：lineage 管道由 `lineage-bot` 身份生成 DAG。本地环境中除 `ingestion-bot` 外各 bot 的存量令牌均失效
+  （`loggedInUser` 返回 401），lineage 管道部署时 Airflow 报 “Not Authorized! Invalid token”（2026-11-08 实测）。
+  `tools/om_config.py` 的 `ensure_bot_tokens` 探测 `lineage-bot` 令牌，失效时经 OM 原生 `PUT /users/generateToken/{id}`
+  （`JWTTokenExpiry=Unlimited`）重新生成；有效时不动。其他 bot 不在本期使用范围，不处理。
+- 视图血缘实测（viewlab）：MySQL / PostgreSQL 的表级与字段级血缘与标准答案完全一致；MySQL 受限账号（无 `SHOW VIEW`）
+  的元数据采集为 `failed`，失败对象为两个视图（`SHOW VIEW command denied`），两张表及字段正常入库、视图不入库；
+  随后的视图血缘运行为 `success` 且处理 0 条记录，不产生血缘边。
+- 删除数据源时，managed-apis 在 Airflow 3 上删除 DAG 记录因外键（`task_instance.dag_version_id`）失败，DAG 文件与配置已删除，
+  Airflow 元数据库中残留历史 DAG 记录（OM 的删除本身成功）。记为已知限制。
 - R12 授予采集任务的 `EditAll` 覆盖 toggleIngestion 所需的 `EditIngestionPipelineStatus`（US2 集群测试以 engineer1 验证）。

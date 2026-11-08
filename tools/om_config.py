@@ -173,6 +173,28 @@ def apply_access(http: httpx.Client, access: dict[str, Any] = ACCESS) -> list[st
     return changes
 
 
+# OM 按管道类型选用 bot：lineage 管道用 lineage-bot（metadata 管道用 ingestion-bot，由 OM 维护）。
+# 本地环境实测 lineage-bot 存量令牌失效，Airflow 生成血缘 DAG 时报 “Not Authorized! Invalid token”（005 research R14）。
+PIPELINE_BOTS = ("lineage-bot",)
+
+
+def ensure_bot_tokens(http: httpx.Client, bots: tuple[str, ...] = PIPELINE_BOTS) -> list[str]:
+    """令牌无效时经 OM 原生接口重新生成（不限期，与 ingestion-bot 一致）；有效的不动。"""
+    changes: list[str] = []
+    for bot in bots:
+        user = http.get(f"/api/v1/bots/name/{bot}").raise_for_status().json()["botUser"]
+        auth = http.get(f"/api/v1/users/auth-mechanism/{user['id']}").raise_for_status().json()
+        token = (auth.get("config") or {}).get("JWTToken") or ""
+        probe = http.get("/api/v1/users/loggedInUser", headers={"Authorization": f"Bearer {token}"})
+        if probe.status_code == 200:
+            continue
+        http.put(
+            f"/api/v1/users/generateToken/{user['id']}", json={"JWTTokenExpiry": "Unlimited"}
+        ).raise_for_status()
+        changes.append(f"bot {bot} 令牌已重新生成")
+    return changes
+
+
 def provisioner_token() -> str:
     """以导入服务账号（client credentials）向 Keycloak 换取令牌。"""
     issuer = f"{os.environ['KEYCLOAK_URL']}/realms/{os.environ['KEYCLOAK_REALM']}"
@@ -196,7 +218,7 @@ def main(argv: list[str]) -> int:
     token = os.environ.get("OM_TOKEN") or provisioner_token()
     with httpx.Client(base_url=args.om_url, timeout=30) as http:
         http.headers["Authorization"] = f"Bearer {token}"
-        changes = apply_schema(http, load_schema()) + apply_access(http)
+        changes = apply_schema(http, load_schema()) + apply_access(http) + ensure_bot_tokens(http)
     print("om-config: " + ("；".join(changes) if changes else "无变更"))
     return 0
 

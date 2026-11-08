@@ -42,7 +42,7 @@ async function removeService(name: string) {
 
 test.describe.configure({ mode: "serial" });
 
-const OTHERS = ["e2e-qms", "e2e-dw"];
+const OTHERS = ["e2e-qms", "e2e-dw", "e2e-viewlab"];
 test.beforeAll(() => [SERVICE, ...OTHERS].forEach(removeService));
 test.afterAll(() => [SERVICE, ...OTHERS].forEach(removeService));
 
@@ -381,4 +381,67 @@ test("US4：五层级编辑属性、保留周期继承与恢复、重新采集�
   );
   await page.goto(`/sources/${SERVICE}`);
   await expect(card("数据源属性")).toContainText("E2E 服务说明");
+});
+
+test("US5：viewlab 接入并创建视图血缘任务，两条任务依次运行，血缘与标准答案一致", async ({
+  page,
+}) => {
+  test.setTimeout(480_000);
+  const name = "e2e-viewlab";
+  await login(page, "engineer1", "/sources");
+  await page.getByRole("button", { name: "添加数据源" }).click();
+  const dialog = page.getByRole("dialog", { name: "添加数据源" });
+  await dialog.getByLabel("显示名称 *").fill("E2E 视图测试库");
+  await dialog.getByLabel("服务标识 *").fill(name);
+  await dialog.getByRole("button", { name: /MySQL/ }).click();
+  await dialog.getByRole("button", { name: "下一步" }).click();
+  await dialog.getByLabel("主机地址 *").fill("mock-mes.mock-sources.svc");
+  await dialog.getByLabel("数据库（选填）").fill("viewlab");
+  await dialog.getByLabel("用户名 *").fill("viewlab_ro");
+  await dialog
+    .getByLabel("密码 *")
+    .fill(secret("mock-sources", "mock-readonly", "viewlab-ro"));
+  await dialog.getByRole("button", { name: "测试连接" }).click();
+  await expect(
+    dialog
+      .getByRole("table", { name: "连接检查步骤" })
+      .getByRole("row", { name: /GetViews/ }),
+  ).toContainText("通过", { timeout: 60_000 });
+  await dialog.getByRole("button", { name: "下一步" }).click();
+  await dialog.getByLabel(/创建视图血缘任务/).check();
+  await dialog.getByRole("button", { name: "下一步" }).click();
+  await dialog.getByLabel("元数据采集 · 调度方式").selectOption("manual");
+  await dialog.getByLabel("视图血缘 · 调度方式").selectOption("manual");
+  await dialog.getByRole("button", { name: "保存配置" }).click();
+  await expect(dialog).toBeHidden({ timeout: 60_000 });
+
+  // 依次运行：先元数据采集（视图定义），再视图血缘
+  for (const kind of ["metadata", "lineage"]) {
+    await page.goto(`/sources/${name}?tab=tasks&task=${kind}`);
+    await page.getByRole("button", { name: "立即运行" }).click();
+    await expect(
+      page.getByRole("table", { name: "运行记录" }).getByText("成功"),
+    ).toBeVisible({ timeout: 240_000 });
+  }
+
+  const views = ["v_order_qty_by_supplier", "v_supplier_orders"];
+  const observed = JSON.parse(
+    execFileSync("uv", [
+      "run",
+      "python",
+      "tests/e2e/om_lineage.py",
+      `${name}.default.viewlab`,
+      ...views,
+    ]).toString(),
+  );
+  const gold = JSON.parse(
+    execFileSync("uv", [
+      "run",
+      "python",
+      "-c",
+      "import json,sys; sys.path.insert(0,'testdata'); from mockfactory.viewlab import LINEAGE as L; " +
+        "print(json.dumps({v: {'tables': sorted(x['tables']), 'columns': {k: sorted(c) for k, c in sorted(x['columns'].items())}} for v, x in L.items()}, ensure_ascii=False, sort_keys=True))",
+    ]).toString(),
+  );
+  expect(observed).toEqual(gold);
 });
