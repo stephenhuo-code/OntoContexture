@@ -80,3 +80,22 @@ async def test_unknown_task_is_not_found() -> None:
     with pytest.raises(ContextureError) as exc:
         await svc.list_runs(user_context(), "mock-mes", "lineage")
     assert exc.value.code == "source.not_found"
+
+
+async def test_trigger_waits_for_dag_settle_after_recent_deploy() -> None:
+    """Airflow 3 下部署后立即触发会产生“无任务即成功”的空运行（2026-11-08 实测 2/4），触发前等待部署满 settle 秒。"""
+    import time
+
+    om = FakeOM()
+    svc = service(om)
+    svc.settle_seconds = 0.3
+    await svc.create_source(user_context(), upsert())
+    started = time.monotonic()
+    await svc.trigger(user_context(), "mock-mes", "metadata")
+    assert time.monotonic() - started >= 0.25
+    svc.settle_seconds = 0.0
+    fqn = next(iter(om.pipelines.values()))["fullyQualifiedName"]
+    om.statuses[fqn][0]["pipelineState"] = "success"
+    started = time.monotonic()
+    await svc.trigger(user_context(), "mock-mes", "metadata")
+    assert time.monotonic() - started < 0.2

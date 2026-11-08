@@ -21,7 +21,7 @@ def service(om: FakeOM) -> SourcesService:
         exchanger=FakeExchanger(),
         http=httpx.AsyncClient(transport=om.transport()),
     )
-    return SourcesService(client, poll_interval=0)
+    return SourcesService(client, poll_interval=0, settle_seconds=0)
 
 
 def upsert(**overrides: Any) -> dict[str, Any]:

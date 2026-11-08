@@ -85,7 +85,7 @@ async def _run(url: str) -> None:
         view = await eng.set_schedule(ctx, NAME, "metadata", enabled=True)
         assert view["scheduleEnabled"] is True
         assert _dag_paused(dag) is False
-        await eng.trigger_when_ready(ctx, NAME, "metadata")
+        await eng.trigger(ctx, NAME, "metadata")
         run = await eng.wait_for_run(ctx, NAME, "metadata", timeout=300)
         assert run["pipelineState"] == "success"
         runs = await eng.list_runs(ctx, NAME, "metadata")

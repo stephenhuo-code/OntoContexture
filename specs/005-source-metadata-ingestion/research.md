@@ -208,4 +208,7 @@
   `postgres/connection.py:149`）。按“与 OM 一致”，BFF 不加默认排除；验收时 QMS 用 Schema 包含 `^public$`（原型示例同此），并在 acceptance.md 注明。
 - 保存后 Airflow 登记 DAG 前（约 1–10 s），OM 的 trigger 返回 400、toggleIngestion 因 Airflow 404 不改 `enabled`（且把 `deployed` 置为 false）。
   BFF 以 OM 回读结果为准，在 20 s 内重试；超时如实返回 `source.pipeline_not_ready`，不伪造已触发 / 已切换。
+- 部署后立即触发存在竞态：Airflow 3 生成“无任务即成功”的空运行（实测立即触发 2/4 次为空运行，部署后等待 20 s 为 4/4 正常）。
+  BFF 的“立即运行”在距部署（pipeline `updatedAt`）不足 20 s 时先等待剩余时间再触发；该请求最长约 40 s，
+  故 bff 的 HTTPRoute 设置 `timeouts.request: 60s`（Envoy 默认 15 s 会返回 504）。在 acceptance.md 注明。
 - R12 授予采集任务的 `EditAll` 覆盖 toggleIngestion 所需的 `EditIngestionPipelineStatus`（US2 集群测试以 engineer1 验证）。

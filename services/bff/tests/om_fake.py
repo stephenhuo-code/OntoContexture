@@ -43,15 +43,37 @@ class FakeOM:
         self.down = False
 
     # ---------- 测试辅助 ----------
-    def add_tables(self, service: str, database: str, schema: str, tables: dict[str, list[str]]) -> None:
+    def add_tables(
+        self,
+        service: str,
+        database: str,
+        schema: str,
+        tables: dict[str, list[Any]],
+        *,
+        table_type: str = "Regular",
+        constraints: dict[str, list[dict[str, Any]]] | None = None,
+    ) -> None:
+        """列可写为名称，或 (名称, dataTypeDisplay, 列约束)。"""
         for name, cols in tables.items():
+            columns = []
+            for c in cols:
+                cname, ctype, cons = (c, "varchar", None) if isinstance(c, str) else c
+                col: dict[str, Any] = {"name": cname, "dataTypeDisplay": ctype, "tags": []}
+                if cons:
+                    col["constraint"] = cons
+                columns.append(col)
             self.tables.append(
                 {
                     "id": str(uuid.uuid4()),
                     "name": name,
                     "fullyQualifiedName": f"{service}.{database}.{schema}.{name}",
                     "service": {"name": service},
-                    "columns": [{"name": c, "dataTypeDisplay": "varchar"} for c in cols],
+                    "tableType": table_type,
+                    "tableConstraints": (constraints or {}).get(name, []),
+                    "columns": columns,
+                    "tags": [],
+                    "owners": [],
+                    "domains": [],
                 }
             )
 
@@ -121,6 +143,7 @@ class FakeOM:
                 "fullyQualifiedName": fqn,
                 "service": {"id": svc["id"], "name": svc["name"], "type": "databaseService"},
                 "deployed": existing["deployed"] if existing else False,
+                "updatedAt": int(__import__("time").time() * 1000),
                 "enabled": existing["enabled"] if existing else True,
             }
             return self._ok(self._pipeline_view(self.pipelines[pid]), 201)
@@ -174,6 +197,22 @@ class FakeOM:
             wf = self.workflows.get(wid)
             return self._ok(wf) if wf else httpx.Response(404, json={"message": "not found"})
 
+        if mm := re.fullmatch(r"/(databases|databaseSchemas|tables)/name/(.+)", path):
+            kind, fqn = mm.groups()
+            if kind == "tables":
+                hit = next((t for t in self.tables if t["fullyQualifiedName"] == fqn), None)
+            else:
+                depth = 2 if kind == "databases" else 3
+                fqns = {".".join(t["fullyQualifiedName"].split(".")[:depth]) for t in self.tables}
+                hit = {"id": str(uuid.uuid5(uuid.NAMESPACE_URL, fqn)), "name": fqn.split(".")[-1],
+                       "fullyQualifiedName": fqn, "tags": [], "owners": [], "domains": []} if fqn in fqns else None
+            return self._ok(hit) if hit else httpx.Response(404, json={"message": "not found"})
+        if path == "/databaseSchemas" and m == "GET":
+            db = q.get("database")
+            fqns = sorted({".".join(t["fullyQualifiedName"].split(".")[:3]) for t in self.tables
+                           if t["fullyQualifiedName"].startswith(f"{db}.")})
+            data = [{"name": f.split(".")[-1], "fullyQualifiedName": f} for f in fqns]
+            return self._ok({"data": data, "paging": {"total": len(data)}})
         if path == "/databases" and m == "GET":
             # OM：DatabaseResource 支持 service 过滤
             fqns = sorted({".".join(t["fullyQualifiedName"].split(".")[:2]) for t in self.tables
@@ -183,8 +222,8 @@ class FakeOM:
         if path == "/tables" and m == "GET":
             # OM：TableResource 只支持 database / databaseSchema 过滤，不支持 service
             assert "service" not in q, "OM /tables 不支持 service 过滤"
-            db = q.get("database")
-            data = [t for t in self.tables if t["fullyQualifiedName"].startswith(f"{db}.")]
+            prefix = q.get("databaseSchema") or q.get("database")
+            data = [t for t in self.tables if t["fullyQualifiedName"].startswith(f"{prefix}.")]
             return self._ok({"data": data, "paging": {"total": len(data)}})
         return httpx.Response(404, json={"message": f"fake OM: {m} {path}"})
 

@@ -6,14 +6,25 @@ import { login } from "./helpers/login";
 const SERVICE = "e2e-mes";
 
 function secret(ns: string, name: string, key: string): string {
-  const b64 = execFileSync("kubectl", ["-n", ns, "get", "secret", name, "-o", `jsonpath={.data.${key}}`]).toString();
+  const b64 = execFileSync("kubectl", [
+    "-n",
+    ns,
+    "get",
+    "secret",
+    name,
+    "-o",
+    `jsonpath={.data.${key}}`,
+  ]).toString();
   return Buffer.from(b64, "base64").toString();
 }
 
 async function bff(page: Page, method: string, path: string) {
   return page.evaluate(
     async ([m, p]) => {
-      const r = await fetch(p as string, { method: m as string, credentials: "same-origin" });
+      const r = await fetch(p as string, {
+        method: m as string,
+        credentials: "same-origin",
+      });
       return { status: r.status, body: await r.text() };
     },
     [method, path],
@@ -22,7 +33,9 @@ async function bff(page: Page, method: string, path: string) {
 
 async function removeService(name: string) {
   // 清理经集群内 OM（admin1 删除）；与被测路径无关
-  execFileSync("uv", ["run", "python", "tests/e2e/om_cleanup.py", name], { stdio: "inherit" });
+  execFileSync("uv", ["run", "python", "tests/e2e/om_cleanup.py", name], {
+    stdio: "inherit",
+  });
 }
 
 test.describe.configure({ mode: "serial" });
@@ -30,14 +43,19 @@ test.describe.configure({ mode: "serial" });
 test.beforeAll(() => removeService(SERVICE));
 test.afterAll(() => removeService(SERVICE));
 
-test("US1：接入 MES 并首采，统计等于 003 金标准，响应无明文密码", async ({ page }) => {
+test("US1：接入 MES 并首采，统计等于 003 金标准，响应无明文密码", async ({
+  page,
+}) => {
   test.setTimeout(300_000);
   const password = secret("mock-sources", "mock-readonly", "mes-meta-ro");
   await login(page, "engineer1", "/sources");
-  await expect(page.getByRole("heading", { name: "数据源", level: 1 })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "数据源", level: 1 }),
+  ).toBeVisible();
   const bodies: string[] = [];
   page.on("response", async (r) => {
-    if (new URL(r.url()).pathname.startsWith("/bff/v1/sources")) bodies.push(await r.text().catch(() => ""));
+    if (new URL(r.url()).pathname.startsWith("/bff/v1/sources"))
+      bodies.push(await r.text().catch(() => ""));
   });
 
   await page.getByRole("button", { name: "添加数据源" }).click();
@@ -54,7 +72,9 @@ test("US1：接入 MES 并首采，统计等于 003 金标准，响应无明文�
   const steps = dialog.getByRole("table", { name: "连接检查步骤" });
   await expect(steps).toBeVisible({ timeout: 60_000 });
   for (const name of ["CheckAccess", "GetSchemas", "GetTables"])
-    await expect(steps.getByRole("row", { name: new RegExp(name) })).toContainText("通过");
+    await expect(
+      steps.getByRole("row", { name: new RegExp(name) }),
+    ).toContainText("通过");
   await dialog.getByRole("button", { name: "下一步" }).click();
   await dialog.getByRole("button", { name: "下一步" }).click();
   await dialog.getByLabel("元数据采集 · 调度方式").selectOption("manual");
@@ -63,14 +83,43 @@ test("US1：接入 MES 并首采，统计等于 003 金标准，响应无明文�
 
   await expect(page).toHaveURL(new RegExp(`/sources/${SERVICE}`));
   await page.getByRole("tab", { name: "采集任务" }).click();
-  await page.getByRole("link", { name: /e2e_mes_metadata_/ }).click();
+  await page.getByRole("button", { name: /e2e_mes_metadata_/ }).click();
   await page.getByRole("button", { name: "立即运行" }).click();
-  await expect(page.getByRole("table", { name: "运行记录" }).getByText("成功")).toBeVisible({ timeout: 240_000 });
+  await expect(
+    page.getByRole("table", { name: "运行记录" }).getByText("成功"),
+  ).toBeVisible({ timeout: 240_000 });
 
   await page.getByRole("tab", { name: "概览" }).click();
-  await expect(page.locator(".metric", { hasText: "已采集表" })).toContainText("13");
-  await expect(page.locator(".metric", { hasText: "字段元数据" })).toContainText("79");
+  await expect(page.locator(".metric", { hasText: "已采集表" })).toContainText(
+    "13",
+  );
+  await expect(
+    page.locator(".metric", { hasText: "字段元数据" }),
+  ).toContainText("79");
   for (const b of bodies) expect(b).not.toContain(password);
   const detail = await bff(page, "GET", `/bff/v1/sources/${SERVICE}`);
   expect(detail.body).not.toContain(password);
+});
+
+test("US2：手动任务的配置调度入口、运行详情步骤统计与最近一次日志、调度详情", async ({ page }) => {
+  test.setTimeout(180_000);
+  await login(page, "engineer1", `/sources/${SERVICE}?tab=tasks&task=metadata`);
+  const runs = page.getByRole("table", { name: "运行记录" });
+  await expect(runs.getByRole("row")).toHaveCount(2); // 表头 + US1 的那次运行
+  await page.getByRole("button", { name: "配置调度" }).click();
+  await expect(
+    page.getByRole("tab", { name: "采集配置", selected: true }),
+  ).toBeVisible();
+  await page.goto(`/sources/${SERVICE}?tab=tasks&task=metadata`);
+  await runs.getByRole("button", { name: "查看运行" }).first().click();
+  const dialog = page.getByRole("dialog", { name: "运行详情" });
+  const steps = dialog.getByRole("table", { name: "步骤统计" });
+  await expect(steps.getByRole("row", { name: /Mysql/ })).toBeVisible();
+  await expect(steps.getByRole("row", { name: /OpenMetadata/ })).toBeVisible();
+  await expect(dialog.getByLabel("运行日志")).not.toBeEmpty();
+  await dialog.getByRole("button", { name: "关闭", exact: true }).click();
+  await page.getByRole("button", { name: "调度详情" }).click();
+  await expect(page.getByRole("dialog", { name: "调度任务" })).toContainText(
+    /e2e_mes_metadata_/,
+  );
 });

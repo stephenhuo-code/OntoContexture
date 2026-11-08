@@ -115,7 +115,7 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 - [X] T042 [P] [US1] 实现 `apps/web/src/features/sources/SourcesWorkspace.tsx` 列表页（页头、4 张统计卡、工具栏、表格、底部提醒卡与采集链路说明）及样式 `apps/web/src/features/sources/sources.css`，结构与文案对齐 `prototype/index.html`，数据全部来自 BFF（使 T036 通过）
 - [X] T043 [P] [US1] 实现 `apps/web/src/features/sources/SourceWizardModal.tsx` 四步向导（测试连接轮询，等待期间显示“测试中”）（使 T037 通过）
 - [X] T044 [US1] 实现 `apps/web/src/features/sources/SourceDetailView.tsx` 的页头、概览页签（数据源属性只读展示、异常提示条、3 张指标卡、连接信息与各任务调度 / 最近运行）与采集配置页签（三级过滤、视图、视图血缘任务、采集边界）
-- [ ] T045 [US1] 在 `tests/e2e/sources.spec.ts` 编写并跑通 US1 端到端：真实环境接入 MES（数据库填 `mes`）并首采，列表与详情统计等于 003 金标准；响应中无密码明文
+- [X] T045 [US1] 在 `tests/e2e/sources.spec.ts` 编写并跑通 US1 端到端：真实环境接入 MES（数据库填 `mes`）并首采，列表与详情统计等于 003 金标准；响应中无密码明文
 
 **Checkpoint**: US1 可独立演示（MVP）。
 
@@ -138,8 +138,8 @@ monorepo：`apps/web/`、`services/bff/`、`packages/ts-api/`、`contracts/`、`
 
 - [X] T050 [US2] 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 实现运行记录读取、触发（含在途校验）、暂停 / 恢复与最近日志（使 T047 通过）
 - [X] T051 [US2] 在 `services/bff/src/contexture_bff/api/sources.py` 实现 `/bff/v1/sources/{name}/pipelines/{kind}/runs|trigger|schedule|logs/last`，写操作记审计（使 T046、T048 通过）
-- [ ] T052 [US2] 在 `apps/web/src/features/sources/SourceDetailView.tsx` 实现采集任务页签：任务列表、任务运行视图（轮询刷新、筛选、暂停 / 恢复确认、调度详情弹窗显示 DAG 标识 = 任务名）与运行详情弹窗（使 T049 通过）
-- [ ] T053 [US2] 在 `tests/e2e/sources.spec.ts` 增加 US2 端到端：暂停 / 恢复、立即运行、运行详情与日志
+- [X] T052 [US2] 在 `apps/web/src/features/sources/SourceDetailView.tsx` 实现采集任务页签：任务列表、任务运行视图（轮询刷新、筛选、暂停 / 恢复确认、调度详情弹窗显示 DAG 标识 = 任务名）与运行详情弹窗（使 T049 通过）
+- [X] T053 [US2] 在 `tests/e2e/sources.spec.ts` 增加 US2 端到端：暂停 / 恢复、立即运行、运行详情与日志
 
 **Checkpoint**: US1 + US2 可独立验收。
 

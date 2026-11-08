@@ -212,9 +212,12 @@ def _pipeline_view(p: dict[str, Any]) -> dict[str, Any]:
 
 
 class SourcesService:
-    def __init__(self, om: OmClient, *, poll_interval: float = 1.0) -> None:
+    def __init__(self, om: OmClient, *, poll_interval: float = 1.0, settle_seconds: float = 20.0) -> None:
         self.om = om
         self.poll_interval = poll_interval
+        # Airflow 3 + managed-apis：部署后 DAG 先出现、任务稍后才由 dag-processor 登记；其间触发会得到
+        # “无任务即成功”的空运行，OM 收不到任何状态（2026-11-08 实测，research R14）。触发前等待部署满此秒数
+        self.settle_seconds = settle_seconds
 
     # ---------- 读取 ----------
 
@@ -472,6 +475,11 @@ class SourcesService:
             raise ContextureError(
                 "source.pipeline_in_flight", "该任务已有排队中或运行中的运行，请勿重复触发", status_code=409
             )
+        deployed_ms = pipe.get("updatedAt")
+        if isinstance(deployed_ms, int | float):
+            wait = self.settle_seconds - (time.time() * 1000 - deployed_ms) / 1000
+            if wait > 0:
+                await asyncio.sleep(min(wait, self.settle_seconds))
         # 刚保存的任务需 Airflow 扫描登记 DAG（research R11），短时重试
         await self.trigger_when_ready(ctx, name, kind, timeout=20)
 

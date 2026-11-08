@@ -79,7 +79,7 @@ async def _run(om_url: str) -> list[dict[str, Any]]:
     try:
         for body in _sources():
             await svc.create_source(ctx, body)
-            await svc.trigger_when_ready(ctx, body["name"], "metadata")
+            await svc.trigger(ctx, body["name"], "metadata")
         for name in GOLD:
             await svc.wait_for_run(ctx, name, "metadata", timeout=600)
         return [await svc.get_source(ctx, n) for n in GOLD]
