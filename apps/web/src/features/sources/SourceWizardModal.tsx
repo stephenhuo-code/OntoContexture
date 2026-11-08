@@ -23,6 +23,7 @@ import {
   databaseOptional,
   invalidPattern,
   pipelineOf,
+  scopeHelp,
   splitPatterns,
   timeToCron,
   tlsOffered,
@@ -389,7 +390,7 @@ export function SourceWizardModal({
                   label={dbLabel}
                   help={
                     databaseOptional(d.serviceType)
-                      ? "对应 OpenMetadata databaseSchema；留空表示全部库，范围也可在下一步用过滤规则设置。"
+                      ? "对应 OpenMetadata databaseSchema。留空会采集账号可见的全部库，包括 information_schema 等系统库；建议填写业务库名。"
                       : undefined
                   }
                 >
@@ -498,13 +499,20 @@ export function SourceWizardModal({
             <>
               <p className="notice">
                 按 OpenMetadata
-                原生过滤规则（正则表达式，多个用逗号分隔）限定采集范围；全部留空即采集全部，后续新增的对象也会被采集。
+                原生过滤规则限定采集范围；全部留空即采集全部，后续新增的对象也会被采集。
+                {scopeHelp(d.serviceType).rule}
               </p>
               {LEVELS.map(([k, label]) => (
                 <div className="fields" key={k}>
                   {(["includes", "excludes"] as const).map((part) => (
                     <Field
+                      key={part}
                       label={`${label} · ${part === "includes" ? "包含" : "排除"}`}
+                      help={
+                        part === "includes"
+                          ? scopeHelp(d.serviceType)[k]
+                          : undefined
+                      }
                     >
                       {(p) => (
                         <input

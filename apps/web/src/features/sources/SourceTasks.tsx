@@ -88,10 +88,14 @@ function RunDetail({
   onClose: () => void;
   onRun: () => void;
 }) {
+  // 运行未结束时 Airflow 3 读不到实时日志（只返回内部提示），结束后再读取
+  const finished = !inFlight(run.pipelineState);
   const logs = useLoad(
     () =>
-      latest ? getLastLogs(source.name, task.kind) : Promise.resolve(null),
-    [source.name, task.kind, latest, run.runId],
+      latest && finished
+        ? getLastLogs(source.name, task.kind)
+        : Promise.resolve(null),
+    [source.name, task.kind, latest, finished, run.runId],
   );
   const bad =
     run.pipelineState === "partialSuccess" || run.pipelineState === "failed";
@@ -169,7 +173,9 @@ function RunDetail({
           </p>
         </div>
       )}
-      {latest ? (
+      {latest && !finished ? (
+        <p className="help">运行结束后显示日志。</p>
+      ) : latest ? (
         logs.state.status === "loading" ? (
           <p role="status">正在读取日志…</p>
         ) : logs.state.status === "error" ? (

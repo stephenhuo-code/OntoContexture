@@ -167,6 +167,19 @@ def redact(text: str) -> str:
     return _SECRET_RE.sub(lambda m: f"{m.group(1)}{m.group(2)}{MASK}{m.group(2)}", text)
 
 
+def _step_message(step: dict[str, Any]) -> str | None:
+    """测试连接步骤说明：OM 的 message 优先；为空时用 diagnosis（标题：处理建议），
+    再用 errorLog 首行。OM 2.0.3 实测可选步骤失败时 message 为 null（2026-11-08）。均脱敏。"""
+    if step.get("message"):
+        return redact(str(step["message"]))
+    diagnosis = step.get("diagnosis") or {}
+    if diagnosis.get("title"):
+        parts = [diagnosis["title"], diagnosis.get("remediation")]
+        return redact("：".join(str(p) for p in parts if p))
+    log = str(step.get("errorLog") or "").strip()
+    return redact(log.splitlines()[0]) if log else None
+
+
 def run_view(status: dict[str, Any]) -> dict[str, Any]:
     """OM PipelineStatus → PipelineRun（原样投影；OM 不记录触发方式）。"""
     steps = []
@@ -484,8 +497,8 @@ class SourcesService:
                 "mandatory": bool(d.get("mandatory")),
                 "passed": None if hit is None else bool(hit.get("passed")),
             }
-            if hit and hit.get("message"):
-                step["message"] = str(hit["message"])
+            if hit and (message := _step_message(hit)):
+                step["message"] = message
             steps.append(step)
         await self.om.request(
             ctx,

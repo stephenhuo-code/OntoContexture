@@ -204,3 +204,32 @@ export const INHERITABLE: Record<CatalogEntityType, string[]> = {
   databaseSchema: ["domains", "owners", "retentionPeriod"],
   table: ["domains", "owners", "retentionPeriod"],
 };
+
+/**
+ * 采集范围逐层说明（按 OM 2.0.3 连接器核实：MySQL / Doris / Oracle 的数据库层取默认名 default，
+ * 见 common_db_source.get_database_names；PostgreSQL / SQL Server 为连接时填写的数据库）。
+ * 匹配方式为 OM filters._filter 的 re.match + IGNORECASE。
+ */
+export function scopeHelp(type: ServiceType): {
+  rule: string;
+  databaseFilterPattern: string;
+  schemaFilterPattern: string;
+  tableFilterPattern: string;
+} {
+  const physical = type === "Mysql" || type === "Doris";
+  return {
+    rule: "正则从名称开头匹配、不区分大小写；精确匹配写 ^名称$，多个规则用英文逗号分隔。包含留空表示全部；同时命中包含与排除时不采集。",
+    databaseFilterPattern:
+      physical || type === "Oracle"
+        ? `${connector(type).label} 的数据库层在 OpenMetadata 中固定为 default，一般不用填写。`
+        : "即连接时填写的数据库，一般不用填写。",
+    schemaFilterPattern: physical
+      ? `即 ${connector(type).label} 的物理库，例如只采 mes 写 ^mes$。`
+      : type === "Oracle"
+        ? "即 Oracle 的用户 Schema，例如 ^QMS$。"
+        : type === "Mssql"
+          ? "例如只采 dbo 写 ^dbo$。"
+          : "例如只采 public 写 ^public$（OpenMetadata 默认也会采集 information_schema）。",
+    tableFilterPattern: "表或视图名，例如排除临时表与备份表写 ^tmp_, _bak$。",
+  };
+}

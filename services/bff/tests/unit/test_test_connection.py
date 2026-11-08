@@ -79,7 +79,7 @@ async def test_om_down_raises() -> None:
 
 
 async def test_failed_optional_step_without_message_uses_om_diagnosis_or_error_log() -> None:
-    """OM 2.0.3 实测：GetQueries 失败时 message 为 null，原因在 diagnosis 与 errorLog（2026-11-08）。"""
+    """OM 2.0.3 实测：GetQueries 失败时 message 为 null，原因在 diagnosis 与 errorLog。"""
     om = FakeOM()
     om.test_steps_override = [
         {"name": n, "mandatory": m, "passed": True}
@@ -95,7 +95,10 @@ async def test_failed_optional_step_without_message_uses_om_diagnosis_or_error_l
             "mandatory": False,
             "passed": False,
             "message": None,
-            "errorLog": '(pymysql.err.OperationalError) (1142, "SELECT command denied") password=s3cr3t\n[SQL: ...]',
+            "errorLog": (
+                '(pymysql.err.OperationalError) (1142, "SELECT command denied") '
+                "password=s3cr3t\n[SQL: ...]"
+            ),
             "diagnosis": {
                 "title": "Query history table not accessible",
                 "remediation": "Grant SELECT on mysql.general_log",
