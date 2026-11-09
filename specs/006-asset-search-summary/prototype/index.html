@@ -2021,6 +2021,13 @@
           certification: "Gold (黄金认证)",
           glossaryTerms: [],
           tags: ["质量合规.ISO9001"],
+          glossary: "标准术语",
+          parent: null,
+          synonyms: ["批次不良率", "Defect Rate"],
+          relatedTerms: ["标准术语.质检批次", "标准术语.合格率"],
+          references: [{ name: "质量手册 QM-07", endpoint: "https://example.invalid/qm-07" }],
+          reviewers: ["林工 (数据治理)"],
+          entityStatus: "Approved",
           popularity: 84,
           updatedAt: "2026-11-07 16:00",
           description:
@@ -2047,6 +2054,10 @@
           certification: null,
           glossaryTerms: [],
           tags: [],
+          classification: "数据级别",
+          parent: null,
+          reviewers: [],
+          deprecated: false,
           popularity: 70,
           updatedAt: "2026-11-05 10:00",
           description:
@@ -3213,15 +3224,42 @@
                   <button type="button" class="ctx-button ctx-button--secondary" onclick="returnToExplore()">← 返回探索结果列表</button>
                 </div>
                 <div class="summary-readonly-banner" style="margin-bottom:14px;">
-                  <span>只读页面：不提供编辑入口。显示字段以 plan 阶段按 OM 实体定义确定的清单为准，此处仅为示意。</span>
+                  <span>只读页面：不提供编辑入口。字段取自 OM 2.0.3 实体原生字段（负责人 2026-11-09 确认，见 research R9）；空值显示「—」，示例值仅为演示。</span>
                 </div>
                 <div class="summary-kv-grid" style="max-width:720px;">
-                  <span class="summary-kv-label">名称</span><span>${escapeHtml(asset.name)}</span>
-                  <span class="summary-kv-label">显示名称</span><span>${escapeHtml(asset.displayName)}</span>
-                  <span class="summary-kv-label">完整名称 (FQN)</span><span style="font-family:var(--ctx-mono)">${escapeHtml(asset.fqn)}</span>
-                  <span class="summary-kv-label">${isTerm ? "所属术语表" : "所属分类"}</span><span>${escapeHtml(parentName)}</span>
-                  <span class="summary-kv-label">描述</span><span>${escapeHtml(asset.description)}</span>
-                  <span class="summary-kv-label">负责人</span><span>${escapeHtml(asset.owners && asset.owners.length ? asset.owners.join("、") : "未分配")}</span>
+                  ${(() => {
+                    const dash = (v) => (v === null || v === undefined || v === "" ? "—" : escapeHtml(String(v)));
+                    const list = (arr, empty = "—") => (arr && arr.length ? arr.map((x) => escapeHtml(x)).join("、") : empty);
+                    const kv = (label, value, mono) => `<span class="summary-kv-label">${label}</span><span${mono ? ' style="font-family:var(--ctx-mono)"' : ""}>${value}</span>`;
+                    const common = [
+                      kv("名称", dash(asset.name)),
+                      kv("显示名称", dash(asset.displayName)),
+                      kv("完整名称 (FQN)", dash(asset.fqn), true),
+                    ];
+                    const termRows = [
+                      kv("所属术语表", dash(asset.glossary || parentName)),
+                      kv("上级术语", dash(asset.parent)),
+                      kv("描述", dash(asset.description)),
+                      kv("同义词", list(asset.synonyms)),
+                      kv("相关术语", list(asset.relatedTerms)),
+                      kv("参考链接", asset.references && asset.references.length ? asset.references.map((r) => `${escapeHtml(r.name)}（${escapeHtml(r.endpoint)}）`).join("、") : "—"),
+                      kv("负责人", list(asset.owners, "未分配")),
+                      kv("评审人", list(asset.reviewers, "未设置")),
+                      kv("业务域", dash(asset.domain)),
+                      kv("分类标签", list(asset.tags)),
+                      kv("状态", dash(asset.entityStatus)),
+                    ];
+                    const tagRows = [
+                      kv("所属分类", dash(asset.classification || parentName)),
+                      kv("上级标签", dash(asset.parent)),
+                      kv("描述", dash(asset.description)),
+                      kv("负责人", list(asset.owners, "未分配")),
+                      kv("评审人", list(asset.reviewers, "未设置")),
+                      kv("业务域", dash(asset.domain)),
+                      kv("是否已弃用", asset.deprecated ? "已弃用" : "否"),
+                    ];
+                    return common.concat(isTerm ? termRows : tagRows).join("");
+                  })()}
                 </div>
               </div>
             `;
