@@ -1,12 +1,17 @@
 """命令行：python -m mockfactory <命令>（契约见 specs/003-mock-factory-data/contracts/cli.md）。
 
-退出码：0 成功；1 参数错误；2 目标系统未就绪；3 写入失败（已清空）；4 案例核对不一致。
+退出码：0 成功；1 参数错误；2 目标系统未就绪；3 写入失败（已清空）；4 案例核对不一致；
+5 拒绝写入（006 om-import：目标已存在且不是本工具创建的）。
 """
 
 import argparse
 import contextlib
+import json
+import os
 import sys
 import time
+import urllib.parse
+import urllib.request
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -21,6 +26,7 @@ from mockfactory.load import NotReady, Targets, check_ready, dsn_targets, local_
 from mockfactory.load import doris as doris_load
 from mockfactory.load import mysql as mysql_load
 from mockfactory.load import postgres as pg_load
+from mockfactory.om_import import writer as om_writer
 from mockfactory.schema import TABLES, Table
 from mockfactory.verify import report, verify
 
@@ -50,6 +56,10 @@ def _parser() -> argparse.ArgumentParser:
     sub.add_parser("provision-005", help="005：只读元数据账号与 viewlab 视图测试库（本地集群）")
     docs = sub.add_parser("docs", help="重新生成 testdata/数据说明.md")
     docs.add_argument("--out", type=Path, default=DOC_PATH)
+    om = sub.add_parser("om-import", help="006：把 003 表定义导入 OM 作为开发态测试元数据")
+    om.add_argument("--target", choices=["local"], help="开发态目标环境，必须显式指定 local")
+    om.add_argument("--om-url", required=True, help="OM 地址，如 http://localhost:8585")
+    om.add_argument("--remove", action="store_true", help="撤除本工具导入的测试资产")
     roster = sub.add_parser("roster", help="导出人员与班组名单（CSV）")
     roster.add_argument("--out", type=Path)
     return p
@@ -164,6 +174,53 @@ def provision_005() -> int:
     return 0
 
 
+def _om_token() -> str:
+    """凭证只读环境变量：OM_TOKEN，或 provisioner 客户端凭证（同 make seed）；不写盘、不打印。"""
+    token = os.environ.get("OM_TOKEN")
+    if token:
+        return token
+    client_id = os.environ.get("KEYCLOAK_PROVISIONER_CLIENT_ID")
+    secret = os.environ.get("KEYCLOAK_PROVISIONER_CLIENT_SECRET")
+    url, realm = os.environ.get("KEYCLOAK_URL"), os.environ.get("KEYCLOAK_REALM")
+    if not (client_id and secret and url and realm):
+        raise ValueError(
+            "缺少凭证：设置 OM_TOKEN，或 KEYCLOAK_URL / KEYCLOAK_REALM / "
+            "KEYCLOAK_PROVISIONER_CLIENT_ID / KEYCLOAK_PROVISIONER_CLIENT_SECRET"
+        )
+    form = urllib.parse.urlencode(
+        {"grant_type": "client_credentials", "client_id": client_id, "client_secret": secret}
+    ).encode()
+    token_url = om_writer.require_http(f"{url}/realms/{realm}/protocol/openid-connect/token")
+    req = urllib.request.Request(token_url, data=form, method="POST")  # noqa: S310
+    with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310  已校验协议
+        return str(json.loads(resp.read())["access_token"])
+
+
+def om_import(args: argparse.Namespace) -> int:
+    if args.target != "local":
+        print("未显式指定开发态目标环境（--target local），拒绝写入。", file=sys.stderr)
+        return 1
+    send = om_writer.urllib_transport(args.om_url, _om_token())
+    w = om_writer.OmWriter(send)
+    try:
+        if args.remove:
+            stats = w.remove()
+            print(f"开发态元数据撤除（OM {args.om_url}）：删除 {stats.deleted} 个根实体")
+            return 0
+        stats = w.import_all()
+    except om_writer.NotOwned as e:
+        print(f"拒绝写入：{e}", file=sys.stderr)
+        return 5
+    except om_writer.WriteFailed as e:
+        print(f"写入失败：{e}", file=sys.stderr)
+        return 3
+    print(
+        f"开发态元数据导入（OM {args.om_url}）：新建 {stats.created}，"
+        f"更新 {stats.updated}，未变化 {stats.unchanged}"
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     try:
         args = _parser().parse_args(argv)
@@ -176,6 +233,8 @@ def main(argv: list[str] | None = None) -> int:
             return verify_cases(args)
         if args.command == "provision-005":
             return provision_005()
+        if args.command == "om-import":
+            return om_import(args)
         if args.command == "docs":
             print(write_docs(args.out))
             return 0
