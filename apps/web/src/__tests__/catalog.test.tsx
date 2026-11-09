@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { renderQ } from "./query-wrapper";
 import { afterEach, expect, it, vi } from "vitest";
-import { CatalogTree } from "../features/sources/CatalogTree";
 import { AssetsWorkspace } from "../features/assets/AssetsWorkspace";
 import { sourcesFixture, stubBff } from "./sources-fixtures";
 
@@ -183,10 +182,10 @@ function Where() {
   );
 }
 
-function open(path: string, withTree = false) {
+// 006：005 的目录树由数据资产页的浏览树取代（FR-006），树的用例见 assets-browse.test.tsx
+function open(path: string) {
   return renderQ(
     <MemoryRouter initialEntries={[path]}>
-      {withTree && <CatalogTree />}
       <Routes>
         <Route path="/assets/*" element={<AssetsWorkspace />} />
       </Routes>
@@ -194,40 +193,6 @@ function open(path: string, withTree = false) {
     </MemoryRouter>,
   );
 }
-
-it("目录树：服务节点显示表数或“未采集”，逐层展开到表并进入资产详情", async () => {
-  stubBff(routes);
-  open("/assets/sources", true);
-  const tree = await screen.findByRole("navigation", { name: "数据源目录" });
-  const mes = await within(tree).findByRole("button", { name: /^fixture-mes/ });
-  expect(mes).toHaveTextContent("13");
-  expect(
-    within(tree).getByRole("button", { name: /^fixture-erp/ }),
-  ).toHaveTextContent("未采集");
-  expect(
-    within(tree).queryByRole("button", { name: "展开 fixture-erp" }),
-  ).not.toBeInTheDocument();
-
-  await userEvent.click(
-    within(tree).getByRole("button", { name: "展开 fixture-mes" }),
-  );
-  await userEvent.click(
-    await within(tree).findByRole("button", { name: "展开 default" }),
-  );
-  await userEvent.click(
-    await within(tree).findByRole("button", { name: "展开 mes" }),
-  );
-  await userEvent.click(
-    await within(tree).findByRole("button", { name: "工单" }),
-  );
-  expect(screen.getByLabelText("当前地址")).toHaveTextContent(
-    "/assets/table/fixture-mes.default.mes.work_order",
-  );
-  expect(within(tree).getByRole("button", { name: "工单" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
-});
 
 it("数据库资产页：眉标、标题、FQN、面包屑只到当前层级、返回所属数据源，无源级控制", async () => {
   stubBff(routes);
@@ -361,25 +326,6 @@ it("目录读取失败时如实显示错误码，不显示示例数据", async (
   ).not.toBeInTheDocument();
 });
 
-it("窄屏“目录”按钮打开目录抽屉，选择后关闭", async () => {
-  stubBff(routes);
-  open("/assets/sources");
-  const toggle = await screen.findByRole("button", { name: "目录" });
-  expect(toggle).toHaveAttribute("aria-expanded", "false");
-  await userEvent.click(toggle);
-  expect(toggle).toHaveAttribute("aria-expanded", "true");
-  const drawer = screen.getByRole("dialog", { name: "数据源目录" });
-  await userEvent.click(
-    await within(drawer).findByRole("button", { name: /^fixture-mes/ }),
-  );
-  expect(
-    screen.queryByRole("dialog", { name: "数据源目录" }),
-  ).not.toBeInTheDocument();
-  expect(screen.getByLabelText("当前地址")).toHaveTextContent(
-    /^\/assets\/sources\/fixture-mes$/,
-  );
-});
-
 it("单列主键只在 OM 列级约束中时，表约束据列约束显示", async () => {
   const station = table(
     "station",
@@ -415,97 +361,4 @@ it("单列主键只在 OM 列级约束中时，表约束据列约束显示", asy
   open(`/assets/table/${enc("fixture-mes.default.mes.station")}`);
   const info = await screen.findByRole("region", { name: "结构信息" });
   expect(info).toHaveTextContent("PRIMARY_KEY (code)；UNIQUE (sn)");
-});
-
-it("目录读取失败时如实显示错误码并可重试", async () => {
-  stubBff([
-    {
-      path: "/bff/v1/sources",
-      status: 502,
-      body: {
-        code: "upstream.unavailable",
-        message: "OpenMetadata 不可用",
-        trace_id: "t-2",
-      },
-    },
-  ]);
-  renderQ(
-    <MemoryRouter initialEntries={["/assets/sources"]}>
-      <CatalogTree />
-    </MemoryRouter>,
-  );
-  const tree = screen.getByRole("navigation", { name: "数据源目录" });
-  expect(await within(tree).findByText(/upstream.unavailable/)).toBeVisible();
-  stubBff(routes);
-  await userEvent.click(within(tree).getByRole("button", { name: "重试" }));
-  expect(
-    await within(tree).findByRole("button", { name: /^fixture-mes/ }),
-  ).toBeVisible();
-});
-
-it("采集运行结束后左侧目录自动更新，无需刷新页面", async () => {
-  vi.useFakeTimers({ shouldAdvanceTime: true });
-  try {
-    const mes = sourcesFixture[0]!;
-    const meta = mes.pipelines[0]!;
-    const running = {
-      runId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-      pipelineState: "running",
-      startDate: Date.now() - 5_000,
-      endDate: null,
-      steps: [],
-    };
-    const before = {
-      ...mes,
-      tableCount: 0,
-      columnCount: 0,
-      pipelines: [{ ...meta, lastRun: running }],
-    };
-    const list = {
-      path: "/bff/v1/sources",
-      body: { data: [before] } as unknown,
-    };
-    const detail = {
-      path: "/bff/v1/sources/fixture-mes",
-      body: {
-        ...before,
-        connection: {
-          hostPort: "h:3306",
-          username: "u",
-          database: "mes",
-          tls: false,
-        },
-        scope: { includeViews: true },
-      } as unknown,
-    };
-    const runs = {
-      path: "/bff/v1/sources/fixture-mes/pipelines/metadata/runs",
-      body: { data: [running] } as unknown,
-    };
-    stubBff([list, detail, runs, ...routes]);
-    open("/assets/sources/fixture-mes?tab=tasks&task=metadata", true);
-    const tree = await screen.findByRole("navigation", { name: "数据源目录" });
-    expect(
-      await within(tree).findByRole("button", { name: /^fixture-mes/ }),
-    ).toHaveTextContent("未采集");
-
-    // OM 中运行结束：列表统计与运行记录变为成功（BFF 下一次读取即返回新值）
-    const done = { ...running, pipelineState: "success", endDate: Date.now() };
-    const after = { ...mes, pipelines: [{ ...meta, lastRun: done }] };
-    list.body = { data: [after] };
-    detail.body = { ...(detail.body as object), ...after };
-    runs.body = { data: [done] };
-    await vi.advanceTimersByTimeAsync(5_000);
-
-    await waitFor(() =>
-      expect(
-        within(tree).getByRole("button", { name: /^fixture-mes/ }),
-      ).toHaveTextContent("13"),
-    );
-    expect(
-      within(tree).getByRole("button", { name: "展开 fixture-mes" }),
-    ).toBeVisible();
-  } finally {
-    vi.useRealTimers();
-  }
 });
