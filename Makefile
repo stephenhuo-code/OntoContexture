@@ -1,5 +1,5 @@
 # 织境常用命令。标注 TODO 的目标由后续任务实现。
-.PHONY: test lint up down seed e2e e2e-mock-data coverage-check ports components-check patches-check offline-package mock-data
+.PHONY: test lint up down seed e2e e2e-mock-data coverage-check ports components-check patches-check offline-package mock-data dev-metadata dev-metadata-remove
 
 test:
 	uv run pytest --cov --cov-report=term-missing --cov-report=json:coverage.json
@@ -25,6 +25,20 @@ down:
 
 seed:
 	set -a; . ./.env.local; set +a; SSL_CERT_FILE=$$(mktemp) && docker exec paperclip-caddy-1 cat /data/caddy/pki/authorities/local/root.crt > $$SSL_CERT_FILE && SSL_CERT_FILE=$$SSL_CERT_FILE uv run python -m tools.seed
+
+# 006 开发态元数据导入：把 003 表定义作为开发态测试元数据写入本地集群的 OM（可重复执行，幂等）
+# 凭证取自 .env.local 的 provisioner 客户端；临时端口转发到 18585，不占用 make ports 的 8585
+DEV_OM_PORT ?= 18585
+define dev_metadata
+	set -a; . ./.env.local; set +a; SSL_CERT_FILE=$$(mktemp) && docker exec paperclip-caddy-1 cat /data/caddy/pki/authorities/local/root.crt > $$SSL_CERT_FILE && export SSL_CERT_FILE; \
+	kubectl --context kind-contexture -n contexture port-forward svc/openmetadata $(DEV_OM_PORT):8585 >/dev/null 2>&1 & PF=$$!; trap "kill $$PF" EXIT; sleep 3; \
+	uv run python -m mockfactory om-import --target local --om-url http://localhost:$(DEV_OM_PORT) $(1)
+endef
+dev-metadata:
+	$(call dev_metadata,)
+
+dev-metadata-remove:
+	$(call dev_metadata,--remove)
 
 # 模拟工厂数据（003）：按需部署模拟 MES、QMS（make up 不部署它们；可重复执行），再生成并写入三套模拟系统，最后核对 3 个案例
 MONTHS ?= 12

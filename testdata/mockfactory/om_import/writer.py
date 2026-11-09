@@ -128,7 +128,8 @@ class OmWriter:
             r = self.send("PUT", f"/v1/{e.collection}", e.body)
             if r.status >= 400:
                 raise WriteFailed(f"写入 {e.kind} {e.fqn} 失败：HTTP {r.status} {r.body}")
-            change = r.headers.get(CHANGE_HEADER, "")
+            headers = {k.lower(): v for k, v in r.headers.items()}
+            change = headers.get(CHANGE_HEADER.lower(), "")
             if r.status == 201 or change == "entityCreated":
                 stats.created += 1
             elif change == "entityNoChange":
