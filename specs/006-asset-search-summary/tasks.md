@@ -463,7 +463,7 @@ description: "006 资产搜索与摘要的实施任务清单"
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T051 [P] [US3] 编写组件测试 `apps/web/src/__tests__/assets-subviews.test.tsx`，覆盖：
+- [x] T051 [P] [US3] 编写组件测试 `apps/web/src/__tests__/assets-subviews.test.tsx`，覆盖：
   - 页头「数据源管理」进入 `/assets/sources`，「添加数据源」进入接入向导；
   - 点击卡片名称或摘要标题，进入 `/assets/{类型}/{fqn}`；库、Schema、表使用 005 的详情；
   - 从子视图返回探索视图后，关键词、位置、筛选、排序、页码都不变；
@@ -471,18 +471,18 @@ description: "006 资产搜索与摘要的实施任务清单"
   - 顶栏面包屑：数据源管理显示「数据资产 / 数据源管理」，资产详情显示「数据资产 / <服务> / <资产显示名>」；点击「数据资产」返回探索视图，条件保留。
   - 对应：FR-002、FR-003、FR-015、US3 场景 1、2、4、spec 界面基线第 3 条。
   - 完成判定：测试失败。
-- [ ] T052 [P] [US3] 编写组件测试 `apps/web/src/__tests__/column-locate.test.tsx`，覆盖：
+- [x] T052 [P] [US3] 编写组件测试 `apps/web/src/__tests__/column-locate.test.tsx`，覆盖：
   - 带着 `location.state.column` 进入表详情时，滚动到该列所在行并高亮；
   - 没有这个状态时，不高亮；
   - 地址中不出现列名。
   - 对应：Q3、FR-012。
   - 完成判定：测试失败。
-- [ ] T053 [P] [US3] 编写契约测试 `services/bff/tests/contract/test_governance_detail_contract.py`：
+- [x] T053 [P] [US3] 编写契约测试 `services/bff/tests/contract/test_governance_detail_contract.py`：
   - `getGlossaryTermDetail` 与 `getTagDetail` 的 200 响应符合 schema，404 返回 `catalog.not_found`；
   - 响应中没有任何可编辑字段。
   - 对应：FR-013。
   - 完成判定：测试失败。
-- [ ] T054 [P] [US3] 编写单元测试 `services/bff/tests/unit/test_governance_detail.py`，按 research R9 已确认的字段清单逐项映射：
+- [x] T054 [P] [US3] 编写单元测试 `services/bff/tests/unit/test_governance_detail.py`，按 research R9 已确认的字段清单逐项映射：
   - **术语**：名称、显示名称、FQN、所属术语表（`glossary`）、上级术语（`parent`）、描述、同义词（`synonyms`）、相关术语（`relatedTerms`）、参考链接（`references`）、负责人（`owners`）、评审人（`reviewers`）、业务域（`domains`）、分类标签（`tags`）、状态（`entityStatus`）。
   - **标签**：名称、显示名称、FQN、所属分类（`classification`）、上级标签（`parent`）、描述、负责人、评审人、业务域、是否已弃用（`deprecated`）。
   - 请求 OM 时 `fields` 必须包含：
@@ -490,14 +490,14 @@ description: "006 资产搜索与摘要的实施任务清单"
     - 标签：`owners,reviewers,domains`。
   - OM 返回 404 时映射为 `catalog.not_found`。
   - 完成判定：测试失败。
-- [ ] T055 [P] [US3] 编写组件测试 `apps/web/src/__tests__/governance-detail.test.tsx`，覆盖：
+- [x] T055 [P] [US3] 编写组件测试 `apps/web/src/__tests__/governance-detail.test.tsx`，覆盖：
   - 术语详情显示 14 项字段，标签详情显示 10 项字段；空值显示「—」，负责人为空时显示「未分配」，评审人为空时显示「未设置」；
   - 页面中没有编辑按钮；
   - 404 时显示「未找到」；
   - 有返回探索视图的入口。
   - 对应：FR-013、US3 场景 3、spec 边界情况「术语或标签已删除」。
   - 完成判定：测试失败。
-- [ ] T056 [US3] Q4 文案改动，先写测试（Red）：
+- [x] T056 [US3] Q4 文案改动，先写测试（Red）：
   - `apps/web/src/__tests__/property-edit.test.tsx`：断言编辑弹窗的标签为「分级（Tier）」，属性卡片中显示「分级」；
   - `services/bff/tests/unit/test_governance.py`：断言非法 Tier 的错误消息以「分级（Tier）」开头；
   - `tests/e2e/sources.spec.ts:312`：改为 `getByLabel("分级（Tier）")`。
@@ -505,22 +505,22 @@ description: "006 资产搜索与摘要的实施任务清单"
 
 ### Implementation for User Story 3
 
-- [ ] T057 [US3] 在 `services/bff/src/contexture_bff/adapters/om_assets.py` 中实现 `glossary_term_detail()` 和 `tag_detail()`；在 `services/bff/src/contexture_bff/api/catalog.py` 中增加 `GET /bff/v1/governance/glossary-terms/{fqn}` 与 `GET /bff/v1/governance/tags/{fqn}`，使用 `require_web_context`。
+- [x] T057 [US3] 在 `services/bff/src/contexture_bff/adapters/om_assets.py` 中实现 `glossary_term_detail()` 和 `tag_detail()`；在 `services/bff/src/contexture_bff/api/catalog.py` 中增加 `GET /bff/v1/governance/glossary-terms/{fqn}` 与 `GET /bff/v1/governance/tags/{fqn}`，使用 `require_web_context`。
   - 完成判定：T053、T054 通过。
-- [ ] T058 [US3] 实现前端页面：
+- [x] T058 [US3] 实现前端页面：
   - 新建 `apps/web/src/features/assets/GlossaryTermDetail.tsx` 与 `TagDetail.tsx`。
   - 在 `/assets/:entityType/:fqn` 路由中按类型分派：库、Schema、表进入 005 的 `CatalogAssetDetailView`，术语、标签进入新的详情页。
   - 在 `apps/web/src/features/sources/CatalogAssetDetailView.tsx` 中支持定位列。
   - 在 `ExploreView` 的页头增加「数据源管理」「添加数据源」两个入口。
   - 在 `TopBreadcrumb.tsx` 中补上子视图的面包屑（research R14）。
   - 完成判定：T051、T052、T055 通过。
-- [ ] T059 [US3] 实现 Q4 文案改动：
+- [x] T059 [US3] 实现 Q4 文案改动：
   - `apps/web/src/features/sources/PropertyEditModal.tsx:345` 的标签改为「分级（Tier）」；
   - 同文件 :346 的帮助文字中，把「业务重要程度」改为「分级（Tier）」，其余文字不变；
   - `apps/web/src/features/sources/AssetProperties.tsx:99` 改为「分级」；
   - `services/bff/src/contexture_bff/adapters/om_sources.py:804` 的消息改为「分级（Tier）须为 Tier.Tier1–Tier.Tier5」。
   - 完成判定：T056 中的单元测试通过。
-- [ ] T060 [US3] 新建 `tests/e2e/assets.spec.ts`，先写入「旧地址重定向」一组用例：
+- [x] T060 [US3] 新建 `tests/e2e/assets.spec.ts`，先写入「旧地址重定向」一组用例：
   - `/sources`；
   - `/sources/mock-mes`；
   - `/sources/mock-mes/assets/table/<fixture 中的 FQN>`。
@@ -545,13 +545,13 @@ description: "006 资产搜索与摘要的实施任务清单"
   - 完成判定：测试失败。
 - [ ] T062 在 `apps/web/src/features/assets/ExploreView.tsx`、`SummaryPanel.tsx` 和新建的 `apps/web/src/features/assets/assets.css` 中实现各种页面状态和窄屏样式。
   - 完成判定：T061 通过。
-- [ ] T063 [P] 编写单元测试 `services/bff/tests/unit/test_assets_logging.py`，覆盖：
+- [x] T063 [P] 编写单元测试 `services/bff/tests/unit/test_assets_logging.py`，覆盖：
   - assets 和 governance 详情接口每次请求输出一条 JSON 日志；
   - 日志包含 `trace_id`、`tenant_id`、操作、类型、关键词长度、条件维度、结果数、耗时；
   - 日志中不出现令牌和完整的关键词原文（只记录长度）。
   - 对应：FR-020、research R16。
   - 完成判定：测试失败。
-- [ ] T064 在 `services/bff/src/contexture_bff/api/assets.py` 与 `api/catalog.py` 的新路由中实现结构化日志，复用 `contexture_core.telemetry`。
+- [x] T064 在 `services/bff/src/contexture_bff/api/assets.py` 与 `api/catalog.py` 的新路由中实现结构化日志，复用 `contexture_core.telemetry`。
   - 完成判定：T063 通过。
 - [ ] T065 在 `tests/e2e/assets.spec.ts` 中补充以下用例：
   - US1、US2、US3 的主路径，使用 fixture 数据；

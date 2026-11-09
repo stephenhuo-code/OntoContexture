@@ -97,12 +97,13 @@ test("US1：接入 MES 并首采，统计等于 003 金标准，响应无明文�
     page.getByRole("table", { name: "运行记录" }).getByText("成功"),
   ).toBeVisible({ timeout: 240_000 });
 
-  // 不刷新页面：左侧目录随运行结束自动更新（负责人 2026-11-08 反馈）
+  // 不刷新页面：左侧浏览树随运行结束自动更新（005 负责人 2026-11-08 反馈；006 起为数据资产浏览树，节点显示服务的显示名称）
+  const browse = page.getByRole("navigation", { name: "数据资产浏览树" });
+  await browse.getByRole("button", { name: "展开 数据库" }).click();
+  await browse.getByRole("button", { name: "展开 Mysql" }).click();
   await expect(
-    page
-      .getByRole("navigation", { name: "数据源目录" })
-      .getByRole("button", { name: new RegExp(`^${SERVICE}`) }),
-  ).toContainText("13", { timeout: 30_000 });
+    browse.getByRole("button", { name: /^E2E MES \d+$/ }),
+  ).toBeVisible({ timeout: 30_000 });
 
   await page.getByRole("tab", { name: "概览" }).click();
   await expect(page.locator(".metric", { hasText: "已采集表" })).toContainText(
@@ -242,31 +243,24 @@ test("US3：MES / QMS / Doris 四层目录浏览、面包屑与表结构", async
   await page.getByRole("link", { name: "← 返回所属数据源" }).click();
   await expect(page).toHaveURL(new RegExp(`/assets/sources/${SERVICE}$`));
 
-  // QMS：左侧目录树（PostgreSQL 为 物理库 → public → 表）
-  const tree = page.getByRole("navigation", { name: "数据源目录" });
-  await expect(tree.getByRole("button", { name: /^e2e-qms/ })).toContainText(
-    "7",
-  );
-  // 精确匹配并限定在服务节点内：环境中可能有同名前缀的其他数据源（如验收时接入的 qms-sys）
-  const node = (service: string) =>
-    tree.getByRole("listitem").filter({
-      has: page.getByRole("button", {
-        name: new RegExp(`^(展开|收起) ${service}$`),
-      }),
-    });
-  await tree.getByRole("button", { name: "展开 e2e-qms", exact: true }).click();
-  const qms = node("e2e-qms");
-  await qms.getByRole("button", { name: "展开 qms", exact: true }).click();
-  await qms.getByRole("button", { name: /^public/ }).click();
-  // 展开较深时，目录行不超出二级栏，数量胶囊仍可见（负责人 2026-11-08 反馈）
+  // QMS / Doris：浏览树逐层为 服务类型 → 服务 → 库 → Schema（006 FR-006）；Schema 详情经新地址进入
+  const tree = page.getByRole("navigation", { name: "数据资产浏览树" });
+  const level = async (label: string) => {
+    await tree
+      .getByRole("button", { name: `展开 ${label}`, exact: true })
+      .first()
+      .click();
+  };
+  await level("数据库");
+  await level("Postgres");
+  await level("e2e-qms");
+  await level("qms");
   await expect(
-    qms.getByRole("button", { name: /^(展开|收起) public$/ }),
+    tree.getByRole("button", { name: /^public \d+$/ }),
   ).toBeVisible();
-  await qms.getByRole("button", { name: "展开 public", exact: true }).click();
-  await expect(qms.getByRole("listitem").nth(3)).toBeVisible();
   const overflow = await tree.evaluate((nav) => {
     const box = nav.getBoundingClientRect();
-    const pills = [...nav.querySelectorAll(".catalog-pick small")].map((el) =>
+    const pills = [...nav.querySelectorAll(".browse-tree__count")].map((el) =>
       el.getBoundingClientRect(),
     );
     return {
@@ -276,6 +270,9 @@ test("US3：MES / QMS / Doris 四层目录浏览、面包屑与表结构", async
     };
   });
   expect(overflow).toEqual({ scroll: 0, hidden: 0 });
+  await page.goto(
+    `/assets/databaseSchema/${encodeURIComponent("e2e-qms.qms.public")}`,
+  );
   await expect(page.getByRole("navigation", { name: "资产层级" })).toHaveText(
     "e2e-qms›qms›public",
   );
@@ -284,10 +281,9 @@ test("US3：MES / QMS / Doris 四层目录浏览、面包屑与表结构", async
   ).toHaveCount(8);
 
   // Doris：default → 物理库 → 表，键列按 OM 原生连接器标为主键
-  await tree.getByRole("button", { name: "展开 e2e-dw", exact: true }).click();
-  const dw = node("e2e-dw");
-  await dw.getByRole("button", { name: "展开 default", exact: true }).click();
-  await dw.getByRole("button", { name: /^mock_dw/ }).click();
+  await page.goto(
+    `/assets/databaseSchema/${encodeURIComponent("e2e-dw.default.mock_dw")}`,
+  );
   await expect(page.getByRole("navigation", { name: "资产层级" })).toHaveText(
     "e2e-dw›default›mock_dw",
   );
@@ -568,7 +564,7 @@ test("SC-007：1280 / 768 / 390 视口下列表、详情四页签、向导、资
       await page.getByRole("button", { name: "取消" }).click();
       await page.getByRole("button", { name: "目录" }).click();
       await expect(
-        page.getByRole("dialog", { name: "数据源目录" }),
+        page.getByRole("dialog", { name: "资产目录" }),
       ).toBeVisible();
       await check("目录抽屉");
     }
