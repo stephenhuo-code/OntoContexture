@@ -1,4 +1,5 @@
 opensearchJavaOpts: "-Xms384m -Xmx384m"
+# 上限须容纳 2×堆（直接内存默认等于堆）+ 约 512Mi 原生开销；1Gi 会 OOMKilled（006 D11）
 resources:
   requests: { cpu: 100m, memory: 768Mi }
-  limits: { memory: 1Gi }
+  limits: { memory: 1280Mi }
