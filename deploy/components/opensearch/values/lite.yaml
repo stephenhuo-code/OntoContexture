@@ -1,5 +1,6 @@
-opensearchJavaOpts: "-Xms384m -Xmx384m"
-# 上限须容纳 2×堆（直接内存默认等于堆）+ 约 512Mi 原生开销；1Gi 会 OOMKilled（006 D11）
+# 006 D11 实测：堆 384m 在约 180 个分片下接近占满并 OOMKilled；与 base 相同使用 512m 堆。
+# 内存上限须容纳 2×堆（直接内存默认等于堆）+ 约 512Mi 原生开销。
+opensearchJavaOpts: "-Xms512m -Xmx512m"
 resources:
   requests: { cpu: 100m, memory: 768Mi }
-  limits: { memory: 1280Mi }
+  limits: { memory: 1536Mi }
