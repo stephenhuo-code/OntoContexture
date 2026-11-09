@@ -1,6 +1,8 @@
-# 006 D11 实测：堆 384m 在约 180 个分片下接近占满并 OOMKilled；与 base 相同使用 512m 堆。
-# 内存上限须容纳 2×堆（直接内存默认等于堆）+ 约 512Mi 原生开销。
-opensearchJavaOpts: "-Xms512m -Xmx512m"
+# 006 D11 实测（2026-11-09）：
+# - 堆 384m / 上限 1Gi：OOMKilled 321 次；堆 384m 在约 180 个分片下接近占满。
+# - 堆 512m / 上限 1536Mi：完整 e2e 负载下仍 OOMKilled。
+# 显式限制直接内存（默认等于堆），并给元空间、线程栈、代码缓存等原生开销留出 1Gi 以上。
+opensearchJavaOpts: "-Xms512m -Xmx512m -XX:MaxDirectMemorySize=256m"
 resources:
-  requests: { cpu: 100m, memory: 768Mi }
-  limits: { memory: 1536Mi }
+  requests: { cpu: 100m, memory: 1Gi }
+  limits: { memory: 2Gi }
