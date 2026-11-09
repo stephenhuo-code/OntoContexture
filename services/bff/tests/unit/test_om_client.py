@@ -133,4 +133,4 @@ async def test_5xx_keeps_om_message_in_details() -> None:
     with pytest.raises(ContextureError) as ei:
         await om.request(user_context(), "GET", "/search/query")
     assert ei.value.code == "upstream.unavailable"
-    assert ei.value.details["message"] == "Failed to find index x"
+    assert (ei.value.details or {})["message"] == "Failed to find index x"

@@ -98,26 +98,26 @@ description: "006 资产搜索与摘要的实施任务清单"
 
 ### C. 契约（FR-019；plan「契约与先行测试」）
 
-- [ ] T011 把 `specs/006-asset-search-summary/contracts/openapi.yaml` 合入 `contracts/openapi/bff.yaml`：
+- [x] T011 把 `specs/006-asset-search-summary/contracts/openapi.yaml` 合入 `contracts/openapi/bff.yaml`：
   - 合入 8 个路径和 17 个 schema；
   - `info.version` 从 0.2.0 改为 0.3.0；
   - 在 `info.description` 中登记 `search.invalid_criteria`、`search.window_exceeded`、`search.index_missing`、`search.timeout`；
   - 复用已有的 `Ref` 和 `components/responses`；
   - 不修改已有接口。
   - 完成判定：`uv run pytest services/bff/tests/contract/test_contract.py` 能加载契约。新路径还没有实现，Schemathesis 对新路径的用例失败，属于预期。
-- [ ] T012 运行 `pnpm --filter @contexture/ts-api generate` 生成 `packages/ts-api/src/bff.d.ts`，在 `packages/ts-api/src/index.ts` 中导出新的类型：`SearchCriteria`、`SearchPage`、`SearchHit`、`TypeCounts`、`FacetOption`、`BrowseNode`、`Suggestion`、`AssetSummary`、`GlossaryTermDetail`、`TagDetail`。
+- [x] T012 运行 `pnpm --filter @contexture/ts-api generate` 生成 `packages/ts-api/src/bff.d.ts`，在 `packages/ts-api/src/index.ts` 中导出新的类型：`SearchCriteria`、`SearchPage`、`SearchHit`、`TypeCounts`、`FacetOption`、`BrowseNode`、`Suggestion`、`AssetSummary`、`GlossaryTermDetail`、`TagDetail`。
   - 完成判定：`pnpm --filter @contexture/ts-api check` 通过。
 
 ### BFF 公共基础
 
-- [ ] T013 [P] 扩展 `services/bff/tests/om_fake.py`，增加以下内存模拟：
+- [x] T013 [P] 扩展 `services/bff/tests/om_fake.py`，增加以下内存模拟：
   - `GET /v1/search/query`、`/v1/search/entityTypeCounts`、`/v1/search/aggregate`：返回 OpenSearch 的原始结构，聚合键带 `sterms#` 前缀，高亮使用 `<span class="text-highlighter">`；
   - `GET /v1/glossaryTerms/name/{fqn}`、`/v1/tags/name/{fqn}`；
   - 故障注入：500 `{"code":500,"message":"Failed to find index x"}`、`timed_out:true`、连接错误。
   
   这个模拟只用于单元测试和契约测试。
   - 完成判定：已有测试全部仍然通过。
-- [ ] T014 [P] 编写失败测试 `services/bff/tests/unit/test_tag_split.py`，按 data-model 第 3 节的规则 1–5 拆分 `tags`：
+- [x] T014 [P] 编写失败测试 `services/bff/tests/unit/test_tag_split.py`，按 data-model 第 3 节的规则 1–5 拆分 `tags`：
   - `Tier.` 开头 → 分级；
   - `数据级别.` 开头 → 数据安全级别；
   - 等于开发态标识 FQN → 来源标识（不出现在分类标签中）；
@@ -125,9 +125,9 @@ description: "006 资产搜索与摘要的实施任务清单"
   - 其余 → 分类标签。
   - 对应：FR-014。
   - 完成判定：测试失败。
-- [ ] T015 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 中，从 `governance_view` 抽出可复用的 `split_tags()`，让 005 的代码改为调用它，并增加对数据级别和开发态标识的识别。
+- [x] T015 在 `services/bff/src/contexture_bff/adapters/om_sources.py` 中，从 `governance_view` 抽出可复用的 `split_tags()`，让 005 的代码改为调用它，并增加对数据级别和开发态标识的识别。
   - 完成判定：T014 通过，005 已有的单元测试和契约测试全部通过。
-- [ ] T016 [P] 编写失败测试 `services/bff/tests/unit/test_om_search_errors.py`，覆盖以下映射：
+- [x] T016 [P] 编写失败测试 `services/bff/tests/unit/test_om_search_errors.py`，覆盖以下映射：
   - OM 返回 500，且消息以 `Failed to find index` 开头 → `503 search.index_missing`；
   - 响应中 `timed_out=true` → `504 search.timeout`，不返回部分结果；
   - 其他 5xx 或网络错误 → `502 upstream.unavailable`；
@@ -136,14 +136,14 @@ description: "006 资产搜索与摘要的实施任务清单"
   同时在 `services/bff/tests/unit/test_om_client.py` 中补充用例：5xx 时，OM 返回的消息要传到异常的 `details` 中。
   - 对应：research R11。
   - 完成判定：测试失败。
-- [ ] T017 实现上述错误映射：
+- [x] T017 实现上述错误映射：
   - 修改 `services/bff/src/contexture_bff/adapters/om_client.py`：5xx 时在 `details` 中保留 OM 的 `message`，保持原有错误码不变；
   - 新建 `services/bff/src/contexture_bff/adapters/om_search.py`，实现 `_raise_for_search()`，负责识别索引缺失和超时。
   - 完成判定：T016 通过，005 已有测试全部通过。
 
 ### Web 公共基础（路由、导航、会话内条件；D1、D2、FR-001～FR-003、FR-015）
 
-- [ ] T018 先修改受影响的 005 Web 单元测试断言（Red）：
+- [x] T018 先修改受影响的 005 Web 单元测试断言（Red）：
   - `apps/web/src/__tests__/navigation.test.tsx:70-71,137-157,186`：一级「资产」指向 `/assets`；二级栏不再有「资产搜索」「数据源」链接。
   - `shell-pages.test.tsx:32`：`/assets` 不再显示「尚未开放」。
   - 以下测试中挂载的路由由 `/sources/*` 改为 `/assets/sources/*`，资产详情地址改为 `/assets/:entityType/:fqn`：
@@ -157,32 +157,32 @@ description: "006 资产搜索与摘要的实施任务清单"
   - `shell-pages.test.tsx`：保留或补上「非 `/assets` 页面不显示搜索框」的断言（D3）。
   - 逐个核对 `login-page.test.tsx:42-46` 和 `api.test.ts:50` 中 `/assets?q=…` 这类 returnTo 示例，只在它们因路由改动而失败时才修改。
   - 完成判定：上述测试失败，原因是新路由尚未实现。
-- [ ] T019 [P] 编写失败测试 `apps/web/src/__tests__/assets-routing.test.tsx`，覆盖以下重定向（research R14）：
+- [x] T019 [P] 编写失败测试 `apps/web/src/__tests__/assets-routing.test.tsx`，覆盖以下重定向（research R14）：
   - `/sources` → `/assets/sources`；
   - `/sources/:name` → `/assets/sources/:name`；
   - `/sources/:name/assets/table/:fqn` → `/assets/table/:fqn`；
   - `/sources/:name/assets/databaseService/:fqn` → `/assets/sources/:name`；
   - `/assets/sources` 由 `SourcesWorkspace` 渲染，不会被 `/assets/:entityType/:fqn` 匹配。
   - 完成判定：测试失败。
-- [ ] T020 [P] 修改 e2e 断言（Red，集群就绪后运行）：
+- [x] T020 [P] 修改 e2e 断言（Red，集群就绪后运行）：
   - `tests/e2e/shell-navigation.spec.ts:28-42,114-115,149`；
   - `tests/e2e/sources.spec.ts` 中的资产地址（:319,331,552）、树（:103,242）、抽屉（:573）；
   - `tests/e2e/sources-perf.spec.ts:75`。
   
   全部改为新路径和新的树标签。
   - 完成判定：在旧实现上运行这些断言会失败。
-- [ ] T021 实现新的路由：
+- [x] T021 实现新的路由：
   - 修改 `apps/web/src/App.tsx`：增加 `/assets`、`/assets/sources/*`、`/assets/:entityType/:fqn` 三条路由，以及 `/sources/*` 的重定向；`/assets` 不再使用 `NotOpenPage`。
   - 修改 `apps/web/src/features/sources/SourcesWorkspace.tsx`：路由基准改为 `/assets/sources`；保存后跳转（:77）改到新路径。
   - 修改 `apps/web/src/features/sources/format.ts:180-187` 的 `assetHref`，生成新路径。服务名从 FQN 第一段取得（`splitFqn`）。
   - 完成判定：T019 通过，T018 中与路由相关的用例通过。
-- [ ] T022 修改导航和外壳：
+- [x] T022 修改导航和外壳：
   - `apps/web/src/layout/navigation.ts`：一级「资产」的路径改为 `/assets`，删除 `asset-search`、`sources` 两个二级项，同步修改 `routePresentation`。
   - `apps/web/src/layout/SecondaryNav.tsx`：调整当前项的判断（:71）和图标映射（:22-27）；拖宽功能保持不变。
   - `apps/web/src/layout/AppShell.tsx:22`：在 `/assets` 下渲染资产左栏的占位（浏览树和类型列表在后续故事中填入）。
   - `apps/web/src/i18n/zh-CN.ts`：增加所需文案。
   - 完成判定：T018 全部通过。
-- [ ] T023 [P] 编写失败测试 `apps/web/src/__tests__/assets-criteria.test.tsx`，验证搜索条件的 reducer 与上下文（data-model 第 2 节）：
+- [x] T023 [P] 编写失败测试 `apps/web/src/__tests__/assets-criteria.test.tsx`，验证搜索条件的 reducer 与上下文（data-model 第 2 节）：
   - 改变关键词、范围、位置或筛选时，`page` 回到 1；改变排序时，`page` 也回到 1。
   - 「清除全部」后，关键词、位置、筛选都清空。
   - 删除某一层位置条件时，连同下层一起删除。
@@ -191,7 +191,7 @@ description: "006 资产搜索与摘要的实施任务清单"
   - 在 `/assets` 布局内切换子路由后，条件仍然保留。
   - `location.search` 始终为空，即不写入地址（D9）。
   - 完成判定：测试失败。
-- [ ] T024 实现 `apps/web/src/features/assets/AssetsLayout.tsx` 与 `criteria.ts`（`useReducer` 加上下文），以及 `apps/web/src/features/assets/api.ts`、`queries.ts`。
+- [x] T024 实现 `apps/web/src/features/assets/AssetsLayout.tsx` 与 `criteria.ts`（`useReducer` 加上下文），以及 `apps/web/src/features/assets/api.ts`、`queries.ts`。
   - `api.ts` 基于 `@contexture/ts-api` 客户端。
   - react-query 的配置与 005 相同：`retry:false`、`refetchOnWindowFocus:false`、`staleTime:0`。
   - 完成判定：T023 通过。
