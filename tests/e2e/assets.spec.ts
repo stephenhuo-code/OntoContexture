@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import { APP_ORIGIN, login } from "./helpers/login";
@@ -275,4 +276,47 @@ test("同名表：卡片面包屑区分服务与 Schema（SC-005）", async ({ p
     f.split(".").slice(0, 3).join(" / "),
   );
   for (const p of fqnParts) expect(crumbs).toContain(p);
+});
+
+test("OM 不可用时数据资产页显示真实错误码与重试，不显示示例数据；恢复后正常（FR-015、SC-006）", async ({
+  page,
+}) => {
+  test.setTimeout(600_000);
+  const kubectl = (...args: string[]) =>
+    execFileSync("kubectl", ["-n", "contexture", ...args], { stdio: "pipe" });
+  await login(page, "engineer1", "/assets");
+  await expect(page.getByRole("list", { name: "搜索结果" })).toBeVisible();
+  kubectl("scale", "deploy/openmetadata", "--replicas=0");
+  try {
+    kubectl(
+      "wait",
+      "--for=delete",
+      "pod",
+      "-l",
+      "app.kubernetes.io/name=openmetadata",
+      "--timeout=180s",
+    );
+    await page.reload();
+    const alert = page.getByRole("main").getByRole("alert");
+    await expect(alert).toContainText("upstream.unavailable", {
+      timeout: 60_000,
+    });
+    await expect(alert.getByRole("button", { name: "重试" })).toBeVisible();
+    await expect(page.getByRole("list", { name: "搜索结果" })).toHaveCount(0);
+  } finally {
+    kubectl("scale", "deploy/openmetadata", "--replicas=1");
+    kubectl("rollout", "status", "deploy/openmetadata", "--timeout=480s");
+  }
+  await expect
+    .poll(
+      async () => {
+        const retry = page
+          .getByRole("main")
+          .getByRole("button", { name: "重试" });
+        if (await retry.count()) await retry.first().click();
+        return page.getByRole("list", { name: "搜索结果" }).count();
+      },
+      { timeout: 300_000, intervals: [5_000] },
+    )
+    .toBe(1);
 });
