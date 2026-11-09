@@ -1,0 +1,325 @@
+/* 006 数据资产页：顶栏搜索、类型列表、结果卡片与只读摘要（视觉沿用当前生产外壳的令牌） */
+.asset-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--ctx-muted);
+}
+.asset-breadcrumb h1 {
+  margin: 0;
+  font-size: 18px;
+}
+.asset-breadcrumb h1 a {
+  color: var(--ctx-ink);
+  text-decoration: none;
+}
+.asset-breadcrumb > span {
+  display: inline-flex;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+.asset-search {
+  position: relative;
+  flex: 1 1 420px;
+  max-width: 640px;
+  min-width: 0;
+}
+.asset-search__box {
+  display: flex;
+  border: 1px solid var(--ctx-border);
+  border-radius: var(--ctx-radius);
+  background: var(--ctx-surface);
+  overflow: hidden;
+}
+.asset-search__box select {
+  border: 0;
+  border-right: 1px solid var(--ctx-border);
+  background: var(--ctx-background);
+  padding: 0 8px;
+  max-width: 140px;
+  font: inherit;
+}
+.asset-search__box input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 9px 12px;
+  font: inherit;
+  outline: none;
+}
+.asset-search__suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  max-height: 420px;
+  overflow: auto;
+  background: var(--ctx-surface);
+  border: 1px solid var(--ctx-border);
+  border-radius: var(--ctx-radius);
+  box-shadow: 0 12px 32px rgb(15 23 42 / 14%);
+  padding: 6px 0;
+}
+.asset-search__group {
+  padding: 6px 14px 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ctx-muted);
+}
+.asset-search__option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.asset-search__option:hover {
+  background: var(--ctx-background);
+}
+.asset-search__option small {
+  color: var(--ctx-muted);
+  word-break: break-all;
+}
+.type-list {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+}
+.type-list button {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  border: 0;
+  background: none;
+  padding: 7px 10px;
+  border-radius: var(--ctx-radius);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.type-list button[aria-pressed="true"] {
+  background: var(--ctx-background);
+  color: var(--ctx-primary);
+  font-weight: 600;
+}
+.type-list__count {
+  color: var(--ctx-muted);
+  font-variant-numeric: tabular-nums;
+}
+.asset-explore {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.asset-explore__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.asset-explore__head h2 {
+  display: inline;
+  margin: 0 10px 0 0;
+  font-size: 18px;
+}
+.asset-explore__count {
+  color: var(--ctx-muted);
+}
+.asset-explore__actions {
+  display: flex;
+  gap: 8px;
+}
+.asset-explore__actions a {
+  text-decoration: none;
+}
+.asset-explore__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.asset-explore__body.has-summary {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+}
+.asset-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.asset-card {
+  border: 1px solid var(--ctx-border);
+  border-radius: var(--ctx-radius);
+  background: var(--ctx-surface);
+  padding: 12px 14px;
+  cursor: pointer;
+  min-width: 0;
+}
+.asset-card.is-selected {
+  border-color: var(--ctx-primary);
+  box-shadow: 0 0 0 1px var(--ctx-primary);
+}
+.asset-card__crumb {
+  font-size: 12px;
+  color: var(--ctx-muted);
+  overflow-wrap: anywhere;
+}
+.asset-card__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+  font-weight: 600;
+}
+.asset-card__title a {
+  color: var(--ctx-ink);
+}
+.asset-card__desc {
+  margin: 0 0 8px;
+  color: var(--ctx-ink);
+  overflow-wrap: anywhere;
+}
+.asset-card mark,
+.asset-summary mark {
+  background: #fef08a;
+  color: inherit;
+  padding: 0 1px;
+}
+.asset-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 12.5px;
+  color: var(--ctx-muted);
+}
+.asset-card__meta b {
+  font-weight: 600;
+  margin-right: 4px;
+  color: var(--ctx-ink);
+}
+.asset-badge {
+  display: inline-flex;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--ctx-border);
+  color: var(--ctx-muted);
+}
+.asset-badge--cert {
+  border-color: #f59e0b;
+  color: #92400e;
+  background: #fffbeb;
+}
+.asset-origin {
+  font-weight: 600;
+}
+.asset-origin--devTest {
+  color: #9a3412;
+}
+.asset-summary {
+  position: sticky;
+  top: 0;
+  border: 1px solid var(--ctx-border);
+  border-radius: var(--ctx-radius);
+  background: var(--ctx-surface);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.asset-summary__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.asset-summary__head h3 {
+  margin: 2px 0;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.asset-summary__head small {
+  color: var(--ctx-muted);
+}
+.asset-summary__fqn {
+  word-break: break-all;
+}
+.asset-summary__tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--ctx-border);
+}
+.asset-summary__tabs button {
+  border: 0;
+  background: none;
+  padding: 6px 10px;
+  font: inherit;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.asset-summary__tabs button[aria-selected="true"] {
+  border-bottom-color: var(--ctx-primary);
+  color: var(--ctx-primary);
+  font-weight: 600;
+}
+.summary-kv {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+.summary-kv > div {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
+}
+.summary-kv dt {
+  color: var(--ctx-muted);
+}
+.summary-kv dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.summary-columns {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  table-layout: fixed;
+}
+.summary-columns th,
+.summary-columns td {
+  text-align: left;
+  padding: 6px;
+  border-bottom: 1px solid var(--ctx-border);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 850px) {
+  .asset-search {
+    flex-basis: 200px;
+  }
+  .asset-breadcrumb > span {
+    display: none;
+  }
+  .asset-explore__body.has-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* 窄屏：摘要以覆盖层显示（spec 边界情况「窄屏」） */
+  .asset-summary {
+    position: fixed;
+    inset: 64px 0 0 auto;
+    width: min(420px, 100vw);
+    z-index: 40;
+    overflow: auto;
+    border-radius: 0;
+    box-shadow: -12px 0 32px rgb(15 23 42 / 18%);
+  }
+}

@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Route, Routes, useParams } from "react-router";
 import { SourcesWorkspace } from "../sources/SourcesWorkspace";
 import { CatalogAssetDetailView } from "../sources/CatalogAssetDetailView";
-import { CatalogTree } from "../sources/CatalogTree";
+import { AssetsRail } from "./AssetsRail";
+import { ExploreView } from "./ExploreView";
 import { NotFoundPage } from "../../pages/NotFoundPage";
 import { AssetsCriteriaProvider } from "./criteria";
 import "../sources/sources.css";
+import "./assets.css";
 
 const CATALOG_TYPES = new Set(["database", "databaseSchema", "table"]);
 
@@ -30,11 +32,11 @@ export function AssetsWorkspace() {
         </button>
         {drawer && (
           <div role="dialog" aria-label="数据源目录" className="catalog-drawer">
-            <CatalogTree onPick={() => setDrawer(false)} />
+            <AssetsRail onPick={() => setDrawer(false)} />
           </div>
         )}
         <Routes>
-          <Route index element={<section aria-label="资产探索" />} />
+          <Route index element={<ExploreView />} />
           <Route path="sources/*" element={<SourcesWorkspace />} />
           <Route path=":entityType/:fqn" element={<AssetDetailRoute />} />
         </Routes>

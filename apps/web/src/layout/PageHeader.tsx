@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Button, Tooltip } from "@contexture/ui";
 import { AccountMenu } from "./AccountMenu";
 import { zh } from "../i18n/zh-CN";
@@ -6,8 +7,14 @@ export function PageHeader({
   secondaryOpen,
   hasSecondary,
   toggle,
+  heading,
+  center,
 }: {
   title: string;
+  /** 006：数据资产页以顶栏面包屑代替标题（第一段为一级标题「数据资产」） */
+  heading?: ReactNode;
+  /** 006：数据资产页顶栏中间的搜索框（D3，只在本页出现） */
+  center?: ReactNode;
   secondaryOpen: boolean;
   hasSecondary: boolean;
   toggle: () => void;
@@ -39,8 +46,9 @@ export function PageHeader({
             </Button>
           </Tooltip>
         )}
-        <h1>{title}</h1>
+        {heading ?? <h1>{title}</h1>}
       </div>
+      {center}
       <AccountMenu />
     </header>
   );

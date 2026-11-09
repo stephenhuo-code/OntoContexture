@@ -169,6 +169,12 @@ const Ctx = createContext<{
 } | null>(null);
 
 export function AssetsCriteriaProvider({ children }: { children: ReactNode }) {
+  const parent = useContext(Ctx);
+  if (parent) return <>{children}</>;
+  return <Provider>{children}</Provider>;
+}
+
+function Provider({ children }: { children: ReactNode }) {
   const [criteria, dispatch] = useReducer(criteriaReducer, initialCriteria);
   const value = useMemo(() => ({ criteria, dispatch }), [criteria]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
