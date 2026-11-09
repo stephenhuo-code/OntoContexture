@@ -359,7 +359,7 @@ description: "006 资产搜索与摘要的实施任务清单"
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T041 [P] [US2] 编写契约测试 `services/bff/tests/contract/test_assets_browse_contract.py`：
+- [x] T041 [P] [US2] 编写契约测试 `services/bff/tests/contract/test_assets_browse_contract.py`：
   - `browseAssets`：
     - `parentPath` 为空时，返回的根节点中没有计数为 0 的项；
     - `parentPath` 跳层，或超过 `maxItems 5` 时，返回 422。
@@ -370,7 +370,7 @@ description: "006 资产搜索与摘要的实施任务清单"
     - `optionQuery` 超过 100 字符时返回 422。
   - 对应：FR-006、FR-008。
   - 完成判定：测试失败。
-- [ ] T042 [P] [US2] 编写单元测试 `services/bff/tests/unit/test_browse_tree.py`（research R3），覆盖：
+- [x] T042 [P] [US2] 编写单元测试 `services/bff/tests/unit/test_browse_tree.py`（research R3），覆盖：
   - **根节点**：大类清单为常量，并注明出处 `$UI/utils/SearchClassBase.ts:236-420`。
     - 数据库类包含 database、databaseSchema、storedProcedure、table、tableColumn；
     - 治理类包含 tag、glossaryTerm、metric。
@@ -385,7 +385,7 @@ description: "006 资产搜索与摘要的实施任务清单"
     - `entityType` 层使用 `entityType.keyword`，取值转小写。
   - **其他**：每层 `size=1000`；忽略 `criteria.browsePath`，以 `parentPath` 为准；`entityType` 层节点的 `hasChildren=false`。
   - 完成判定：测试失败。
-- [ ] T043 [P] [US2] 编写单元测试 `services/bff/tests/unit/test_facets.py`（research R4），覆盖：
+- [x] T043 [P] [US2] 编写单元测试 `services/bff/tests/unit/test_facets.py`（research R4），覆盖：
   - 各维度的字段映射与 research R4 的表格逐项一致；
   - 计算某维度的选项时，`q` 的 DSL 中不包含本维度的条件，但包含关键词（`queryText`）、位置和其他维度；
   - 组合方式：同一维度内为 `bool.should`，跨维度为 `must`；`includeNone` 生成 `must_not exists`，与取值放在同一个 `should` 中；
@@ -396,12 +396,12 @@ description: "006 资产搜索与摘要的实施任务清单"
 
 ### Implementation for User Story 2
 
-- [ ] T044 [US2] 在 `services/bff/src/contexture_bff/adapters/om_search.py` 中实现 `facets()` 与 `browse()`。
+- [x] T044 [US2] 在 `services/bff/src/contexture_bff/adapters/om_search.py` 中实现 `facets()` 与 `browse()`。
   - 对应：FR-006、FR-008、FR-018。
   - 完成判定：T042、T043 通过。
-- [ ] T045 [US2] 在 `services/bff/src/contexture_bff/api/assets.py` 中增加 `POST /bff/v1/assets/facets` 与 `POST /bff/v1/assets/browse`。
+- [x] T045 [US2] 在 `services/bff/src/contexture_bff/api/assets.py` 中增加 `POST /bff/v1/assets/facets` 与 `POST /bff/v1/assets/browse`。
   - 完成判定：T041 通过。
-- [ ] T046 [P] [US2] 编写组件测试 `apps/web/src/__tests__/assets-browse.test.tsx`，覆盖：
+- [x] T046 [P] [US2] 编写组件测试 `apps/web/src/__tests__/assets-browse.test.tsx`，覆盖：
   - **加载与显示**：
     - 无关键词时，左栏显示浏览树；
     - 展开节点之前，不请求子层；
@@ -414,7 +414,7 @@ description: "006 资产搜索与摘要的实施任务清单"
   - **窄屏**：视口不超过 850px 时，「目录」抽屉中显示浏览树。
   - 对应：FR-003、FR-006、US2 场景 1–2、US3 场景 4。
   - 完成判定：测试失败。
-- [ ] T047 [P] [US2] 编写组件测试 `apps/web/src/__tests__/assets-filters.test.tsx`，覆盖：
+- [x] T047 [P] [US2] 编写组件测试 `apps/web/src/__tests__/assets-filters.test.tsx`，覆盖：
   - **QuickFilters**：
     - 不分类型时有 9 个维度：资产类型、业务域、数据产品、负责人、分类标签、分级（Tier）、服务、服务类型、认证；
     - `entityType=table` 时再增加库、Schema、列、表类型、列描述；
@@ -429,7 +429,7 @@ description: "006 资产搜索与摘要的实施任务清单"
   - **分页**：每页 15、25、50 条；`windowLimited` 时显示「仅显示前 10000 条，请缩小条件」，最大页码不超过窗口；页头显示真实的总数。
   - 对应：FR-008～FR-010、US2 场景 3–6。
   - 完成判定：测试失败。
-- [ ] T048 [US2] 实现以下组件：
+- [x] T048 [US2] 实现以下组件：
   - `apps/web/src/features/assets/BrowseTree.tsx`：由 `features/sources/CatalogTree.tsx` 改造，展开和收起的行为沿用 005。
   - `QuickFilters.tsx`、`FilterChips.tsx`。
   - 排序与分页，放在 `ExploreView.tsx` 中。
@@ -438,11 +438,11 @@ description: "006 资产搜索与摘要的实施任务清单"
 
 ### 集成与实测（US2）
 
-- [ ] T049 [US2] 编写集成测试 `services/bff/tests/integration/test_assets_browse_cluster.py`（`-m cluster`），覆盖：
+- [x] T049 [US2] 编写集成测试 `services/bff/tests/integration/test_assets_browse_cluster.py`（`-m cluster`），覆盖：
   - **SC-004**：分别测试关键词、位置、同维度多选、跨维度组合、「无」五组用例。每组的 BFF 结果与测试中手写 DSL 直接调用 OM `/search/query` 的结果对比，总数和 ID 集合都一致。
   - **SC-001 浏览部分**：fixture 中每张表都能在浏览树对应的服务、库、Schema 节点下找到；浏览树、类型列表、筛选项的计数与直接调用 OM 的结果一致。
   - 完成判定：通过；环境阻塞时如实记录。
-- [ ] T050 [P] [US2] 在 `services/bff/tests/integration/test_om_unconfirmed_cluster.py` 中增加以下实测：
+- [x] T050 [P] [US2] 在 `services/bff/tests/integration/test_om_unconfirmed_cluster.py` 中增加以下实测：
   - `test_display_name_fallback`：检查 fixture 中「无 displayName」实体的索引文档里 `displayName` 是否回退为 `name`，以及它在浏览树中的标签。
   - `test_database_display_name_aggregatable`：检查对 `database.displayName` 和 `databaseSchema.displayName` 做 `/aggregate` 是否返回桶。如果不返回，改用 `.keyword`，并同步修改 `om_search.py`、T042 的断言和 research R3。
   - `test_facet_option_size`：核对 OM UI 中 `optionPageSize` 的常量取值（`third_party/openmetadata/src` 的 `$UI` 目录），与 BFF 默认的 `size=10` 对齐，并更新 research R4。
