@@ -121,3 +121,16 @@ async def test_json_patch_uses_patch_content_type() -> None:
     )
     assert seen["ct"] == "application/json-patch+json"
     assert json.loads(seen["body"]) == [{"op": "add", "path": "/a", "value": 1}]
+
+
+async def test_5xx_keeps_om_message_in_details() -> None:
+    """006 research R11：索引缺失时 OM 返回 500 与消息，调用方需要据此识别。"""
+    om, _ = client(
+        httpx.MockTransport(
+            lambda r: httpx.Response(500, json={"code": 500, "message": "Failed to find index x"})
+        )
+    )
+    with pytest.raises(ContextureError) as ei:
+        await om.request(user_context(), "GET", "/search/query")
+    assert ei.value.code == "upstream.unavailable"
+    assert ei.value.details["message"] == "Failed to find index x"
