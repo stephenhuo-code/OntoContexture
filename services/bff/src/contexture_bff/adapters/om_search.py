@@ -418,7 +418,10 @@ def project_hit(hit: Mapping[str, Any]) -> dict[str, Any]:
     src: Mapping[str, Any] = hit.get("_source") or {}
     hl: Mapping[str, list[str]] = hit.get("highlight") or {}
     gov = governance(src)
-    name_frag = (hl.get("displayName") or hl.get("name") or [None])[0]
+    # 标题显示 displayName；只有 displayName 缺失或与 name 相同时才用 name 的高亮
+    display = src.get("displayName")
+    name_hl = hl.get("name") if not display or display == src.get("name") else None
+    name_frag = (hl.get("displayName") or name_hl or [None])[0]
     desc_frag = (hl.get("description") or [None])[0]
     is_column = src.get("entityType") == "tableColumn"
     return {
