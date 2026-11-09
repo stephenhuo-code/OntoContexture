@@ -166,3 +166,17 @@ def test_change_header_is_case_insensitive() -> None:
     stats = OmWriter(lowercase).import_all()
     assert stats.updated == 0
     assert stats.created == 0 and stats.unchanged > 0
+
+
+def test_remove_deletes_tags_before_their_classification() -> None:
+    """实测（2026-11-09）：OM 拒绝删除仍有标签的分类（HTTP 400 classification is not empty）。"""
+    om = FakeOM()
+    OmWriter(om).import_all()
+    OmWriter(om).remove()
+    deletes = [p for m, p in om.calls if m == "DELETE"]
+    for cls in (fx.SAMPLE_CLASSIFICATION, fx.MARKER_CLASSIFICATION):
+        cls_at = next(
+            i for i, p in enumerate(deletes) if p.startswith(f"/v1/classifications/name/{cls}")
+        )
+        tag_ats = [i for i, p in enumerate(deletes) if p.startswith(f"/v1/tags/name/{cls}.")]
+        assert tag_ats and max(tag_ats) < cls_at
