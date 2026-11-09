@@ -7,6 +7,7 @@ JVM 的堆外直接内存（MaxDirectMemorySize）默认等于堆大小，另有
 
 import re
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
@@ -22,10 +23,12 @@ def _mi(quantity: str) -> int:
     return number * 1024 if unit in {"Gi", "g"} else number
 
 
-def _merged(env: str) -> dict:
-    base = yaml.safe_load((VALUES / "base.yaml").read_text(encoding="utf-8")) or {}
-    overlay = yaml.safe_load((VALUES / f"{env}.yaml").read_text(encoding="utf-8")) or {}
-    merged = {**base, **overlay}
+def _merged(env: str) -> dict[str, Any]:
+    base: dict[str, Any] = yaml.safe_load((VALUES / "base.yaml").read_text(encoding="utf-8")) or {}
+    overlay: dict[str, Any] = (
+        yaml.safe_load((VALUES / f"{env}.yaml").read_text(encoding="utf-8")) or {}
+    )
+    merged: dict[str, Any] = {**base, **overlay}
     merged["resources"] = {**base.get("resources", {}), **overlay.get("resources", {})}
     return merged
 
