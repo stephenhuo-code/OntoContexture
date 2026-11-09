@@ -263,6 +263,12 @@ def build(owners: Mapping[str, dict[str, Any]]) -> list[Entity]:
     return out
 
 
+def tag_fqns(classification: str) -> list[str]:
+    """本工具在指定分类下创建的标签 FQN（撤除时须先删标签再删分类）。"""
+    names = [MARKER_TAG] if classification == MARKER_CLASSIFICATION else list(SAMPLE_TAGS.values())
+    return [f"{classification}.{n}" for n in names]
+
+
 def is_owned(kind: str, body: Mapping[str, Any]) -> bool:
     """判断 OM 中已有的实体是否由本工具创建。"""
     if kind == "classification":

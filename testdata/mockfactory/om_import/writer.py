@@ -138,6 +138,12 @@ class OmWriter:
                 stats.updated += 1
         return stats
 
+    def _delete(self, kind: str, fqn: str) -> None:
+        path = f"/v1/{fx.COLLECTION[kind]}/name/{_quote(fqn)}?hardDelete=true&recursive=true"
+        r = self.send("DELETE", path, None)
+        if r.status >= 400 and r.status != 404:
+            raise WriteFailed(f"撤除 {kind} {fqn} 失败：HTTP {r.status} {r.body}")
+
     def remove(self) -> Stats:
         stats = Stats()
         targets = [
@@ -151,9 +157,9 @@ class OmWriter:
             existing = self._get(kind, fqn)
             if existing is None or not fx.is_owned(kind, existing):
                 continue
-            path = f"/v1/{fx.COLLECTION[kind]}/name/{_quote(fqn)}?hardDelete=true&recursive=true"
-            r = self.send("DELETE", path, None)
-            if r.status >= 400 and r.status != 404:
-                raise WriteFailed(f"撤除 {kind} {fqn} 失败：HTTP {r.status} {r.body}")
+            if kind == "classification":
+                for tag in fx.tag_fqns(fqn):
+                    self._delete("tag", tag)
+            self._delete(kind, fqn)
             stats.deleted += 1
         return stats
