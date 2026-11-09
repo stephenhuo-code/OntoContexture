@@ -313,7 +313,7 @@ test("US4：五层级编辑属性、保留周期继承与恢复、重新采集�
   await card("数据源属性").getByRole("button", { name: "编辑属性" }).click();
   let dialog = page.getByRole("dialog", { name: "编辑数据源属性" });
   await dialog.getByLabel("描述").fill("E2E 服务说明");
-  await dialog.getByLabel("重要程度（Tier）").selectOption("Tier.Tier2");
+  await dialog.getByLabel("分级（Tier）").selectOption("Tier.Tier2");
   await save("编辑数据源属性");
   await expect(card("数据源属性")).toContainText("E2E 服务说明");
   await expect(card("数据源属性")).toContainText("Tier.Tier2");

@@ -384,3 +384,14 @@ it("字段行编辑只含显示名称、描述、标签与术语，按 columnNam
     },
   ]);
 });
+
+// 006 Q4：005 子视图的属性卡片与编辑弹窗统一为「分级（Tier）」
+it("属性卡片与编辑弹窗使用「分级（Tier）」文案", async () => {
+  open(inheritedTable);
+  const card = await screen.findByRole("region", { name: "数据表属性" });
+  expect(within(card).getByText("分级")).toBeVisible();
+  expect(within(card).queryByText("重要程度")).not.toBeInTheDocument();
+  const dialog = await editTable();
+  expect(within(dialog).getByLabelText("分级（Tier）")).toBeVisible();
+  expect(within(dialog).queryByText(/重要程度/)).not.toBeInTheDocument();
+});
