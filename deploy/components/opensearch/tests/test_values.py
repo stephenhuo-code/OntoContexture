@@ -43,3 +43,10 @@ def test_memory_limit_covers_heap_and_native_memory(env: str) -> None:
     assert limit_mi >= 2 * heap_mi + NATIVE_OVERHEAD_MI, (
         f"{env}: 内存上限 {limit_mi}Mi 小于 2×堆({heap_mi}Mi)+{NATIVE_OVERHEAD_MI}Mi"
     )
+
+
+@pytest.mark.parametrize("env", ["local", "lite"])
+def test_heap_is_at_least_512m(env: str) -> None:
+    """2026-11-09 e2e 实测：堆 384m 时存活对象约 370MB，熔断器反复触发 GC，并再次 OOMKilled。"""
+    heap = re.search(r"-Xmx(\d+[mg])", _merged(env)["opensearchJavaOpts"])
+    assert heap and _mi(heap.group(1)) >= 512
