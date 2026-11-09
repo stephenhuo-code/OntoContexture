@@ -152,3 +152,17 @@ def test_cli_prints_counts_without_token(
 def test_stats_are_json_serialisable() -> None:
     stats = OmWriter(FakeOM()).import_all()
     assert json.loads(json.dumps(stats.as_dict()))["created"] == stats.created
+
+
+def test_change_header_is_case_insensitive() -> None:
+    """实测（2026-11-09）：经集群网络返回的响应头为小写 x-openmetadata-change。"""
+    om = FakeOM()
+    OmWriter(om).import_all()
+
+    def lowercase(method: str, path: str, body: dict[str, Any] | None) -> Response:
+        r = om(method, path, body)
+        return Response(r.status, {k.lower(): v for k, v in r.headers.items()}, r.body)
+
+    stats = OmWriter(lowercase).import_all()
+    assert stats.updated == 0
+    assert stats.created == 0 and stats.unchanged > 0
