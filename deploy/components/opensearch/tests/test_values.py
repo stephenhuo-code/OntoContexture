@@ -50,3 +50,17 @@ def test_heap_is_at_least_512m(env: str) -> None:
     """2026-11-09 e2e 实测：堆 384m 时存活对象约 370MB，熔断器反复触发 GC，并再次 OOMKilled。"""
     heap = re.search(r"-Xmx(\d+[mg])", _merged(env)["opensearchJavaOpts"])
     assert heap and _mi(heap.group(1)) >= 512
+
+
+def test_lite_caps_direct_memory_and_leaves_native_headroom() -> None:
+    """2026-11-09 完整 e2e 负载实测：堆 512m、上限 1536Mi 时仍 OOMKilled 6 次（同期 OM 返回 502）。
+
+    显式限制直接内存，并给元空间、线程栈、代码缓存等原生开销留出至少 1024Mi。
+    """
+    values = _merged("lite")
+    opts = values["opensearchJavaOpts"]
+    heap = re.search(r"-Xmx(\d+[mg])", opts)
+    direct = re.search(r"-XX:MaxDirectMemorySize=(\d+[mg])", opts)
+    assert heap and direct, "须同时设置 -Xmx 与 -XX:MaxDirectMemorySize"
+    limit_mi = _mi(values["resources"]["limits"]["memory"])
+    assert limit_mi >= _mi(heap.group(1)) + _mi(direct.group(1)) + 1024
