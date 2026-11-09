@@ -1,0 +1,3629 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>织境 Contexture — 006 资产搜索与摘要（高保真交互原型）</title>
+    <style>
+      :root {
+        --ctx-primary: #2563eb;
+        --ctx-primary-hover: #1d4ed8;
+        --ctx-ink: #172338;
+        --ctx-muted: #627087;
+        --ctx-border: #dfe5ee;
+        --ctx-surface: #ffffff;
+        --ctx-background: #f4f6fa;
+        --ctx-radius: 12px;
+        --ctx-font:
+          "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui,
+          sans-serif;
+        --ctx-mono:
+          ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ctx-ink);
+        font-family: var(--ctx-font);
+        background: var(--ctx-background);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      body.resizing {
+        cursor: col-resize;
+        user-select: none;
+      }
+
+      a:focus-visible,
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 2px solid var(--ctx-primary);
+        outline-offset: 2px;
+      }
+
+      /* 原型演示状态条（仅用于负责人评审，不进入生产页面） */
+      .proto-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 16px;
+        background: #172338;
+        color: #e2e8f0;
+        font-size: 12px;
+        border-bottom: 1px solid #2b3b55;
+        flex-wrap: wrap;
+      }
+      .proto-banner-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .proto-tag {
+        background: #2563eb;
+        color: #fff;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+      }
+      .proto-note {
+        color: #94a3b8;
+      }
+      .proto-Presets {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .proto-btn {
+        border: 1px solid #334155;
+        background: #1e293b;
+        color: #e2e8f0;
+        border-radius: 6px;
+        padding: 3px 9px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.12s;
+      }
+      .proto-btn:hover {
+        background: #334155;
+      }
+      .proto-btn.active {
+        background: #2563eb;
+        border-color: #3b82f6;
+        color: #fff;
+        font-weight: 600;
+      }
+
+      /* 生产外壳：与 apps/web/src/styles.css 对齐 */
+      .app-shell {
+        display: flex;
+        height: calc(100dvh - 37px);
+        width: 100%;
+        overflow: hidden;
+      }
+
+      .primary-rail {
+        flex: 0 0 76px;
+        background: linear-gradient(180deg, #f3f6fe 0%, #e8eefc 100%);
+        border-right: 1px solid #dfe6f5;
+        color: #5b6b82;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 18px 10px;
+        gap: 16px;
+      }
+      .primary-rail .brand {
+        display: grid;
+        place-items: center;
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%);
+        box-shadow: 0 8px 18px #3b5bdb40;
+        color: white;
+        text-decoration: none;
+      }
+      .primary-rail .brand svg {
+        width: 28px;
+        height: 28px;
+        stroke-width: 1.8;
+      }
+      .rail-divider {
+        width: 28px;
+        height: 2px;
+        border-radius: 1px;
+        background: #d5ddef;
+      }
+      .primary-rail nav {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .primary-link {
+        position: relative;
+        display: grid;
+        place-items: center;
+        color: #4b5b74;
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+        border: 1px solid transparent;
+        text-decoration: none;
+        cursor: pointer;
+        background: transparent;
+      }
+      .primary-link svg {
+        width: 26px;
+        height: 26px;
+      }
+      .primary-link:hover {
+        background: #ffffffa8;
+        color: var(--ctx-primary);
+      }
+      .primary-link[aria-current="page"] {
+        background: #fff;
+        border-color: #cfdcf8;
+        color: var(--ctx-primary);
+        box-shadow: 0 4px 12px #2f5bd51a;
+      }
+      .primary-link[aria-current="page"]::before {
+        content: "";
+        position: absolute;
+        left: -11px;
+        top: 14px;
+        bottom: 14px;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background: var(--ctx-primary);
+      }
+      .rail-caption {
+        margin-top: auto;
+        font-size: 13px;
+        color: #4b5b74;
+        font-weight: 500;
+      }
+
+      /* 二级栏：可拖宽 200px - 480px，默认 248px */
+      .secondary-rail {
+        position: relative;
+        flex: 0 0 248px;
+        min-width: 200px;
+        max-width: 480px;
+        background: var(--ctx-surface);
+        border-right: 1px solid var(--ctx-border);
+        padding: 0 12px 16px;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+      }
+      .module-label {
+        flex: 0 0 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 17px;
+        color: var(--ctx-ink);
+        border-bottom: 1px solid var(--ctx-border);
+        margin: 0 -12px 10px;
+        padding: 0 18px;
+      }
+      .module-label-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .module-label svg {
+        width: 22px;
+        height: 22px;
+        color: var(--ctx-primary);
+      }
+      .rail-resizer {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 6px;
+        height: 100%;
+        cursor: col-resize;
+        z-index: 5;
+      }
+      .rail-resizer:hover {
+        background: linear-gradient(
+          90deg,
+          transparent 2px,
+          var(--ctx-primary) 2px 4px,
+          transparent 4px
+        );
+      }
+
+      /* 左栏模式说明头 */
+      .rail-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 8px 6px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--ctx-muted);
+        letter-spacing: 0.04em;
+      }
+      .rail-mode-badge {
+        font-size: 11px;
+        padding: 1px 6px;
+        border-radius: 6px;
+        background: #eef4ff;
+        color: var(--ctx-primary);
+        font-weight: 500;
+      }
+
+      /* 浏览树 & 类型菜单（与 005 .catalog-row 样式一脉相承，对齐 OM ExploreTree） */
+      .catalog-tree,
+      .catalog-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .catalog-row {
+        display: flex;
+        align-items: center;
+        min-height: 34px;
+        border-radius: 9px;
+        margin-bottom: 2px;
+      }
+      .catalog-row:hover {
+        background: #f3f6fb;
+      }
+      .catalog-row.selected {
+        background: #eaf1ff;
+      }
+      .catalog-toggle {
+        display: grid;
+        place-items: center;
+        width: 22px;
+        min-width: 22px;
+        height: 28px;
+        border: 0;
+        padding: 0;
+        background: none;
+        color: #7a889c;
+        cursor: pointer;
+      }
+      .catalog-toggle svg {
+        width: 14px;
+        height: 14px;
+        transition: transform 0.15s;
+      }
+      .catalog-toggle svg.open {
+        transform: rotate(90deg);
+      }
+      .catalog-pick {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 5px 8px 5px 2px;
+        background: none;
+        border: 0;
+        text-align: left;
+        color: #344256;
+        font-size: 13.5px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .catalog-row.selected .catalog-pick {
+        color: var(--ctx-primary);
+        font-weight: 600;
+      }
+      .catalog-pick span.node-label {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .catalog-pick small {
+        flex: none;
+        margin-left: auto;
+        padding: 1px 7px;
+        border: 1px solid #dfe5ef;
+        border-radius: 7px;
+        background: #f7f9fc;
+        font-size: 11.5px;
+        color: #4b5b74;
+        white-space: nowrap;
+      }
+      .catalog-row.selected .catalog-pick small {
+        background: #fff;
+        border-color: #bfd3f8;
+        color: var(--ctx-primary);
+      }
+      .connector-badge {
+        display: inline-grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+        background: #e8efff;
+        color: var(--ctx-primary);
+        font-weight: 700;
+        font-size: 9px;
+        flex: none;
+      }
+      .connector-postgres {
+        background: #f0eaff;
+        color: #6d3fd1;
+      }
+      .connector-doris {
+        background: #e6f7f4;
+        color: #0f766e;
+      }
+      .connector-gov {
+        background: #fef3c7;
+        color: #b45309;
+      }
+      .connector-domain {
+        background: #fce7f3;
+        color: #be185d;
+      }
+
+      /* 主工作区 */
+      .workspace {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--ctx-background);
+      }
+
+      /* 顶栏：面包屑 + 数据资产搜索框（带范围选择器与输入建议） + 账号 */
+      .page-header {
+        flex: 0 0 64px;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 0 24px;
+        background: var(--ctx-surface);
+        border-bottom: 1px solid var(--ctx-border);
+        z-index: 20;
+      }
+      .page-heading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        flex-shrink: 0;
+      }
+      .breadcrumb-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        color: var(--ctx-muted);
+        white-space: nowrap;
+      }
+      .breadcrumb-bar strong {
+        color: var(--ctx-ink);
+        font-weight: 600;
+        font-size: 16px;
+      }
+      .breadcrumb-link {
+        border: 0;
+        background: none;
+        padding: 0;
+        color: var(--ctx-primary);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 500;
+      }
+      .breadcrumb-link:hover {
+        text-decoration: underline;
+      }
+
+      /* OM 风格组合搜索栏：范围下拉 + 关键词输入 + 清除 + 建议浮层 */
+      .om-search-container {
+        position: relative;
+        flex: 1 1 560px;
+        max-width: 640px;
+        min-width: 240px;
+      }
+      .om-search-box {
+        display: flex;
+        align-items: center;
+        height: 38px;
+        border: 1px solid #cbd5e1;
+        border-radius: 9px;
+        background: #f8fafc;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s,
+          background 0.15s;
+      }
+      .om-search-box:focus-within {
+        background: #fff;
+        border-color: var(--ctx-primary);
+        box-shadow: 0 0 0 3px #2563eb1f;
+      }
+      .om-scope-select {
+        height: 100%;
+        border: 0;
+        border-right: 1px solid #dfe5ee;
+        background: transparent;
+        padding: 0 10px 0 12px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #334155;
+        cursor: pointer;
+        border-radius: 9px 0 0 9px;
+      }
+      .om-search-icon {
+        width: 17px;
+        height: 17px;
+        color: #64748b;
+        margin-left: 10px;
+        flex-shrink: 0;
+      }
+      .om-search-input {
+        flex: 1;
+        border: 0;
+        background: transparent;
+        padding: 0 10px;
+        font-size: 13.5px;
+        color: var(--ctx-ink);
+        height: 100%;
+        min-width: 0;
+      }
+      .om-search-input:focus {
+        outline: none;
+      }
+      .om-search-clear {
+        border: 0;
+        background: none;
+        color: #64748b;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+      }
+      .om-search-kbd {
+        margin-right: 8px;
+        padding: 2px 6px;
+        font-size: 11px;
+        border-radius: 5px;
+        background: #eef2f6;
+        color: #64748b;
+        border: 1px solid #dfe5ee;
+        white-space: nowrap;
+      }
+
+      /* 搜索输入建议浮层（对应 OM Suggestions，按 entityType 分组，每组最多 5 条） */
+      .om-suggestions-popover {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid var(--ctx-border);
+        border-radius: 12px;
+        box-shadow: 0 14px 36px #0f172a24;
+        z-index: 50;
+        max-height: 440px;
+        overflow-y: auto;
+        padding: 8px 0;
+      }
+      .om-Suggestions-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 14px;
+        font-size: 11.5px;
+        color: var(--ctx-muted);
+        border-bottom: 1px solid #f1f5f9;
+      }
+      .om-suggestion-group-title {
+        padding: 8px 14px 4px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .om-suggestion-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        width: 100%;
+        padding: 8px 14px;
+        border: 0;
+        background: none;
+        text-align: left;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .om-suggestion-item:hover {
+        background: #f1f5f9;
+      }
+      .om-suggestion-main {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+      .om-suggestion-fqn {
+        font-size: 11.5px;
+        color: var(--ctx-muted);
+        font-family: var(--ctx-mono);
+      }
+
+      /* 顶栏右侧账户 */
+      .account-identity {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        flex-shrink: 0;
+      }
+      .account-avatar {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #e8efff;
+        color: #2556b5;
+        font-weight: 600;
+      }
+
+      /* 探索主视图布局 */
+      .explore-wrapper {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      /* 页头与工具栏区 */
+      .explore-toolbar-area {
+        background: var(--ctx-surface);
+        border-bottom: 1px solid var(--ctx-border);
+        padding: 14px 24px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .explore-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .explore-title-left {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .explore-title-left h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .hit-counter {
+        font-size: 13px;
+        color: var(--ctx-muted);
+      }
+      .hit-counter strong {
+        color: var(--ctx-ink);
+      }
+      .explore-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .ctx-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 34px;
+        padding: 6px 12px;
+        border: 1px solid transparent;
+        border-radius: 7px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 13px;
+        font-family: inherit;
+        transition: background 0.12s;
+      }
+      .ctx-button--primary {
+        background: var(--ctx-primary);
+        color: #fff;
+      }
+      .ctx-button--primary:hover {
+        background: var(--ctx-primary-hover);
+      }
+      .ctx-button--secondary {
+        border-color: var(--ctx-border);
+        background: var(--ctx-surface);
+        color: var(--ctx-ink);
+      }
+      .ctx-button--secondary:hover {
+        background: #eaf0fa;
+      }
+      .ctx-button--ghost {
+        background: transparent;
+        color: var(--ctx-muted);
+      }
+      .ctx-button--ghost:hover {
+        background: #eaf0fa;
+        color: var(--ctx-ink);
+      }
+
+      /* 快速筛选栏（ExploreQuickFilters）+ 排序控件 */
+      .quick-filters-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .quick-filters-list {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .filter-dropdown-wrap {
+        position: relative;
+      }
+      .filter-pill-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        height: 30px;
+        padding: 0 10px;
+        border: 1px solid #d5deeb;
+        border-radius: 7px;
+        background: #fff;
+        color: #334155;
+        font-size: 12.5px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .filter-pill-btn:hover {
+        border-color: #94a3b8;
+        background: #f8fafc;
+      }
+      .filter-pill-btn.active {
+        border-color: var(--ctx-primary);
+        background: #eef4ff;
+        color: var(--ctx-primary);
+        font-weight: 600;
+      }
+      .filter-pill-count {
+        display: inline-grid;
+        place-items: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 999px;
+        background: var(--ctx-primary);
+        color: #fff;
+        font-size: 11px;
+      }
+
+      /* 筛选下拉面板（支持选项内搜索、计数、多选 OR、「无 (未分配)」） */
+      .filter-popover {
+        position: absolute;
+        top: calc(100% + 5px);
+        left: 0;
+        width: 268px;
+        background: #fff;
+        border: 1px solid var(--ctx-border);
+        border-radius: 10px;
+        box-shadow: 0 12px 28px #0f172a20;
+        z-index: 40;
+        padding: 10px;
+      }
+      .filter-popover-search {
+        width: 100%;
+        padding: 6px 9px;
+        border: 1px solid var(--ctx-border);
+        border-radius: 6px;
+        font-size: 12.5px;
+        margin-bottom: 8px;
+      }
+      .filter-popover-hint {
+        font-size: 11px;
+        color: var(--ctx-muted);
+        margin-bottom: 6px;
+      }
+      .filter-options-list {
+        max-height: 210px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .filter-option-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 5px 6px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12.5px;
+      }
+      .filter-option-row:hover {
+        background: #f1f5f9;
+      }
+      .filter-option-left {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+      }
+      .filter-option-count {
+        font-size: 11.5px;
+        color: var(--ctx-muted);
+        background: #f1f5f9;
+        padding: 1px 6px;
+        border-radius: 6px;
+      }
+
+      /* 排序控件 */
+      .sort-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        color: var(--ctx-muted);
+      }
+      .sort-select {
+        height: 30px;
+        border: 1px solid #d5deeb;
+        border-radius: 7px;
+        padding: 0 8px;
+        background: #fff;
+        color: var(--ctx-ink);
+        font-size: 12.5px;
+      }
+      .sort-order-btn {
+        height: 30px;
+        width: 30px;
+        border: 1px solid #d5deeb;
+        border-radius: 7px;
+        background: #fff;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        color: #334155;
+      }
+
+      /* 条件条（ExploreQueryFilterChips） */
+      .filter-chips-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        padding-top: 2px;
+        min-height: 26px;
+      }
+      .active-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        color: #1e293b;
+      }
+      .active-chip.location-chip {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #1e40af;
+      }
+      .active-chip button {
+        border: 0;
+        background: none;
+        padding: 0 2px;
+        cursor: pointer;
+        color: inherit;
+        font-size: 13px;
+        line-height: 1;
+      }
+      .chips-idle-hint {
+        font-size: 12px;
+        color: var(--ctx-muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      /* 主体双栏：左侧结果卡片列表 + 右侧只读摘要面板 */
+      .explore-main-split {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        overflow: hidden;
+      }
+      .results-column {
+        flex: 1;
+        min-width: 0;
+        overflow-y: auto;
+        padding: 16px 24px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      /* 结果卡片（对齐 OM ExploreSearchCard） */
+      .search-card {
+        background: var(--ctx-surface);
+        border: 1px solid var(--ctx-border);
+        border-radius: 11px;
+        padding: 14px 16px;
+        cursor: pointer;
+        transition:
+          border-color 0.12s,
+          box-shadow 0.12s;
+      }
+      .search-card:hover {
+        border-color: #93c5fd;
+      }
+      .search-card.selected {
+        border-color: var(--ctx-primary);
+        box-shadow: 0 0 0 2px #2563eb1f;
+        background: #fcfdff;
+      }
+      .card-top-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 5px;
+        flex-wrap: wrap;
+      }
+      .card-breadcrumb {
+        font-size: 12px;
+        color: var(--ctx-muted);
+        font-family: var(--ctx-mono);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-wrap: wrap;
+      }
+      .card-badges {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .card-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        flex-wrap: wrap;
+      }
+      .entity-type-pill {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 5px;
+        background: #eef2ff;
+        color: #3730a3;
+      }
+      .card-title-link {
+        border: 0;
+        background: none;
+        padding: 0;
+        font-size: 15.5px;
+        font-weight: 600;
+        color: var(--ctx-primary);
+        cursor: pointer;
+        text-align: left;
+        font-family: inherit;
+      }
+      .card-title-link:hover {
+        text-decoration: underline;
+      }
+      .card-tech-name {
+        font-size: 12.5px;
+        color: var(--ctx-muted);
+        font-family: var(--ctx-mono);
+      }
+      .card-desc {
+        margin: 0 0 10px;
+        font-size: 13.5px;
+        color: #334155;
+        line-height: 1.5;
+      }
+      .text-highlighter {
+        background: #fef08a;
+        color: #713f12;
+        padding: 0 2px;
+        border-radius: 3px;
+        font-weight: 600;
+      }
+      .card-meta-footer {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        font-size: 12px;
+        color: var(--ctx-muted);
+        padding-top: 8px;
+        border-top: 1px dashed #e2e8f0;
+      }
+      .meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .meta-item strong {
+        color: #334155;
+        font-weight: 500;
+      }
+
+      /* 徽章体系：明确区分 分级(Tier)、数据安全级别(一级/二级/三级)、认证、来源 */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .badge-tier {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+      }
+      .badge-sec-l1 {
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+      }
+      .badge-sec-l2 {
+        background: #fffbeb;
+        color: #b45309;
+        border: 1px solid #fde68a;
+      }
+      .badge-sec-l3 {
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+      }
+      .badge-cert {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+      }
+      .badge-source-005 {
+        background: #f1f5f9;
+        color: #334155;
+      }
+      .badge-source-006 {
+        background: #f5f3ff;
+        color: #6d28d9;
+      }
+      .badge-match {
+        background: #fff7ed;
+        color: #c2410c;
+        border: 1px solid #fed7aa;
+      }
+
+      /* 分页栏 */
+      .pagination-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 4px 4px;
+        font-size: 12.5px;
+        color: var(--ctx-muted);
+        flex-wrap: wrap;
+      }
+      .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      /* 右侧摘要面板（EntitySummaryPanel，只读，包含 概览 / Schema 两个页签） */
+      .summary-drawer {
+        flex: 0 0 400px;
+        width: 400px;
+        background: var(--ctx-surface);
+        border-left: 1px solid var(--ctx-border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .summary-drawer.hidden {
+        display: none;
+      }
+      .summary-head {
+        padding: 14px 18px 10px;
+        border-bottom: 1px solid var(--ctx-border);
+      }
+      .summary-head-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .summary-title-link {
+        border: 0;
+        background: none;
+        padding: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--ctx-primary);
+        cursor: pointer;
+        text-align: left;
+        font-family: inherit;
+      }
+      .summary-title-link:hover {
+        text-decoration: underline;
+      }
+      .summary-close {
+        border: 0;
+        background: none;
+        color: var(--ctx-muted);
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+        padding: 2px 6px;
+      }
+      .summary-fqn {
+        margin-top: 4px;
+        font-size: 11.5px;
+        color: var(--ctx-muted);
+        font-family: var(--ctx-mono);
+        word-break: break-all;
+      }
+      .summary-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--ctx-border);
+        padding: 0 18px;
+        gap: 16px;
+        background: #f8fafc;
+      }
+      .summary-tab {
+        border: 0;
+        background: none;
+        padding: 9px 2px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ctx-muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        font-family: inherit;
+      }
+      .summary-tab.active {
+        color: var(--ctx-primary);
+        border-bottom-color: var(--ctx-primary);
+      }
+      .summary-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px 18px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .summary-readonly-banner {
+        font-size: 11.5px;
+        color: #475569;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 7px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .summary-section {
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 12px;
+      }
+      .summary-section:last-child {
+        border-bottom: 0;
+      }
+      .summary-section h4 {
+        margin: 0 0 6px;
+        font-size: 12px;
+        color: var(--ctx-muted);
+        font-weight: 600;
+      }
+      .summary-kv-grid {
+        display: grid;
+        grid-template-columns: 112px 1fr;
+        row-gap: 8px;
+        column-gap: 8px;
+        font-size: 13px;
+      }
+      .summary-kv-label {
+        color: var(--ctx-muted);
+      }
+      .summary-col-card {
+        border: 1px solid var(--ctx-border);
+        border-radius: 8px;
+        padding: 8px 10px;
+        margin-bottom: 8px;
+        background: #fcfdff;
+      }
+      .summary-col-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        font-family: var(--ctx-mono);
+        font-size: 12.5px;
+        font-weight: 600;
+      }
+      .summary-col-type {
+        font-size: 11px;
+        color: #475569;
+        background: #f1f5f9;
+        padding: 1px 6px;
+        border-radius: 4px;
+      }
+      .summary-col-desc {
+        margin-top: 4px;
+        font-size: 12px;
+        color: #475569;
+      }
+
+      /* 空状态、错误状态、骨架屏、子视图容器 */
+      .state-panel {
+        background: var(--ctx-surface);
+        border: 1px solid var(--ctx-border);
+        border-radius: 12px;
+        padding: 36px 24px;
+        text-align: center;
+        margin: 8px 0;
+      }
+      .state-panel.error-state {
+        border-color: #f5c2c0;
+        background: #fff5f5;
+        text-align: left;
+      }
+      .skeleton-box {
+        height: 112px;
+        border-radius: 11px;
+        background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+        background-size: 200% 100%;
+        animation: pulse 1.4s infinite;
+      }
+      @keyframes pulse {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+
+      .subview-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px;
+      }
+      .subview-card {
+        background: var(--ctx-surface);
+        border: 1px solid var(--ctx-border);
+        border-radius: 12px;
+        padding: 20px 24px;
+        margin-bottom: 16px;
+      }
+
+      /* 窄屏适配：抽屉目录 */
+      .mobile-drawer-btn {
+        display: none;
+      }
+      @media (max-width: 960px) {
+        .secondary-rail {
+          display: none;
+        }
+        .secondary-rail.mobile-open {
+          display: flex;
+          position: fixed;
+          top: 37px;
+          bottom: 0;
+          left: 76px;
+          z-index: 60;
+          width: 280px;
+          box-shadow: 12px 0 36px #0f172a30;
+        }
+        .mobile-drawer-btn {
+          display: inline-flex;
+        }
+        .summary-drawer {
+          position: fixed;
+          top: 101px;
+          right: 0;
+          bottom: 0;
+          z-index: 45;
+          box-shadow: -10px 0 30px #0f172a25;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 顶部原型评审状态切换栏（仅用于负责人验收原型状态，不进入生产代码） -->
+    <div class="proto-banner" role="region" aria-label="原型评审演示工具栏">
+      <div class="proto-banner-left">
+        <span class="proto-tag">006 高保真原型</span>
+        <span>统一「数据资产」工作区（对齐 OpenMetadata 2.0.3 Explore）</span>
+        <span class="proto-note"
+          >注：原型内数字、表名与时间均为演示夹具，生产实现严禁内置或回退示例数据</span
+        >
+      </div>
+      <div class="proto-Presets" id="presetBar">
+        <button type="button" class="proto-btn active" data-preset="default">
+          1. 默认探索（浏览树）
+        </button>
+        <button type="button" class="proto-btn" data-preset="keyword">
+          2. 关键词检索+高亮（类型计数）
+        </button>
+        <button type="button" class="proto-btn" data-preset="homonym">
+          3. 同名表辨识（material）
+        </button>
+        <button type="button" class="proto-btn" data-preset="nullFilter">
+          4. 缺失属性排查（无负责人）
+        </button>
+        <button type="button" class="proto-btn" data-preset="emptyHit">
+          5. 无匹配结果
+        </button>
+        <button type="button" class="proto-btn" data-preset="loading">
+          6. 加载中
+        </button>
+        <button type="button" class="proto-btn" data-preset="error">
+          7. OM 检索/索引异常
+        </button>
+        <button type="button" class="proto-btn" data-preset="zeroAsset">
+          8. 零资产初始态
+        </button>
+        <button type="button" class="proto-btn" data-preset="sourcesView">
+          9. 子视图：数据源管理(005)
+        </button>
+        <button type="button" class="proto-btn" data-preset="detailView">
+          10. 子视图：资产详情(005)
+        </button>
+        <button type="button" class="proto-btn" data-preset="termDetail">
+          11. 子视图：术语详情（只读）
+        </button>
+        <button type="button" class="proto-btn" data-preset="columnJump">
+          12. 列结果 → 表详情定位
+        </button>
+      </div>
+    </div>
+
+    <div class="app-shell">
+      <!-- 一级导航栏（与 apps/web/src/layout/PrimaryNav.tsx 一致） -->
+      <aside class="primary-rail" aria-label="主导航">
+        <a class="brand" href="#/assets" aria-label="织境">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M9 4v16" />
+            <path d="M15 4v16" />
+            <path d="M3 9.5c3-2.6 6-2.6 9 0s6 2.6 9 0" />
+            <path d="M3 14.5c3-2.6 6-2.6 9 0s6 2.6 9 0" />
+          </svg>
+        </a>
+        <span class="rail-divider" aria-hidden="true"></span>
+        <nav aria-label="一级导航">
+          <button type="button" class="primary-link" title="新建对话">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z"
+              />
+              <path d="M12 8v8" />
+              <path d="M8 12h8" />
+            </svg>
+          </button>
+          <button type="button" class="primary-link" title="首页">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 10.5 12 3l9 7.5" />
+              <path d="M5 9.5V20h5v-6h4v6h5V9.5" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="primary-link"
+            aria-current="page"
+            title="数据资产"
+            id="navAssetsBtn"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3Z"
+              />
+              <path d="M4 6v12c0 1.7 3.6 3 8 3" />
+              <path d="M20 6v5" />
+              <path d="M4 12c0 1.7 3.6 3 8 3" />
+              <path d="M17.5 20.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+              <path d="m19.7 19.7 1.8 1.8" />
+            </svg>
+          </button>
+          <button type="button" class="primary-link" title="数字员工">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M10 3l1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6Z"
+              />
+              <path
+                d="M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8Z"
+              />
+              <path d="M18 3v3M16.5 4.5h3" />
+            </svg>
+          </button>
+        </nav>
+        <span class="rail-caption">织境</span>
+      </aside>
+
+      <!-- 二级导航栏（D2=A：去掉独立的“资产搜索/数据源”双链接，直接承载 Explore 浏览树 / 搜索命中类型菜单） -->
+      <aside class="secondary-rail" id="secondaryRail" aria-label="数据资产目录">
+        <div class="module-label">
+          <span class="module-label-title">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M5 4h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"
+              />
+              <path d="M17 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+              <path d="M7 20a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+              <path
+                d="M15 14h4a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1Z"
+              />
+            </svg>
+            数据资产
+          </span>
+        </div>
+
+        <div class="rail-section-head">
+          <span id="leftPanelTitle">资产目录（ExploreTree）</span>
+          <span class="rail-mode-badge" id="leftPanelBadge">位置筛选</span>
+        </div>
+
+        <!-- 左栏动态内容：无关键词时为层级浏览树；有关键词时切换为命中资产类型列表 -->
+        <div id="leftSidebarContent"></div>
+
+        <!-- 右侧可拖拽分隔条（200px - 480px） -->
+        <div
+          class="rail-resizer"
+          id="railResizer"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="调整二级栏宽度"
+          tabindex="0"
+        ></div>
+      </aside>
+
+      <!-- 主工作区 -->
+      <div class="workspace">
+        <!-- 顶栏（D3=A, D4=A：在数据资产页顶栏提供带范围选择与防抖建议的搜索框） -->
+        <header class="page-header">
+          <div class="page-heading">
+            <button
+              type="button"
+              class="ctx-button ctx-button--secondary mobile-drawer-btn"
+              id="mobileDrawerBtn"
+            >
+              目录
+            </button>
+            <div class="breadcrumb-bar" id="topBreadcrumb"></div>
+          </div>
+
+          <div class="om-search-container" id="searchContainer">
+            <form class="om-search-box" id="searchForm" role="search">
+              <select
+                class="om-scope-select"
+                id="searchScopeSelect"
+                aria-label="搜索范围"
+              >
+                <option value="all">全部资产</option>
+                <option value="table">表 (Table)</option>
+                <option value="tableColumn">列/字段 (Column)</option>
+                <option value="database">数据库 (Database)</option>
+                <option value="databaseSchema">Schema</option>
+                <option value="glossaryTerm">术语 (Glossary)</option>
+                <option value="tag">标签 (Tag)</option>
+              </select>
+              <svg
+                class="om-search-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="10.5" cy="10.5" r="7.5" />
+                <path d="m16 16 5 5" />
+              </svg>
+              <input
+                type="text"
+                class="om-search-input"
+                id="searchInput"
+                placeholder="搜索中文业务名、英文表名、字段名、描述或标签（如：质检、material、order_no）..."
+                autocomplete="off"
+                aria-label="搜索数据资产"
+              />
+              <button
+                type="button"
+                class="om-search-clear"
+                id="searchClearBtn"
+                title="清空搜索词"
+                hidden
+              >
+                ✕
+              </button>
+              <span class="om-search-kbd">Enter 搜索</span>
+            </form>
+
+            <!-- 防抖输入建议浮层（点击直接进资产详情，回车执行检索列表） -->
+            <div
+              class="om-suggestions-popover"
+              id="suggestionsPopover"
+              hidden
+            ></div>
+          </div>
+
+          <div class="account-identity">
+            <span class="account-avatar">林</span>
+            <div>
+              <div style="font-weight: 600; line-height: 1.2">林工 (数据治理)</div>
+              <div style="font-size: 11.5px; color: var(--ctx-muted)">
+                platform-admin
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- 子视图 1：探索主视图（默认 `/assets`） -->
+        <div class="explore-wrapper" id="exploreView">
+          <div class="explore-toolbar-area">
+            <div class="explore-title-row">
+              <div class="explore-title-left">
+                <h2 id="exploreHeading">全部数据资产</h2>
+                <span class="hit-counter" id="hitCounterText"></span>
+              </div>
+              <div class="explore-actions">
+                <button
+                  type="button"
+                  class="ctx-button ctx-button--secondary"
+                  id="openSourcesBtn"
+                >
+                  数据源管理 (4)
+                </button>
+                <button
+                  type="button"
+                  class="ctx-button ctx-button--primary"
+                  id="addSourceBtn"
+                >
+                  + 添加数据源
+                </button>
+              </div>
+            </div>
+
+            <!-- 快速筛选栏 + 排序下拉 -->
+            <div class="quick-filters-row">
+              <div class="quick-filters-list" id="quickFiltersBar"></div>
+
+              <div class="sort-controls">
+                <label for="sortFieldSelect">排序：</label>
+                <select class="sort-select" id="sortFieldSelect">
+                  <option value="popularity">热度 / 关注度</option>
+                  <option value="relevance">相关性 (_score)</option>
+                  <option value="name">名称 (name.keyword)</option>
+                  <option value="updatedAt">最近更新时间</option>
+                </select>
+                <button
+                  type="button"
+                  class="sort-order-btn"
+                  id="sortOrderBtn"
+                  title="切换升序/降序"
+                >
+                  ↓
+                </button>
+              </div>
+            </div>
+
+            <!-- 条件条（位置条件 + 快速筛选条件 + 清除全部） -->
+            <div class="filter-chips-bar" id="filterChipsBar"></div>
+          </div>
+
+          <!-- 下方双栏：左结果卡片 + 右只读摘要面板 -->
+          <div class="explore-main-split">
+            <div class="results-column" id="resultsColumn"></div>
+
+            <aside
+              class="summary-drawer"
+              id="summaryDrawer"
+              aria-label="资产摘要面板"
+            ></aside>
+          </div>
+        </div>
+
+        <!-- 子视图 2：数据源管理子视图（承接 005 `/assets/sources`） -->
+        <div class="subview-container" id="sourcesSubView" hidden></div>
+
+        <!-- 子视图 3：资产详情子视图（承接 005 `/assets/{type}/{fqn}`） -->
+        <div class="subview-container" id="detailSubView" hidden></div>
+      </div>
+    </div>
+    <script>
+      // =========================================================================
+      // 006 资产搜索与摘要 — 离线可交互原型脚本（仅用于交互评审，严禁复用于生产代码）
+      // =========================================================================
+
+      const ENTITY_TYPE_LABELS = {
+        all: "全部资产",
+        table: "表 (Table)",
+        tableColumn: "列/字段 (Column)",
+        databaseSchema: "Schema",
+        database: "数据库 (Database)",
+        glossaryTerm: "业务术语 (Glossary)",
+        tag: "分类标签 (Tag)",
+      };
+
+      // 演示夹具：涵盖 005 真实采集来源 + 006 开发态导入来源、同名表（material）、列实体、术语、标签及缺失属性资产
+      const MOCK_ASSETS = [
+        {
+          id: "tbl-mes-wo",
+          entityType: "table",
+          name: "work_order",
+          displayName: "生产工单主表",
+          fqn: "mock-mes.default.mes.work_order",
+          serviceType: "MySQL",
+          service: "mock-mes",
+          database: "default",
+          schema: "mes",
+          tableType: "Regular",
+          sourceOrigin: "005 真实采集来源",
+          domain: "制造执行域 (MES)",
+          dataProducts: ["车间在制品监控数据产品"],
+          owners: ["林工 (数据治理)", "周工 (MES研发)"],
+          tier: "Tier.Tier1",
+          securityLevel: "数据级别.二级",
+          certification: "Gold (黄金认证)",
+          glossaryTerms: ["标准术语.生产工单", "标准术语.计划产线"],
+          tags: ["制造业.核心主数据", "PII.无"],
+          popularity: 98,
+          updatedAt: "2026-11-08 18:30",
+          description:
+            "记录车间下达的生产工单生命周期主数据，包含工单号（order_no）、物料编码（material_code）、计划产线、计划数量及质检放行状态。",
+          columns: [
+            {
+              name: "order_no",
+              displayName: "工单编号",
+              dataType: "VARCHAR(64)",
+              constraint: "PK",
+              securityLevel: "数据级别.二级",
+              description: "全局唯一生产工单业务主键",
+            },
+            {
+              name: "material_code",
+              displayName: "物料编码",
+              dataType: "VARCHAR(32)",
+              constraint: "INDEX",
+              securityLevel: "数据级别.一级",
+              description: "关联 mock-mes.default.mes.material 表的物料编码",
+            },
+            {
+              name: "line_code",
+              displayName: "产线代码",
+              dataType: "VARCHAR(32)",
+              constraint: "",
+              securityLevel: "数据级别.一级",
+              description: "执行的车间产线编码",
+            },
+            {
+              name: "qc_status",
+              displayName: "质检状态",
+              dataType: "VARCHAR(16)",
+              constraint: "",
+              securityLevel: "数据级别.二级",
+              description: "工单完工质检结论：PASS / HOLD / REWORK",
+            },
+          ],
+        },
+        {
+          id: "tbl-qms-insp",
+          entityType: "table",
+          name: "inspection_record",
+          displayName: "来料与制程质检记录表",
+          fqn: "mock-qms.default.qms.inspection_record",
+          serviceType: "PostgreSQL",
+          service: "mock-qms",
+          database: "default",
+          schema: "qms",
+          tableType: "Regular",
+          sourceOrigin: "005 真实采集来源",
+          domain: "质量管理域 (QMS)",
+          dataProducts: ["质量追溯分析数据产品"],
+          owners: ["陈工 (质量工程)"],
+          tier: "Tier.Tier1",
+          securityLevel: "数据级别.三级",
+          certification: "Gold (黄金认证)",
+          glossaryTerms: ["标准术语.不良率", "标准术语.质检批次"],
+          tags: ["质量合规.ISO9001"],
+          popularity: 94,
+          updatedAt: "2026-11-09 09:15",
+          description:
+            "承载 IQC 来料质检与 IPQC 制程巡检明细记录，支持按工单号（order_no）和物料批次进行质量缺陷根因分析。",
+          columns: [
+            {
+              name: "inspection_id",
+              displayName: "质检单号",
+              dataType: "BIGINT",
+              constraint: "PK",
+              securityLevel: "数据级别.二级",
+              description: "质检记录唯一主键",
+            },
+            {
+              name: "order_no",
+              displayName: "关联工单号",
+              dataType: "VARCHAR(64)",
+              constraint: "FK",
+              securityLevel: "数据级别.二级",
+              description: "关联 MES 生产工单号",
+            },
+            {
+              name: "defect_code",
+              displayName: "缺陷代码",
+              dataType: "VARCHAR(32)",
+              constraint: "",
+              securityLevel: "数据级别.三级",
+              description: "质检判定不良项分类编码",
+            },
+            {
+              name: "inspector_name",
+              displayName: "检验员姓名",
+              dataType: "VARCHAR(64)",
+              constraint: "",
+              securityLevel: "数据级别.三级",
+              description: "执行本次质检的质检员实名信息",
+            },
+          ],
+        },
+        {
+          id: "tbl-mes-mat",
+          entityType: "table",
+          name: "material",
+          displayName: "车间物料现场台账表 (MES)",
+          fqn: "mock-mes.default.mes.material",
+          serviceType: "MySQL",
+          service: "mock-mes",
+          database: "default",
+          schema: "mes",
+          tableType: "Regular",
+          sourceOrigin: "005 真实采集来源",
+          domain: "制造执行域 (MES)",
+          dataProducts: ["车间在制品监控数据产品"],
+          owners: ["周工 (MES研发)"],
+          tier: "Tier.Tier1",
+          securityLevel: "数据级别.二级",
+          certification: "Silver (白银认证)",
+          glossaryTerms: ["标准术语.物料编码"],
+          tags: ["制造业.核心主数据"],
+          popularity: 89,
+          updatedAt: "2026-11-08 14:20",
+          description:
+            "MES 侧车间线边仓物料表（与 ERP 主数据 material 同名，但仅含制造BOM工艺损耗系数与线边安全库存）。",
+          columns: [
+            {
+              name: "material_code",
+              displayName: "物料编码",
+              dataType: "VARCHAR(32)",
+              constraint: "PK",
+              securityLevel: "数据级别.一级",
+              description: "物料编码主键",
+            },
+            {
+              name: "material_name",
+              displayName: "物料名称",
+              dataType: "VARCHAR(128)",
+              constraint: "",
+              securityLevel: "数据级别.一级",
+              description: "物料中文标准名称",
+            },
+            {
+              name: "line_side_stock",
+              displayName: "线边仓当前库存",
+              dataType: "DECIMAL(12,2)",
+              constraint: "",
+              securityLevel: "数据级别.二级",
+              description: "车间线边仓实时可用量",
+            },
+          ],
+        },
+        {
+          id: "tbl-erp-mat",
+          entityType: "table",
+          name: "material",
+          displayName: "集团物料主数据与采购成本表 (ERP)",
+          fqn: "dev-import-erp.default.erp_mdm.material",
+          serviceType: "PostgreSQL",
+          service: "dev-import-erp",
+          database: "default",
+          schema: "erp_mdm",
+          tableType: "Regular",
+          sourceOrigin: "006 开发态导入元数据",
+          domain: "供应链与采购域 (SCM)",
+          dataProducts: ["集团主数据标准产品"],
+          owners: ["王工 (供应链架构)"],
+          tier: "Tier.Tier1",
+          securityLevel: "数据级别.三级",
+          certification: "Gold (黄金认证)",
+          glossaryTerms: ["标准术语.物料编码", "标准术语.标准采购价"],
+          tags: ["财务敏感.成本机密"],
+          popularity: 86,
+          updatedAt: "2026-11-07 20:10",
+          description:
+            "由 003/006 开发态导入的集团 ERP 物料主数据表（与 MES material 同名，包含供应商核价与标准成本，安全级别为三级）。",
+          columns: [
+            {
+              name: "material_code",
+              displayName: "集团物料号",
+              dataType: "VARCHAR(32)",
+              constraint: "PK",
+              securityLevel: "数据级别.一级",
+              description: "集团统一物料编码",
+            },
+            {
+              name: "std_cost_price",
+              displayName: "标准采购核价",
+              dataType: "DECIMAL(14,4)",
+              constraint: "",
+              securityLevel: "数据级别.三级",
+              description: "财务核定标准采购单价（高敏三级）",
+            },
+            {
+              name: "supplier_code",
+              displayName: "主供应商编码",
+              dataType: "VARCHAR(32)",
+              constraint: "",
+              securityLevel: "数据级别.二级",
+              description: "定点采购供应商编码",
+            },
+          ],
+        },
+        {
+          id: "tbl-doris-yield",
+          entityType: "table",
+          name: "dws_daily_line_yield",
+          displayName: "产线日良率汇总视图",
+          fqn: "onto-doris.default.ontology_mart.dws_daily_line_yield",
+          serviceType: "Doris",
+          service: "onto-doris",
+          database: "default",
+          schema: "ontology_mart",
+          tableType: "View",
+          sourceOrigin: "006 开发态导入元数据",
+          domain: "质量管理域 (QMS)",
+          dataProducts: ["质量追溯分析数据产品"],
+          owners: ["林工 (数据治理)"],
+          tier: "Tier.Tier2",
+          securityLevel: "数据级别.一级",
+          certification: "Silver (白银认证)",
+          glossaryTerms: ["标准术语.不良率"],
+          tags: ["指标汇总层"],
+          popularity: 81,
+          updatedAt: "2026-11-09 08:00",
+          description:
+            "汇总每日各产线工单一次交检合格率（FPY）与质检不良率指标，供数字员工质检日报问答直接调用。",
+          columns: [
+            {
+              name: "stat_date",
+              displayName: "统计日期",
+              dataType: "DATE",
+              constraint: "PK",
+              securityLevel: "数据级别.一级",
+              description: "汇总统计日",
+            },
+            {
+              name: "line_code",
+              displayName: "产线代码",
+              dataType: "VARCHAR(32)",
+              constraint: "PK",
+              securityLevel: "数据级别.一级",
+              description: "车间产线编码",
+            },
+            {
+              name: "fpy_rate",
+              displayName: "一次交检合格率",
+              dataType: "DOUBLE",
+              constraint: "",
+              securityLevel: "数据级别.一级",
+              description: "合格品数 / 检验总数",
+            },
+          ],
+        },
+        {
+          id: "tbl-mes-equip-staging",
+          entityType: "table",
+          name: "stg_equipment_alarm_raw",
+          displayName: "设备传感器原始告警暂存表",
+          fqn: "mock-mes.default.mes_staging.stg_equipment_alarm_raw",
+          serviceType: "MySQL",
+          service: "mock-mes",
+          database: "default",
+          schema: "mes_staging",
+          tableType: "Regular",
+          sourceOrigin: "005 真实采集来源",
+          domain: null,
+          dataProducts: [],
+          owners: [],
+          tier: null,
+          securityLevel: null,
+          certification: null,
+          glossaryTerms: [],
+          tags: [],
+          popularity: 42,
+          updatedAt: "2026-11-06 11:05",
+          description:
+            "刚由 005 采集入库但尚未认领负责人、尚未划分业务域、未设置分级（Tier）与数据安全级别的原始暂存表。",
+          columns: [
+            {
+              name: "alarm_id",
+              displayName: "告警流水号",
+              dataType: "VARCHAR(64)",
+              constraint: "PK",
+              securityLevel: null,
+              description: "PLC 上报原始流水 ID",
+            },
+            {
+              name: "payload_json",
+              displayName: "原始报文",
+              dataType: "TEXT",
+              constraint: "",
+              securityLevel: null,
+              description: "未脱敏原始 JSON 报文",
+            },
+          ],
+        },
+        {
+          id: "col-order-no",
+          entityType: "tableColumn",
+          name: "order_no",
+          displayName: "工单编号 (work_order.order_no)",
+          fqn: "mock-mes.default.mes.work_order.order_no",
+          serviceType: "MySQL",
+          service: "mock-mes",
+          database: "default",
+          schema: "mes",
+          tableType: "Column",
+          sourceOrigin: "005 真实采集来源",
+          domain: "制造执行域 (MES)",
+          dataProducts: ["车间在制品监控数据产品"],
+          owners: ["林工 (数据治理)"],
+          tier: "Tier.Tier1",
+          securityLevel: "数据级别.二级",
+          certification: null,
+          glossaryTerms: ["标准术语.生产工单"],
+          tags: ["制造业.核心主数据"],
+          popularity: 77,
+          updatedAt: "2026-11-08 18:30",
+          description:
+            "OM 2.0.3 将字段作为独立索引实体（table_column_search_index）纳入 dataAsset 别名，支持直接按字段名或字段注释检索并查看所属表。",
+          columns: [],
+        },
+        {
+          id: "sch-mes",
+          entityType: "databaseSchema",
+          name: "mes",
+          displayName: "制造执行核心 Schema (mes)",
+          fqn: "mock-mes.default.mes",
+          serviceType: "MySQL",
+          service: "mock-mes",
+          database: "default",
+          schema: "mes",
+          tableType: null,
+          sourceOrigin: "005 真实采集来源",
+          domain: "制造执行域 (MES)",
+          dataProducts: [],
+          owners: ["周工 (MES研发)"],
+          tier: "Tier.Tier1",
+          securityLevel: "数据级别.二级",
+          certification: "Gold (黄金认证)",
+          glossaryTerms: [],
+          tags: ["制造业.核心主数据"],
+          popularity: 75,
+          updatedAt: "2026-11-08 18:30",
+          description:
+            "承载车间生产工单、工序报工、线边物料等核心业务表的数据库 Schema。",
+          columns: [],
+        },
+        {
+          id: "term-defect-rate",
+          entityType: "glossaryTerm",
+          name: "defect_rate",
+          displayName: "不良率 (质检批次不良率)",
+          fqn: "标准术语.不良率",
+          serviceType: "Governance",
+          service: "标准术语库",
+          database: null,
+          schema: null,
+          tableType: null,
+          sourceOrigin: "006 开发态导入元数据",
+          domain: "质量管理域 (QMS)",
+          dataProducts: ["质量追溯分析数据产品"],
+          owners: ["陈工 (质量工程)"],
+          tier: "Tier.Tier1",
+          securityLevel: "数据级别.一级",
+          certification: "Gold (黄金认证)",
+          glossaryTerms: [],
+          tags: ["质量合规.ISO9001"],
+          popularity: 84,
+          updatedAt: "2026-11-07 16:00",
+          description:
+            "标准业务术语定义：质检判定不合格样品数占总抽检样品数的百分比，关联 inspection_record 与 dws_daily_line_yield。",
+          columns: [],
+        },
+        {
+          id: "tag-sec-l3",
+          entityType: "tag",
+          name: "三级",
+          displayName: "数据级别.三级（核心机密级）",
+          fqn: "数据级别.三级",
+          serviceType: "Governance",
+          service: "分类标签体系",
+          database: null,
+          schema: null,
+          tableType: null,
+          sourceOrigin: "005 真实采集来源",
+          domain: "数据治理域",
+          dataProducts: [],
+          owners: ["林工 (数据治理)"],
+          tier: null,
+          securityLevel: "数据级别.三级",
+          certification: null,
+          glossaryTerms: [],
+          tags: [],
+          popularity: 70,
+          updatedAt: "2026-11-05 10:00",
+          description:
+            "ADR-0008 数据安全分级标签：适用于采购核价成本、质检员实名、核心工艺配方等高敏感表或字段，与分级（Tier）相互独立。",
+          columns: [],
+        },
+      ];
+
+      // 浏览树定义（对齐 OM ExploreTree：Databases -> ServiceType -> Service -> Database -> Schema -> EntityType）
+      const BROWSE_TREE_DATA = [
+        {
+          id: "root-db",
+          label: "数据库 (Databases)",
+          badge: "DB",
+          badgeClass: "",
+          count: 8,
+          path: [{ key: "group", value: "Databases", label: "在 数据库" }],
+          children: [
+            {
+              id: "st-mysql",
+              label: "MySQL",
+              badge: "MY",
+              badgeClass: "",
+              count: 5,
+              path: [
+                { key: "group", value: "Databases", label: "在 数据库" },
+                { key: "serviceType", value: "MySQL", label: "服务类型: MySQL" },
+              ],
+              children: [
+                {
+                  id: "srv-mes",
+                  label: "mock-mes",
+                  count: 5,
+                  path: [
+                    { key: "group", value: "Databases", label: "在 数据库" },
+                    { key: "serviceType", value: "MySQL", label: "服务类型: MySQL" },
+                    { key: "service", value: "mock-mes", label: "服务: mock-mes" },
+                  ],
+                  children: [
+                    {
+                      id: "db-mes-def",
+                      label: "default",
+                      count: 5,
+                      path: [
+                        { key: "group", value: "Databases", label: "在 数据库" },
+                        { key: "serviceType", value: "MySQL", label: "服务类型: MySQL" },
+                        { key: "service", value: "mock-mes", label: "服务: mock-mes" },
+                        { key: "database", value: "default", label: "库: default" },
+                      ],
+                      children: [
+                        {
+                          id: "sch-mes-node",
+                          label: "mes",
+                          count: 4,
+                          path: [
+                            { key: "group", value: "Databases", label: "在 数据库" },
+                            { key: "serviceType", value: "MySQL", label: "服务类型: MySQL" },
+                            { key: "service", value: "mock-mes", label: "服务: mock-mes" },
+                            { key: "database", value: "default", label: "库: default" },
+                            { key: "schema", value: "mes", label: "Schema: mes" },
+                          ],
+                        },
+                        {
+                          id: "sch-mes-stg-node",
+                          label: "mes_staging",
+                          count: 1,
+                          path: [
+                            { key: "group", value: "Databases", label: "在 数据库" },
+                            { key: "serviceType", value: "MySQL", label: "服务类型: MySQL" },
+                            { key: "service", value: "mock-mes", label: "服务: mock-mes" },
+                            { key: "database", value: "default", label: "库: default" },
+                            { key: "schema", value: "mes_staging", label: "Schema: mes_staging" },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              id: "st-pg",
+              label: "PostgreSQL",
+              badge: "PG",
+              badgeClass: "connector-postgres",
+              count: 2,
+              path: [
+                { key: "group", value: "Databases", label: "在 数据库" },
+                { key: "serviceType", value: "PostgreSQL", label: "服务类型: PostgreSQL" },
+              ],
+              children: [
+                {
+                  id: "srv-qms",
+                  label: "mock-qms",
+                  count: 1,
+                  path: [
+                    { key: "group", value: "Databases", label: "在 数据库" },
+                    { key: "serviceType", value: "PostgreSQL", label: "服务类型: PostgreSQL" },
+                    { key: "service", value: "mock-qms", label: "服务: mock-qms" },
+                  ],
+                },
+                {
+                  id: "srv-erp",
+                  label: "dev-import-erp",
+                  count: 1,
+                  path: [
+                    { key: "group", value: "Databases", label: "在 数据库" },
+                    { key: "serviceType", value: "PostgreSQL", label: "服务类型: PostgreSQL" },
+                    { key: "service", value: "dev-import-erp", label: "服务: dev-import-erp" },
+                  ],
+                },
+              ],
+            },
+            {
+              id: "st-doris",
+              label: "Doris",
+              badge: "DR",
+              badgeClass: "connector-doris",
+              count: 1,
+              path: [
+                { key: "group", value: "Databases", label: "在 数据库" },
+                { key: "serviceType", value: "Doris", label: "服务类型: Doris" },
+              ],
+              children: [
+                {
+                  id: "srv-doris",
+                  label: "onto-doris",
+                  count: 1,
+                  path: [
+                    { key: "group", value: "Databases", label: "在 数据库" },
+                    { key: "serviceType", value: "Doris", label: "服务类型: Doris" },
+                    { key: "service", value: "onto-doris", label: "服务: onto-doris" },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: "root-gov",
+          label: "治理与语义 (Governance)",
+          badge: "GV",
+          badgeClass: "connector-gov",
+          count: 2,
+          path: [{ key: "serviceType", value: "Governance", label: "在 治理与语义" }],
+          children: [
+            {
+              id: "gov-term",
+              label: "业务术语 (Glossary)",
+              count: 1,
+              path: [
+                { key: "serviceType", value: "Governance", label: "在 治理与语义" },
+                { key: "entityType", value: "glossaryTerm", label: "类型: 业务术语" },
+              ],
+            },
+            {
+              id: "gov-tag",
+              label: "分类标签 (Tags)",
+              count: 1,
+              path: [
+                { key: "serviceType", value: "Governance", label: "在 治理与语义" },
+                { key: "entityType", value: "tag", label: "类型: 分类标签" },
+              ],
+            },
+          ],
+        },
+      ];
+
+      // 快速筛选维度定义（对齐 OM ExploreQuickFilters，表类型选中时自动展示表专属维度）
+      const QUICK_FILTER_DIMENSIONS = [
+        { key: "entityType", label: "资产类型", nullAllowed: false },
+        { key: "domain", label: "业务域", nullAllowed: true },
+        { key: "owners", label: "负责人", nullAllowed: true },
+        { key: "tier", label: "分级 (Tier)", nullAllowed: true },
+        { key: "tags", label: "标签 (含数据级别)", nullAllowed: true },
+        { key: "service", label: "所属服务", nullAllowed: false },
+        { key: "serviceType", label: "服务类型", nullAllowed: false },
+        { key: "certification", label: "认证状态", nullAllowed: true },
+        { key: "database", label: "数据库", nullAllowed: false, tableOnly: true },
+        { key: "schema", label: "Schema", nullAllowed: false, tableOnly: true },
+        { key: "tableType", label: "表类型", nullAllowed: false, tableOnly: true },
+      ];
+
+      // 应用核心状态
+      const state = {
+        subView: "explore", // explore | sources | detail
+        detailAssetId: "tbl-mes-wo",
+        mode: "normal", // normal | loading | error | zeroAsset
+        search: "",
+        scope: "all",
+        activeTypeTab: "all",
+        browsePath: [], // [{ key, value, label }]
+        expandedNodes: new Set(["root-db", "st-mysql", "srv-mes", "db-mes-def", "st-pg", "root-gov"]),
+        quickFilters: {}, // { dimKey: Set([val1, val2]) }
+        openDropdownKey: null,
+        dropdownSearch: "",
+        sortField: "popularity",
+        sortOrder: "desc",
+        pageSize: 15,
+        currentPage: 1,
+        selectedAssetId: "tbl-mes-wo",
+        summaryOpen: true,
+        summaryTab: "overview", // overview | schema
+      };
+
+      // 工具函数：正则转义与关键词高亮
+      function escapeHtml(str) {
+        return String(str ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function highlightText(text, keyword) {
+        const safe = escapeHtml(text);
+        const kw = (keyword || "").trim();
+        if (!kw) return safe;
+        const escapedKw = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const re = new RegExp(`(${escapedKw})`, "gi");
+        return safe.replace(re, '<span class="text-highlighter">$1</span>');
+      }
+
+      function getAssetDimensionValues(asset, dimKey) {
+        if (dimKey === "entityType") return [ENTITY_TYPE_LABELS[asset.entityType] || asset.entityType];
+        if (dimKey === "domain") return asset.domain ? [asset.domain] : [];
+        if (dimKey === "owners") return asset.owners && asset.owners.length ? asset.owners : [];
+        if (dimKey === "tier") return asset.tier ? [asset.tier] : [];
+        if (dimKey === "tags") {
+          const list = [...(asset.tags || [])];
+          if (asset.securityLevel) list.push(asset.securityLevel);
+          return list;
+        }
+        if (dimKey === "service") return asset.service ? [asset.service] : [];
+        if (dimKey === "serviceType") return asset.serviceType ? [asset.serviceType] : [];
+        if (dimKey === "certification") return asset.certification ? [asset.certification] : [];
+        if (dimKey === "database") return asset.database ? [asset.database] : [];
+        if (dimKey === "schema") return asset.schema ? [asset.schema] : [];
+        if (dimKey === "tableType") return asset.tableType ? [asset.tableType] : [];
+        return [];
+      }
+
+      function matchesKeyword(asset, kw) {
+        if (!kw) return true;
+        const lower = kw.toLowerCase();
+        const haystacks = [
+          asset.name,
+          asset.displayName,
+          asset.fqn,
+          asset.description,
+          asset.service,
+          asset.schema,
+          asset.domain,
+          ...(asset.owners || []),
+          ...(asset.tags || []),
+          ...(asset.glossaryTerms || []),
+          ...((asset.columns || []).flatMap((c) => [c.name, c.displayName, c.description])),
+        ];
+        return haystacks.some((h) => h && String(h).toLowerCase().includes(lower));
+      }
+
+      function getMatchedFieldSummary(asset, kw) {
+        if (!kw) return null;
+        const lower = kw.toLowerCase();
+        const matchedCols = (asset.columns || []).filter(
+          (c) =>
+            c.name.toLowerCase().includes(lower) ||
+            c.displayName.toLowerCase().includes(lower) ||
+            c.description.toLowerCase().includes(lower)
+        );
+        if (matchedCols.length > 0) {
+          return `命中列 (${matchedCols.length}): ${matchedCols.map((c) => c.name).join(", ")}`;
+        }
+        if (asset.name.toLowerCase().includes(lower) || asset.displayName.toLowerCase().includes(lower)) {
+          return "命中资产名称 / 中文名";
+        }
+        return "命中资产描述 / 标签元数据";
+      }
+
+      // 过滤资产（支持 excludeDimKey 以实现 OM ExploreQuickFilters 的排除本维度聚合计数）
+      function filterAssets({ excludeDimKey = null, ignoreActiveTypeTab = false } = {}) {
+        if (state.mode === "zeroAsset") return [];
+        const kw = state.search.trim();
+        return MOCK_ASSETS.filter((asset) => {
+          // 1. 搜索范围（顶栏 Scope）
+          if (state.scope !== "all" && asset.entityType !== state.scope) {
+            return false;
+          }
+          // 2. 关键词检索
+          if (kw && !matchesKeyword(asset, kw)) {
+            return false;
+          }
+          // 3. 有关键词时左栏选中的类型 Tab
+          if (
+            !ignoreActiveTypeTab &&
+            kw &&
+            state.activeTypeTab !== "all" &&
+            asset.entityType !== state.activeTypeTab
+          ) {
+            return false;
+          }
+          // 4. 浏览树位置条件（browsePath）
+          for (const node of state.browsePath) {
+            if (node.key === "group" && node.value === "Databases") {
+              if (asset.serviceType === "Governance") return false;
+            } else if (node.key === "serviceType" && asset.serviceType !== node.value) {
+              return false;
+            } else if (node.key === "service" && asset.service !== node.value) {
+              return false;
+            } else if (node.key === "database" && asset.database !== node.value) {
+              return false;
+            } else if (node.key === "schema" && asset.schema !== node.value) {
+              return false;
+            } else if (node.key === "entityType" && asset.entityType !== node.value) {
+              return false;
+            }
+          }
+          // 5. 快速筛选（同维度内 OR，跨维度 AND，支持 OM_NULL_FIELD "无 (未分配)"）
+          for (const [dimKey, selectedSet] of Object.entries(state.quickFilters)) {
+            if (dimKey === excludeDimKey) continue;
+            if (!selectedSet || selectedSet.size === 0) continue;
+            const values = getAssetDimensionValues(asset, dimKey);
+            let matchedThisDim = false;
+            if (selectedSet.has("OM_NULL_FIELD") && values.length === 0) {
+              matchedThisDim = true;
+            }
+            for (const v of values) {
+              if (selectedSet.has(v)) {
+                matchedThisDim = true;
+                break;
+              }
+            }
+            if (!matchedThisDim) return false;
+          }
+          return true;
+        });
+      }
+
+      function sortAssets(list) {
+        const dir = state.sortOrder === "asc" ? 1 : -1;
+        return [...list].sort((a, b) => {
+          if (state.sortField === "name") {
+            return a.name.localeCompare(b.name) * dir;
+          }
+          if (state.sortField === "updatedAt") {
+            return a.updatedAt.localeCompare(b.updatedAt) * dir;
+          }
+          // popularity or relevance
+          return (a.popularity - b.popularity) * dir;
+        });
+      }
+
+      // 006 不实现地址状态（负责人 2026-11-09 决定）：搜索条件只在本次会话内保留，刷新回到初始浏览状态
+
+      // 渲染顶栏面包屑
+      function renderBreadcrumb() {
+        const el = document.getElementById("topBreadcrumb");
+        const parts = [];
+        parts.push(
+          `<button type="button" class="breadcrumb-link" onclick="returnToExplore()">数据资产</button>`
+        );
+        if (state.subView === "sources") {
+          parts.push(`<span>/</span><strong>数据源管理 (005 子视图)</strong>`);
+        } else if (state.subView === "detail") {
+          const asset = MOCK_ASSETS.find((a) => a.id === state.detailAssetId) || MOCK_ASSETS[0];
+          parts.push(`<span>/</span><span>${escapeHtml(asset.service)}</span>`);
+          parts.push(`<span>/</span><strong>${escapeHtml(asset.displayName)}</strong>`);
+        } else if (state.browsePath.length > 0) {
+          for (const node of state.browsePath) {
+            parts.push(`<span>/</span><span>${escapeHtml(node.value)}</span>`);
+          }
+        } else if (state.search.trim()) {
+          parts.push(`<span>/</span><strong>搜索结果</strong>`);
+        } else {
+          parts.push(`<span>/</span><strong>探索全部</strong>`);
+        }
+        el.innerHTML = parts.join(" ");
+      }
+
+      // 渲染左侧二级栏：无关键词时为浏览树（ExploreTree），有关键词时为命中资产类型计数菜单（entityTypeCounts）
+      function renderLeftSidebar() {
+        const titleEl = document.getElementById("leftPanelTitle");
+        const badgeEl = document.getElementById("leftPanelBadge");
+        const container = document.getElementById("leftSidebarContent");
+        const kw = state.search.trim();
+
+        if (kw) {
+          titleEl.textContent = "命中资产类型 (entityTypeCounts)";
+          badgeEl.textContent = "关键词聚合";
+          const allHits = filterAssets({ ignoreActiveTypeTab: true });
+          const counts = {};
+          for (const a of allHits) {
+            counts[a.entityType] = (counts[a.entityType] || 0) + 1;
+          }
+          const items = [
+            { type: "all", label: "全部命中类型", count: allHits.length, badge: "ALL" },
+            { type: "table", label: "表 (Table)", count: counts.table || 0, badge: "TB" },
+            { type: "tableColumn", label: "列/字段 (Column)", count: counts.tableColumn || 0, badge: "CL" },
+            { type: "databaseSchema", label: "Schema", count: counts.databaseSchema || 0, badge: "SC" },
+            { type: "glossaryTerm", label: "业务术语 (Glossary)", count: counts.glossaryTerm || 0, badge: "TM" },
+            { type: "tag", label: "分类标签 (Tag)", count: counts.tag || 0, badge: "TG" },
+          ].filter((it) => it.type === "all" || it.count > 0);
+
+          container.innerHTML = `
+            <ul class="catalog-list">
+              ${items
+                .map(
+                  (it) => `
+                <li class="catalog-row ${state.activeTypeTab === it.type ? "selected" : ""}">
+                  <button type="button" class="catalog-pick" onclick="selectTypeTab('${it.type}')">
+                    <span class="connector-badge">${it.badge}</span>
+                    <span class="node-label">${escapeHtml(it.label)}</span>
+                    <small>${it.count}</small>
+                  </button>
+                </li>
+              `
+                )
+                .join("")}
+            </ul>
+            <p style="margin: 12px 8px 0; font-size: 11.5px; color: var(--ctx-muted);">
+              提示：对齐 OM Explore，有搜索关键词时左栏切换为命中计数大于 0 的资产类型列表；清空搜索词后恢复层级浏览树。
+            </p>
+          `;
+          return;
+        }
+
+        // 无关键词：渲染 OM ExploreTree 风格浏览树
+        titleEl.textContent = "资产目录 (ExploreTree)";
+        badgeEl.textContent = "点节点设位置条件";
+
+        if (state.mode === "zeroAsset") {
+          container.innerHTML = `
+            <div style="padding: 16px 8px; font-size: 12.5px; color: var(--ctx-muted);">
+              暂无已采集或导入的资产目录（计数为 0 的根节点自动隐藏）。
+            </div>
+          `;
+          return;
+        }
+
+        const currentPathSig = state.browsePath.map((p) => `${p.key}:${p.value}`).join("/");
+
+        function renderNodes(nodes, depth = 0) {
+          return `
+            <ul class="catalog-tree">
+              ${nodes
+                .map((node) => {
+                  const hasChildren = node.children && node.children.length > 0;
+                  const isOpen = state.expandedNodes.has(node.id);
+                  const nodeSig = node.path.map((p) => `${p.key}:${p.value}`).join("/");
+                  const isSelected = currentPathSig === nodeSig && state.subView === "explore";
+                  const indent = depth * 12;
+                  return `
+                    <li>
+                      <div class="catalog-row ${isSelected ? "selected" : ""}" style="padding-left: ${indent}px">
+                        ${
+                          hasChildren
+                            ? `<button type="button" class="catalog-toggle" onclick="toggleTreeNode('${node.id}', event)" aria-label="展开或收起">
+                                 <svg class="${isOpen ? "open" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
+                               </button>`
+                            : `<span style="width: 22px; display: inline-block"></span>`
+                        }
+                        <button type="button" class="catalog-pick" onclick="applyBrowseNode('${node.id}')">
+                          ${
+                            node.badge
+                              ? `<span class="connector-badge ${node.badgeClass || ""}">${node.badge}</span>`
+                              : ""
+                          }
+                          <span class="node-label" title="${escapeHtml(node.label)}">${escapeHtml(node.label)}</span>
+                          <small>${node.count}</small>
+                        </button>
+                      </div>
+                      ${hasChildren && isOpen ? renderNodes(node.children, depth + 1) : ""}
+                    </li>
+                  `;
+                })
+                .join("")}
+            </ul>
+          `;
+        }
+
+        container.innerHTML = renderNodes(BROWSE_TREE_DATA, 0);
+      }
+
+      // 渲染快速筛选栏（ExploreQuickFilters）
+      function renderQuickFilters() {
+        const bar = document.getElementById("quickFiltersBar");
+        const isTableContext =
+          state.scope === "table" ||
+          state.activeTypeTab === "table" ||
+          (state.quickFilters.entityType && state.quickFilters.entityType.has("表 (Table)"));
+
+        const dims = QUICK_FILTER_DIMENSIONS.filter((d) => !d.tableOnly || isTableContext);
+
+        bar.innerHTML = dims
+          .map((dim) => {
+            const selectedSet = state.quickFilters[dim.key] || new Set();
+            const count = selectedSet.size;
+            const isOpen = state.openDropdownKey === dim.key;
+
+            // 计算该维度的聚合选项计数（排除本维度自身条件，对齐 OM ExploreQuickFilters）
+            const baseAssets = filterAssets({ excludeDimKey: dim.key });
+            const bucketCounts = new Map();
+            let nullCount = 0;
+            for (const a of baseAssets) {
+              const vals = getAssetDimensionValues(a, dim.key);
+              if (vals.length === 0) {
+                nullCount++;
+              } else {
+                for (const v of vals) {
+                  bucketCounts.set(v, (bucketCounts.get(v) || 0) + 1);
+                }
+              }
+            }
+
+            const options = [];
+            if (dim.nullAllowed) {
+              options.push({
+                value: "OM_NULL_FIELD",
+                label: "无 (未分配 / 缺失该属性)",
+                count: nullCount,
+              });
+            }
+            for (const [val, cnt] of bucketCounts.entries()) {
+              options.push({ value: val, label: val, count: cnt });
+            }
+
+            const q = state.dropdownSearch.trim().toLowerCase();
+            const filteredOptions = q
+              ? options.filter((o) => o.label.toLowerCase().includes(q))
+              : options;
+
+            return `
+              <div class="filter-dropdown-wrap">
+                <button
+                  type="button"
+                  class="filter-pill-btn ${count > 0 ? "active" : ""}"
+                  onclick="toggleFilterDropdown('${dim.key}', event)"
+                >
+                  <span>${escapeHtml(dim.label)}</span>
+                  ${count > 0 ? `<span class="filter-pill-count">${count}</span>` : ""}
+                  <span style="font-size: 10px; opacity: 0.7">▾</span>
+                </button>
+                ${
+                  isOpen
+                    ? `
+                  <div class="filter-popover" onclick="event.stopPropagation()">
+                    <input
+                      type="search"
+                      class="filter-popover-search"
+                      placeholder="搜索${escapeHtml(dim.label)}选项..."
+                      value="${escapeHtml(state.dropdownSearch)}"
+                      oninput="onDropdownSearchInput(this.value)"
+                    />
+                    <div class="filter-popover-hint">
+                      同维度多选为 OR，跨维度为 AND（计数已排除本维度自身条件）
+                    </div>
+                    <div class="filter-options-list">
+                      ${
+                        filteredOptions.length === 0
+                          ? `<div style="padding: 8px; font-size: 12px; color: var(--ctx-muted);">无匹配筛选项</div>`
+                          : filteredOptions
+                              .map((opt) => {
+                                const checked = selectedSet.has(opt.value);
+                                return `
+                                  <label class="filter-option-row">
+                                    <span class="filter-option-left">
+                                      <input
+                                        type="checkbox"
+                                        ${checked ? "checked" : ""}
+                                        onchange="toggleFilterValue('${dim.key}', '${escapeHtml(opt.value)}')"
+                                      />
+                                      <span>${escapeHtml(opt.label)}</span>
+                                    </span>
+                                    <span class="filter-option-count">${opt.count}</span>
+                                  </label>
+                                `;
+                              })
+                              .join("")
+                      }
+                    </div>
+                  </div>
+                `
+                    : ""
+                }
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      // 渲染条件条（ExploreQueryFilterChips）
+      function renderFilterChips() {
+        const bar = document.getElementById("filterChipsBar");
+        const chips = [];
+
+        // 1. 位置条件（删除父级时连同子级一起删）
+        state.browsePath.forEach((node, idx) => {
+          chips.push(`
+            <span class="active-chip location-chip" title="点击删除该层及下级位置条件">
+              <span>${escapeHtml(node.label)}</span>
+              <button type="button" onclick="removeBrowseChipAt(${idx})" aria-label="移除位置条件">×</button>
+            </span>
+          `);
+        });
+
+        // 2. 快速筛选条件
+        for (const dim of QUICK_FILTER_DIMENSIONS) {
+          const set = state.quickFilters[dim.key];
+          if (!set || set.size === 0) continue;
+          for (const val of set) {
+            const displayVal = val === "OM_NULL_FIELD" ? "无 (未分配)" : val;
+            chips.push(`
+              <span class="active-chip">
+                <span>${escapeHtml(dim.label)}: <strong>${escapeHtml(displayVal)}</strong></span>
+                <button type="button" onclick="toggleFilterValue('${dim.key}', '${escapeHtml(val)}')" aria-label="移除筛选条件">×</button>
+              </span>
+            `);
+          }
+        }
+
+        if (chips.length > 0 || state.search.trim()) {
+          bar.innerHTML = `
+            ${chips.join("")}
+            <button type="button" class="ctx-button ctx-button--ghost" style="min-height: 24px; padding: 2px 8px; font-size: 12px;" onclick="clearAllFilters()">
+              清除全部
+            </button>
+          `;
+        } else {
+          bar.innerHTML = `
+            <div class="chips-idle-hint">
+              <span>提示：点击左侧浏览树节点可按层级筛选位置（不跳转页面），也可使用上方搜索框或快速筛选组合过滤资产。</span>
+            </div>
+          `;
+        }
+      }
+
+      // 渲染结果卡片与右侧只读摘要面板
+      function renderResultsAndSummary() {
+        const resultsCol = document.getElementById("resultsColumn");
+        const summaryDrawer = document.getElementById("summaryDrawer");
+        const headingEl = document.getElementById("exploreHeading");
+        const counterEl = document.getElementById("hitCounterText");
+
+        if (state.mode === "loading") {
+          headingEl.textContent = "正在检索数据资产...";
+          counterEl.textContent = "调用 /bff/v1/assets/search → OM /v1/search/query";
+          resultsCol.innerHTML = `
+            <div class="skeleton-box"></div>
+            <div class="skeleton-box"></div>
+            <div class="skeleton-box"></div>
+          `;
+          summaryDrawer.classList.add("hidden");
+          return;
+        }
+
+        if (state.mode === "error") {
+          headingEl.textContent = "资产检索服务不可用";
+          counterEl.textContent = "";
+          resultsCol.innerHTML = `
+            <div class="state-panel error-state" role="alert">
+              <h3 style="margin: 0 0 8px; color: #991b1b;">OpenMetadata 搜索后端或 OpenSearch 索引异常</h3>
+              <p style="margin: 0 0 10px; font-size: 13.5px; color: #7f1d1d;">
+                请求 <code>GET /bff/v1/assets/search</code> 返回真实错误（严禁回退内置示例数据或伪造空结果）：
+              </p>
+              <pre style="background: #fff; border: 1px solid #fecaca; padding: 10px 12px; border-radius: 8px; font-size: 12px; overflow-x: auto;">HTTP 503 Service Unavailable
+错误码: OM_SEARCH_INDEX_UNAVAILABLE
+详情: OpenSearch cluster [opensearch:9200] index [table_search_index] status is RED or unreachable.
+排查建议: 请检查 OpenSearch 容器内存与索引状态，或在 OpenMetadata 执行 Search Indexing 管线重建。</pre>
+              <div style="margin-top: 12px; display: flex; gap: 8px;">
+                <button type="button" class="ctx-button ctx-button--primary" onclick="applyPreset('default')">重试检索</button>
+                <button type="button" class="ctx-button ctx-button--secondary" onclick="openSubView('sources')">查看数据源与采集管线</button>
+              </div>
+            </div>
+          `;
+          summaryDrawer.classList.add("hidden");
+          return;
+        }
+
+        if (state.mode === "zeroAsset") {
+          headingEl.textContent = "尚未接入任何数据资产";
+          counterEl.textContent = "共 0 条资产";
+          resultsCol.innerHTML = `
+            <div class="state-panel">
+              <h3 style="margin: 0 0 8px;">当前平台还没有任何数据资产元数据</h3>
+              <p style="margin: 0 auto 16px; max-width: 520px; color: var(--ctx-muted);">
+                您可以前往「数据源管理」接入 MySQL / PostgreSQL / Doris 等业务源库并触发元数据采集（005），或在开发环境下运行 006 开发态元数据导入工具导入 003 表结构定义。
+              </p>
+              <div style="display: flex; justify-content: center; gap: 10px;">
+                <button type="button" class="ctx-button ctx-button--primary" onclick="openSubView('sources')">+ 添加数据源并采集</button>
+              </div>
+            </div>
+          `;
+          summaryDrawer.classList.add("hidden");
+          return;
+        }
+
+        const filtered = sortAssets(filterAssets());
+        const kw = state.search.trim();
+
+        if (kw) {
+          headingEl.textContent = `“${kw}” 的搜索结果`;
+        } else if (state.browsePath.length > 0) {
+          headingEl.textContent = state.browsePath[state.browsePath.length - 1].label;
+        } else {
+          headingEl.textContent = "全部数据资产";
+        }
+        counterEl.innerHTML = `共找到 <strong>${filtered.length}</strong> 项资产`;
+
+        if (filtered.length === 0) {
+          resultsCol.innerHTML = `
+            <div class="state-panel">
+              <h3 style="margin: 0 0 8px;">未找到匹配当前条件的数据资产</h3>
+              <p style="margin: 0 auto 14px; max-width: 460px; color: var(--ctx-muted);">
+                请尝试调整搜索关键词、减少快速筛选条件，或点击下方按钮清空全部筛选条件。
+              </p>
+              <button type="button" class="ctx-button ctx-button--secondary" onclick="clearAllFilters()">清除全部搜索与筛选条件</button>
+            </div>
+          `;
+          summaryDrawer.classList.add("hidden");
+          return;
+        }
+
+        // 结果更新后自动选中第一条（对齐 OM EntitySummaryPanel 行为）
+        if (!filtered.some((a) => a.id === state.selectedAssetId)) {
+          state.selectedAssetId = filtered[0].id;
+        }
+
+        const cardsHtml = filtered
+          .map((asset) => {
+            const isSelected = asset.id === state.selectedAssetId && state.summaryOpen;
+            const matchSummary = getMatchedFieldSummary(asset, kw);
+            const secClass =
+              asset.securityLevel === "数据级别.三级"
+                ? "badge-sec-l3"
+                : asset.securityLevel === "数据级别.二级"
+                  ? "badge-sec-l2"
+                  : "badge-sec-l1";
+
+            return `
+              <article
+                class="search-card ${isSelected ? "selected" : ""}"
+                onclick="selectAssetCard('${asset.id}')"
+              >
+                <div class="card-top-row">
+                  <div class="card-breadcrumb">
+                    <span>${escapeHtml(asset.serviceType)}</span>
+                    <span>/</span>
+                    <span>${escapeHtml(asset.service)}</span>
+                    ${asset.database ? `<span>/</span><span>${escapeHtml(asset.database)}</span>` : ""}
+                    ${asset.schema ? `<span>/</span><span>${escapeHtml(asset.schema)}</span>` : ""}
+                  </div>
+                  <div class="card-badges">
+                    <span class="badge ${asset.sourceOrigin.includes("005") ? "badge-source-005" : "badge-source-006"}">
+                      ${escapeHtml(asset.sourceOrigin)}
+                    </span>
+                    ${
+                      asset.certification
+                        ? `<span class="badge badge-cert">✓ ${escapeHtml(asset.certification)}</span>`
+                        : ""
+                    }
+                  </div>
+                </div>
+
+                <div class="card-title-row">
+                  <span class="entity-type-pill">${escapeHtml(ENTITY_TYPE_LABELS[asset.entityType] || asset.entityType)}</span>
+                  <button
+                    type="button"
+                    class="card-title-link"
+                    onclick="openAssetDetail('${asset.id}', event)"
+                    title="点击进入资产详情页（可编辑属性）"
+                  >
+                    ${highlightText(asset.displayName, kw)}
+                  </button>
+                  <span class="card-tech-name">(${highlightText(asset.name, kw)})</span>
+                  ${
+                    matchSummary
+                      ? `<span class="badge badge-match">${escapeHtml(matchSummary)}</span>`
+                      : ""
+                  }
+                </div>
+
+                <p class="card-desc">${highlightText(asset.description, kw)}</p>
+
+                <div class="card-meta-footer">
+                  <span class="meta-item">
+                    业务域: <strong>${escapeHtml(asset.domain || "未分配")}</strong>
+                  </span>
+                  <span class="meta-item">
+                    负责人: <strong>${escapeHtml(asset.owners && asset.owners.length ? asset.owners.join("、") : "未分配")}</strong>
+                  </span>
+                  <span class="meta-item">
+                    分级(Tier):
+                    ${
+                      asset.tier
+                        ? `<span class="badge badge-tier">${escapeHtml(asset.tier)}</span>`
+                        : `<strong>未分级</strong>`
+                    }
+                  </span>
+                  <span class="meta-item">
+                    数据安全级别:
+                    ${
+                      asset.securityLevel
+                        ? `<span class="badge ${secClass}">${escapeHtml(asset.securityLevel)}</span>`
+                        : `<strong>未定级</strong>`
+                    }
+                  </span>
+                  <span class="meta-item" style="margin-left: auto;">
+                    更新: ${escapeHtml(asset.updatedAt)}
+                  </span>
+                </div>
+              </article>
+            `;
+          })
+          .join("");
+
+        resultsCol.innerHTML = `
+          ${cardsHtml}
+          <div class="pagination-bar">
+            <div>
+              显示第 1 - ${filtered.length} 条，共 ${filtered.length} 条
+            </div>
+            <div class="pagination-controls">
+              <span>每页条数：</span>
+              <select class="sort-select" onchange="changePageSize(this.value)">
+                <option value="15" ${state.pageSize === 15 ? "selected" : ""}>15 条/页</option>
+                <option value="25" ${state.pageSize === 25 ? "selected" : ""}>25 条/页</option>
+                <option value="50" ${state.pageSize === 50 ? "selected" : ""}>50 条/页</option>
+              </select>
+              <button type="button" class="ctx-button ctx-button--secondary" disabled>上一页</button>
+              <button type="button" class="ctx-button ctx-button--secondary" disabled>下一页</button>
+            </div>
+          </div>
+        `;
+
+        // 渲染右侧只读摘要面板
+        const selectedAsset = filtered.find((a) => a.id === state.selectedAssetId);
+        if (!selectedAsset || !state.summaryOpen) {
+          summaryDrawer.classList.add("hidden");
+          return;
+        }
+        summaryDrawer.classList.remove("hidden");
+
+        const secClass =
+          selectedAsset.securityLevel === "数据级别.三级"
+            ? "badge-sec-l3"
+            : selectedAsset.securityLevel === "数据级别.二级"
+              ? "badge-sec-l2"
+              : "badge-sec-l1";
+
+        summaryDrawer.innerHTML = `
+          <div class="summary-head">
+            <div class="summary-head-top">
+              <div>
+                <div style="font-size: 11px; color: var(--ctx-muted); font-weight: 600; margin-bottom: 2px;">
+                  ${escapeHtml(ENTITY_TYPE_LABELS[selectedAsset.entityType])} · 摘要预览
+                </div>
+                <button
+                  type="button"
+                  class="summary-title-link"
+                  onclick="openAssetDetail('${selectedAsset.id}', event)"
+                >
+                  ${escapeHtml(selectedAsset.displayName)} →
+                </button>
+              </div>
+              <button
+                type="button"
+                class="summary-close"
+                onclick="closeSummaryDrawer()"
+                title="关闭摘要面板 (Esc)"
+              >
+                ×
+              </button>
+            </div>
+            <div class="summary-fqn">FQN: ${escapeHtml(selectedAsset.fqn)}</div>
+          </div>
+
+          <div class="summary-tabs">
+            <button
+              type="button"
+              class="summary-tab ${state.summaryTab === "overview" ? "active" : ""}"
+              onclick="switchSummaryTab('overview')"
+            >
+              概览 (Overview)
+            </button>
+            <button
+              type="button"
+              class="summary-tab ${state.summaryTab === "schema" ? "active" : ""}"
+              onclick="switchSummaryTab('schema')"
+            >
+              Schema / 字段 (${(selectedAsset.columns || []).length})
+            </button>
+          </div>
+
+          <div class="summary-body">
+            <div class="summary-readonly-banner">
+              <span>只读摘要面板（D6=A）</span>
+              <button
+                type="button"
+                class="breadcrumb-link"
+                style="font-size: 12px;"
+                onclick="openAssetDetail('${selectedAsset.id}', event)"
+              >
+                去详情页编辑属性 →
+              </button>
+            </div>
+
+            ${
+              state.summaryTab === "overview"
+                ? `
+              <div class="summary-section">
+                <h4>业务描述</h4>
+                <div style="font-size: 13px; color: #1e293b;">
+                  ${highlightText(selectedAsset.description, kw)}
+                </div>
+              </div>
+
+              <div class="summary-section">
+                <h4>治理与分级属性（明确区分 Tier 与 数据安全级别）</h4>
+                <div class="summary-kv-grid">
+                  <span class="summary-kv-label">分级 (Tier)</span>
+                  <span>
+                    ${
+                      selectedAsset.tier
+                        ? `<span class="badge badge-tier">${escapeHtml(selectedAsset.tier)}</span> <small style="color:var(--ctx-muted)">(业务重要度)</small>`
+                        : `<span style="color:var(--ctx-muted)">未设置</span>`
+                    }
+                  </span>
+
+                  <span class="summary-kv-label">数据安全级别</span>
+                  <span>
+                    ${
+                      selectedAsset.securityLevel
+                        ? `<span class="badge ${secClass}">${escapeHtml(selectedAsset.securityLevel)}</span> <small style="color:var(--ctx-muted)">(ADR-0008 敏感定级)</small>`
+                        : `<span style="color:var(--ctx-muted)">未定级</span>`
+                    }
+                  </span>
+
+                  <span class="summary-kv-label">认证状态</span>
+                  <span>${escapeHtml(selectedAsset.certification || "未认证")}</span>
+
+                  <span class="summary-kv-label">所属业务域</span>
+                  <span>${escapeHtml(selectedAsset.domain || "未分配")}</span>
+
+                  <span class="summary-kv-label">负责人 (Owners)</span>
+                  <span>${escapeHtml(selectedAsset.owners && selectedAsset.owners.length ? selectedAsset.owners.join("、") : "未分配")}</span>
+
+                  <span class="summary-kv-label">数据产品</span>
+                  <span>${escapeHtml(selectedAsset.dataProducts && selectedAsset.dataProducts.length ? selectedAsset.dataProducts.join("、") : "无")}</span>
+
+                  <span class="summary-kv-label">元数据来源</span>
+                  <span>${escapeHtml(selectedAsset.sourceOrigin)}</span>
+                </div>
+              </div>
+
+              <div class="summary-section">
+                <h4>关联业务术语 (Glossary Terms)</h4>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  ${
+                    selectedAsset.glossaryTerms && selectedAsset.glossaryTerms.length
+                      ? selectedAsset.glossaryTerms
+                          .map((t) => `<span class="badge badge-source-005">${escapeHtml(t)}</span>`)
+                          .join("")
+                      : `<span style="font-size: 12.5px; color: var(--ctx-muted);">未绑定业务术语</span>`
+                  }
+                </div>
+              </div>
+
+              <div class="summary-section">
+                <h4>分类标签 (Classification Tags)</h4>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  ${
+                    selectedAsset.tags && selectedAsset.tags.length
+                      ? selectedAsset.tags
+                          .map((t) => `<span class="badge badge-source-005">${escapeHtml(t)}</span>`)
+                          .join("")
+                      : `<span style="font-size: 12.5px; color: var(--ctx-muted);">无其他分类标签</span>`
+                  }
+                </div>
+              </div>
+            `
+                : `
+              <div class="summary-section">
+                <h4>表字段清单 (${(selectedAsset.columns || []).length})</h4>
+                ${
+                  !selectedAsset.columns || selectedAsset.columns.length === 0
+                    ? `<div style="font-size: 12.5px; color: var(--ctx-muted);">当前资产类型不包含表级 Schema 列清单。</div>`
+                    : selectedAsset.columns
+                        .map(
+                          (col) => `
+                      <div class="summary-col-card">
+                        <div class="summary-col-top">
+                          <span>
+                            ${highlightText(col.name, kw)}
+                            ${
+                              col.constraint
+                                ? `<span class="badge badge-tier" style="margin-left:4px; padding:0 5px; font-size:10px;">${escapeHtml(col.constraint)}</span>`
+                                : ""
+                            }
+                          </span>
+                          <span class="summary-col-type">${escapeHtml(col.dataType)}</span>
+                        </div>
+                        <div style="font-size: 12px; font-weight: 500; margin-top: 2px;">
+                          中文名：${highlightText(col.displayName, kw)}
+                          ${
+                            col.securityLevel
+                              ? `<span class="badge badge-sec-l2" style="margin-left:6px; font-size:10px; padding:0 5px;">${escapeHtml(col.securityLevel)}</span>`
+                              : ""
+                          }
+                        </div>
+                        <div class="summary-col-desc">${highlightText(col.description, kw)}</div>
+                      </div>
+                    `
+                        )
+                        .join("")
+                }
+              </div>
+            `
+            }
+          </div>
+        `;
+      }
+
+      // 渲染输入建议浮层（对应 OM Suggestions：输入防抖，按 entityType 分组，每组最多 5 条，点建议直接进详情）
+      function renderSuggestionsPopover() {
+        const pop = document.getElementById("suggestionsPopover");
+        const kw = state.search.trim();
+        if (!kw || document.activeElement !== document.getElementById("searchInput")) {
+          pop.hidden = true;
+          return;
+        }
+        const matches = MOCK_ASSETS.filter((a) => matchesKeyword(a, kw));
+        if (matches.length === 0) {
+          pop.innerHTML = `
+            <div class="om-Suggestions-head">
+              <span>搜索建议（OM /v1/search/query）</span>
+              <span>按 Enter 查看完整搜索页</span>
+            </div>
+            <div style="padding: 12px 14px; font-size: 12.5px; color: var(--ctx-muted);">
+              没有直接匹配的建议项，按 Enter 执行全文检索
+            </div>
+          `;
+          pop.hidden = false;
+          return;
+        }
+
+        const groups = {};
+        for (const m of matches) {
+          groups[m.entityType] = groups[m.entityType] || [];
+          if (groups[m.entityType].length < 5) {
+            groups[m.entityType].push(m);
+          }
+        }
+
+        pop.innerHTML = `
+          <div class="om-Suggestions-head">
+            <span>防抖输入建议（每类最多 5 条 · 点击直接进入资产详情）</span>
+            <span>按 Enter 在列表中查看相关性排序</span>
+          </div>
+          ${Object.entries(groups)
+            .map(
+              ([type, list]) => `
+            <div class="om-suggestion-group-title">${escapeHtml(ENTITY_TYPE_LABELS[type] || type)}</div>
+            ${list
+              .map(
+                (item) => `
+              <button
+                type="button"
+                class="om-suggestion-item"
+                onmousedown="openAssetDetail('${item.id}', event)"
+              >
+                <span class="om-suggestion-main">
+                  <span class="entity-type-pill">${escapeHtml(type)}</span>
+                  <strong>${highlightText(item.displayName, kw)}</strong>
+                  <span style="color: var(--ctx-muted); font-size: 12px;">(${highlightText(item.name, kw)})</span>
+                </span>
+                <span class="om-suggestion-fqn">${escapeHtml(item.fqn)} →</span>
+              </button>
+            `
+              )
+              .join("")}
+          `
+            )
+            .join("")}
+        `;
+        pop.hidden = false;
+      }
+
+      // 渲染子视图（数据源管理 & 资产详情，承接 005 并展示统一页面下的无缝切换）
+      function renderSubViews() {
+        const exploreEl = document.getElementById("exploreView");
+        const sourcesEl = document.getElementById("sourcesSubView");
+        const detailEl = document.getElementById("detailSubView");
+
+        exploreEl.hidden = state.subView !== "explore";
+        sourcesEl.hidden = state.subView !== "sources";
+        detailEl.hidden = state.subView !== "detail";
+
+        if (state.subView === "sources") {
+          sourcesEl.innerHTML = `
+            <div class="subview-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+                <div>
+                  <div style="font-size:11px; color:var(--ctx-muted); font-weight:600; letter-spacing:0.06em;">DATA SOURCES WORKSPACE (承接 005 · 统一在 /assets/sources 下)</div>
+                  <h2 style="margin:4px 0 0;">数据源管理与元数据采集</h2>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <button type="button" class="ctx-button ctx-button--secondary" onclick="returnToExplore()">← 返回资产探索列表</button>
+                  <button type="button" class="ctx-button ctx-button--primary">+ 新建数据源连接 (005 向导)</button>
+                </div>
+              </div>
+              <p style="color:var(--ctx-muted); margin:0 0 16px;">
+                说明：006 将 005 的数据源管理与资产探索合并在同一个「数据资产」模块下，共用左侧浏览树。在左侧点击任意节点会立即带着该位置条件返回探索列表。
+              </p>
+              <table style="width:100%; border-collapse:collapse; font-size:13.5px;">
+                <thead>
+                  <tr style="background:#f8fafc; color:var(--ctx-muted); text-align:left;">
+                    <th style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);">服务名称</th>
+                    <th style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);">类型</th>
+                    <th style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);">接入方式</th>
+                    <th style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);">最近采集状态</th>
+                    <th style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);"><strong>mock-mes</strong></td>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);">MySQL</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);">005 在线连接器采集</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);"><span class="badge badge-cert">SUCCESS · 已同步 OpenSearch</span></td>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);"><button type="button" class="breadcrumb-link" onclick="applyBrowseNode('srv-mes')">在探索列表中查看该源资产 →</button></td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);"><strong>mock-qms</strong></td>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);">PostgreSQL</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);">005 在线连接器采集</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);"><span class="badge badge-cert">SUCCESS · 已同步 OpenSearch</span></td>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);"><button type="button" class="breadcrumb-link" onclick="applyBrowseNode('srv-qms')">在探索列表中查看该源资产 →</button></td>
+                  </tr>
+                  <tr>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);"><strong>dev-import-erp</strong></td>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);">PostgreSQL</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);">006 开发态表定义导入</td>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);"><span class="badge badge-source-006">CLI 导入 · 已写入 OM & 索引</span></td>
+                    <td style="padding:10px 12px; border-bottom:1px solid var(--ctx-border);"><button type="button" class="breadcrumb-link" onclick="applyBrowseNode('srv-erp')">在探索列表中查看该源资产 →</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          `;
+        } else if (state.subView === "detail") {
+          const asset = MOCK_ASSETS.find((a) => a.id === state.detailAssetId) || MOCK_ASSETS[0];
+          const isGovernance = asset.entityType === "glossaryTerm" || asset.entityType === "tag";
+          if (isGovernance) {
+            // 006 新增：业务术语 / 分类标签只读详情页（FR-013）；字段清单以 plan 阶段按 OM 2.0.3 实体定义为准
+            const isTerm = asset.entityType === "glossaryTerm";
+            const parentName = asset.fqn.split(".")[0];
+            detailEl.innerHTML = `
+              <div class="subview-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+                  <div>
+                    <div style="font-size:11px; color:var(--ctx-muted); font-weight:600; letter-spacing:0.06em;">${isTerm ? "GLOSSARY TERM · 业务术语详情（只读，006 新增）" : "TAG · 分类标签详情（只读，006 新增）"}</div>
+                    <h2 style="margin:4px 0 0;">${escapeHtml(asset.displayName)} <span style="font-weight:400; color:var(--ctx-muted); font-size:15px;">(${escapeHtml(asset.fqn)})</span></h2>
+                  </div>
+                  <button type="button" class="ctx-button ctx-button--secondary" onclick="returnToExplore()">← 返回探索结果列表</button>
+                </div>
+                <div class="summary-readonly-banner" style="margin-bottom:14px;">
+                  <span>只读页面：不提供编辑入口。显示字段以 plan 阶段按 OM 实体定义确定的清单为准，此处仅为示意。</span>
+                </div>
+                <div class="summary-kv-grid" style="max-width:720px;">
+                  <span class="summary-kv-label">名称</span><span>${escapeHtml(asset.name)}</span>
+                  <span class="summary-kv-label">显示名称</span><span>${escapeHtml(asset.displayName)}</span>
+                  <span class="summary-kv-label">完整名称 (FQN)</span><span style="font-family:var(--ctx-mono)">${escapeHtml(asset.fqn)}</span>
+                  <span class="summary-kv-label">${isTerm ? "所属术语表" : "所属分类"}</span><span>${escapeHtml(parentName)}</span>
+                  <span class="summary-kv-label">描述</span><span>${escapeHtml(asset.description)}</span>
+                  <span class="summary-kv-label">负责人</span><span>${escapeHtml(asset.owners && asset.owners.length ? asset.owners.join("、") : "未分配")}</span>
+                </div>
+              </div>
+            `;
+          } else {
+            const hl = state.highlightColumn;
+            const cols = asset.columns || [];
+            detailEl.innerHTML = `
+              <div class="subview-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+                  <div>
+                    <div style="font-size:11px; color:var(--ctx-muted); font-weight:600; letter-spacing:0.06em;">METADATA CATALOG · 资产详情页（承接 005 属性编辑）</div>
+                    <h2 style="margin:4px 0 0;">${escapeHtml(asset.displayName)} <span style="font-weight:400; color:var(--ctx-muted); font-size:15px;">(${escapeHtml(asset.fqn)})</span></h2>
+                  </div>
+                  <div style="display:flex; gap:8px;">
+                    <button type="button" class="ctx-button ctx-button--secondary" onclick="returnToExplore()">← 返回探索结果列表（保留本次会话的搜索条件）</button>
+                    <button type="button" class="ctx-button ctx-button--primary">编辑属性 (005)</button>
+                  </div>
+                </div>
+                ${hl ? `<div class="summary-readonly-banner" style="margin-bottom:12px; background:#fffbeb; border-color:#fde68a;"><span>由列结果「${escapeHtml(hl)}」进入：已定位到该字段所在行。</span></div>` : ""}
+                <p style="margin:0 0 14px; color:#334155;">${escapeHtml(asset.description)}</p>
+                <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:13px; padding:12px; background:#f8fafc; border-radius:8px; border:1px solid var(--ctx-border); margin-bottom:16px;">
+                  <span><strong>所属服务：</strong>${escapeHtml(asset.service)} (${escapeHtml(asset.serviceType)})</span>
+                  <span><strong>业务域：</strong>${escapeHtml(asset.domain || "未分配")}</span>
+                  <span><strong>负责人：</strong>${escapeHtml(asset.owners && asset.owners.length ? asset.owners.join("、") : "未分配")}</span>
+                  <span><strong>分级 (Tier)：</strong>${escapeHtml(asset.tier || "未设置")}</span>
+                  <span><strong>数据安全级别：</strong>${escapeHtml(asset.securityLevel || "未定级")}</span>
+                </div>
+                ${
+                  cols.length
+                    ? `<h3 style="font-size:14px; margin:0 0 8px;">字段元数据 (${cols.length})</h3>
+                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                  <thead><tr style="background:#f8fafc; color:var(--ctx-muted); text-align:left;">
+                    <th style="padding:8px 10px; border-bottom:1px solid var(--ctx-border);">字段名称</th>
+                    <th style="padding:8px 10px; border-bottom:1px solid var(--ctx-border);">数据类型</th>
+                    <th style="padding:8px 10px; border-bottom:1px solid var(--ctx-border);">显示名称 / 描述</th>
+                    <th style="padding:8px 10px; border-bottom:1px solid var(--ctx-border);">分类标签</th>
+                  </tr></thead>
+                  <tbody>
+                    ${cols
+                      .map(
+                        (c) => `<tr id="col-row-${escapeHtml(c.name)}" style="${c.name === hl ? "background:#fef9c3; outline:2px solid #facc15;" : ""}">
+                      <td style="padding:8px 10px; border-bottom:1px solid var(--ctx-border); font-family:var(--ctx-mono);">${escapeHtml(c.name)}${c.constraint === "PK" ? ' <span class="badge badge-tier" style="padding:0 5px; font-size:10px;">PK</span>' : ""}</td>
+                      <td style="padding:8px 10px; border-bottom:1px solid var(--ctx-border);">${escapeHtml(c.dataType)}</td>
+                      <td style="padding:8px 10px; border-bottom:1px solid var(--ctx-border);">${escapeHtml(c.displayName)}<div style="color:var(--ctx-muted); font-size:12px;">${escapeHtml(c.description)}</div></td>
+                      <td style="padding:8px 10px; border-bottom:1px solid var(--ctx-border);">${escapeHtml(c.securityLevel || "—")}</td>
+                    </tr>`
+                      )
+                      .join("")}
+                  </tbody>
+                </table>`
+                    : ""
+                }
+              </div>
+            `;
+            if (hl) {
+              const row = document.getElementById(`col-row-${hl}`);
+              if (row) setTimeout(() => row.scrollIntoView({ block: "center" }), 0);
+            }
+          }
+        }
+      }
+
+      // 统一重绘入口
+      function renderAll() {
+        document.getElementById("searchClearBtn").hidden = !state.search;
+        document.getElementById("searchScopeSelect").value = state.scope;
+        document.getElementById("sortFieldSelect").value = state.sortField;
+        document.getElementById("sortOrderBtn").textContent =
+          state.sortOrder === "asc" ? "↑" : "↓";
+
+        renderBreadcrumb();
+        renderLeftSidebar();
+        renderSubViews();
+        if (state.subView === "explore") {
+          renderQuickFilters();
+          renderFilterChips();
+          renderResultsAndSummary();
+        }
+      }
+
+      // 交互事件处理函数
+      function toggleTreeNode(nodeId, ev) {
+        ev.stopPropagation();
+        if (state.expandedNodes.has(nodeId)) {
+          state.expandedNodes.delete(nodeId);
+        } else {
+          state.expandedNodes.add(nodeId);
+        }
+        renderLeftSidebar();
+      }
+
+      function findTreeNodeById(nodes, id) {
+        for (const n of nodes) {
+          if (n.id === id) return n;
+          if (n.children) {
+            const found = findTreeNodeById(n.children, id);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+
+      // 点击浏览树节点：只设置位置条件（browsePath），不跳出探索视图；若在子视图则带着位置条件回到探索视图
+      function applyBrowseNode(nodeId) {
+        const node = findTreeNodeById(BROWSE_TREE_DATA, nodeId);
+        if (!node) return;
+        state.subView = "explore";
+        state.mode = "normal";
+        state.browsePath = [...node.path];
+        state.summaryOpen = true;
+        renderAll();
+      }
+
+      function removeBrowseChipAt(index) {
+        state.browsePath = state.browsePath.slice(0, index);
+        renderAll();
+      }
+
+      function selectTypeTab(type) {
+        state.activeTypeTab = type;
+        state.subView = "explore";
+        renderAll();
+      }
+
+      function toggleFilterDropdown(dimKey, ev) {
+        ev.stopPropagation();
+        if (state.openDropdownKey === dimKey) {
+          state.openDropdownKey = null;
+        } else {
+          state.openDropdownKey = dimKey;
+          state.dropdownSearch = "";
+        }
+        renderQuickFilters();
+      }
+
+      function onDropdownSearchInput(val) {
+        state.dropdownSearch = val;
+        renderQuickFilters();
+      }
+
+      function toggleFilterValue(dimKey, val) {
+        if (!state.quickFilters[dimKey]) {
+          state.quickFilters[dimKey] = new Set();
+        }
+        const set = state.quickFilters[dimKey];
+        if (set.has(val)) {
+          set.delete(val);
+        } else {
+          set.add(val);
+        }
+        state.mode = "normal";
+        renderAll();
+      }
+
+      function clearAllFilters() {
+        state.mode = "normal";
+        state.search = "";
+        state.scope = "all";
+        state.activeTypeTab = "all";
+        state.browsePath = [];
+        state.quickFilters = {};
+        state.openDropdownKey = null;
+        document.getElementById("searchInput").value = "";
+        document.getElementById("suggestionsPopover").hidden = true;
+        renderAll();
+      }
+
+      function selectAssetCard(assetId) {
+        state.selectedAssetId = assetId;
+        state.summaryOpen = true;
+        renderResultsAndSummary();
+      }
+
+      function closeSummaryDrawer() {
+        state.summaryOpen = false;
+        renderResultsAndSummary();
+      }
+
+      function switchSummaryTab(tab) {
+        state.summaryTab = tab;
+        renderResultsAndSummary();
+      }
+
+      function openAssetDetail(assetId, ev) {
+        if (ev) ev.stopPropagation();
+        const target = MOCK_ASSETS.find((a) => a.id === assetId);
+        state.highlightColumn = null;
+        if (target && target.entityType === "tableColumn") {
+          // 列结果：跳到所属表的详情，并定位到该列（负责人 2026-11-09 决定）
+          const parentFqn = target.fqn.split(".").slice(0, -1).join(".");
+          const parent = MOCK_ASSETS.find((a) => a.fqn === parentFqn);
+          if (parent) {
+            assetId = parent.id;
+            state.highlightColumn = target.name;
+          }
+        }
+        state.detailAssetId = assetId;
+        state.subView = "detail";
+        document.getElementById("suggestionsPopover").hidden = true;
+        renderAll();
+      }
+
+      function openSubView(viewName) {
+        state.subView = viewName;
+        renderAll();
+      }
+
+      function returnToExplore() {
+        state.subView = "explore";
+        renderAll();
+      }
+
+      function changePageSize(val) {
+        state.pageSize = Number(val) || 15;
+        state.currentPage = 1;
+        renderAll();
+      }
+
+      // 原型预设状态一键切换（覆盖 page-structure.md 第 2.4 节全部 9 种状态 + 同名表辨识 + 子视图）
+      function applyPreset(presetName) {
+        document.querySelectorAll("#presetBar .proto-btn").forEach((b) => {
+          b.classList.toggle("active", b.dataset.preset === presetName);
+        });
+
+        state.subView = "explore";
+        state.mode = "normal";
+        state.search = "";
+        state.scope = "all";
+        state.activeTypeTab = "all";
+        state.browsePath = [];
+        state.quickFilters = {};
+        state.openDropdownKey = null;
+        state.summaryOpen = true;
+        state.summaryTab = "overview";
+
+        if (presetName === "keyword") {
+          state.search = "质检";
+          state.sortField = "relevance";
+          state.selectedAssetId = "tbl-qms-insp";
+        } else if (presetName === "homonym") {
+          state.search = "material";
+          state.sortField = "relevance";
+          state.selectedAssetId = "tbl-mes-mat";
+        } else if (presetName === "nullFilter") {
+          state.quickFilters = {
+            owners: new Set(["OM_NULL_FIELD"]),
+            tier: new Set(["OM_NULL_FIELD"]),
+          };
+          state.selectedAssetId = "tbl-mes-equip-staging";
+        } else if (presetName === "emptyHit") {
+          state.search = "不存在的ERP财务总账表_xyz";
+        } else if (presetName === "loading") {
+          state.mode = "loading";
+        } else if (presetName === "error") {
+          state.mode = "error";
+        } else if (presetName === "zeroAsset") {
+          state.mode = "zeroAsset";
+        } else if (presetName === "sourcesView") {
+          state.subView = "sources";
+        } else if (presetName === "detailView") {
+          state.subView = "detail";
+          state.detailAssetId = "tbl-mes-wo";
+          state.highlightColumn = null;
+        } else if (presetName === "termDetail") {
+          state.search = "不良率";
+          openAssetDetail("term-defect-rate");
+        } else if (presetName === "columnJump") {
+          state.search = "order_no";
+          openAssetDetail("col-order-no");
+        }
+
+        document.getElementById("searchInput").value = state.search;
+        document.getElementById("suggestionsPopover").hidden = true;
+        renderAll();
+      }
+
+      // 绑定 DOM 事件
+      document.getElementById("presetBar").addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-preset]");
+        if (btn) applyPreset(btn.dataset.preset);
+      });
+
+      const searchInputEl = document.getElementById("searchInput");
+      let suggestTimer = null;
+      searchInputEl.addEventListener("input", (e) => {
+        state.search = e.target.value;
+        state.mode = "normal";
+        state.subView = "explore";
+        if (state.search.trim()) {
+          // 有关键词时默认选首条命中结果的类型，否则选计数最多的类型（对齐 OM Explore）
+          const hits = filterAssets({ ignoreActiveTypeTab: true });
+          state.activeTypeTab = hits.length > 0 ? "all" : "all";
+        }
+        clearTimeout(suggestTimer);
+        suggestTimer = setTimeout(() => {
+          renderSuggestionsPopover();
+          renderAll();
+        }, 120);
+      });
+
+      searchInputEl.addEventListener("focus", () => {
+        if (state.search.trim()) renderSuggestionsPopover();
+      });
+
+      document.getElementById("searchForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        state.subView = "explore";
+        state.mode = "normal";
+        if (state.search.trim()) {
+          state.sortField = "relevance";
+        }
+        document.getElementById("suggestionsPopover").hidden = true;
+        renderAll();
+      });
+
+      document.getElementById("searchClearBtn").addEventListener("click", () => {
+        state.search = "";
+        state.activeTypeTab = "all";
+        searchInputEl.value = "";
+        document.getElementById("suggestionsPopover").hidden = true;
+        renderAll();
+      });
+
+      document.getElementById("searchScopeSelect").addEventListener("change", (e) => {
+        state.scope = e.target.value;
+        state.subView = "explore";
+        renderAll();
+      });
+
+      document.getElementById("sortFieldSelect").addEventListener("change", (e) => {
+        state.sortField = e.target.value;
+        state.currentPage = 1;
+        renderAll();
+      });
+
+      document.getElementById("sortOrderBtn").addEventListener("click", () => {
+        state.sortOrder = state.sortOrder === "desc" ? "asc" : "desc";
+        state.currentPage = 1;
+        renderAll();
+      });
+
+      document.getElementById("openSourcesBtn").addEventListener("click", () => {
+        openSubView("sources");
+      });
+      document.getElementById("addSourceBtn").addEventListener("click", () => {
+        openSubView("sources");
+      });
+      document.getElementById("navAssetsBtn").addEventListener("click", () => {
+        returnToExplore();
+      });
+
+      // 点击页面空白关闭下拉与输入建议
+      document.addEventListener("click", (e) => {
+        if (!e.target.closest(".filter-dropdown-wrap") && state.openDropdownKey) {
+          state.openDropdownKey = null;
+          renderQuickFilters();
+        }
+        if (!e.target.closest("#searchContainer")) {
+          document.getElementById("suggestionsPopover").hidden = true;
+        }
+      });
+
+      // 按 Esc 关闭右侧摘要面板或下拉浮层
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          document.getElementById("suggestionsPopover").hidden = true;
+          if (state.openDropdownKey) {
+            state.openDropdownKey = null;
+            renderQuickFilters();
+          } else if (state.summaryOpen) {
+            closeSummaryDrawer();
+          }
+        }
+      });
+
+      // 二级导航栏右边缘拖拽调宽（200px - 480px，对齐 005 AppShell）
+      const railResizer = document.getElementById("railResizer");
+      const secondaryRail = document.getElementById("secondaryRail");
+      railResizer.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        document.body.classList.add("resizing");
+        const startX = e.clientX;
+        const startW = secondaryRail.getBoundingClientRect().width;
+        function onMove(ev) {
+          const nextW = Math.min(480, Math.max(200, startW + (ev.clientX - startX)));
+          secondaryRail.style.flexBasis = `${nextW}px`;
+        }
+        function onUp() {
+          document.body.classList.remove("resizing");
+          window.removeEventListener("mousemove", onMove);
+          window.removeEventListener("mouseup", onUp);
+        }
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+      });
+
+      // 窄屏「目录」抽屉按钮
+      document.getElementById("mobileDrawerBtn").addEventListener("click", () => {
+        secondaryRail.classList.toggle("mobile-open");
+      });
+
+      renderAll();
+    </script>
+  </body>
+</html>
