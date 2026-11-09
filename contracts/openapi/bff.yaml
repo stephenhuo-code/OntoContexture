@@ -538,6 +538,11 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SearchPage" }
+        "400":
+          {
+            description: "请求体不是合法 JSON（http.bad_request）",
+            $ref: "#/components/responses/Error",
+          }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "422":
@@ -578,6 +583,11 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/TypeCounts" }
+        "400":
+          {
+            description: "请求体不是合法 JSON（http.bad_request）",
+            $ref: "#/components/responses/Error",
+          }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "422": { $ref: "#/components/responses/Error" }
@@ -625,6 +635,11 @@ paths:
                       type: array,
                       items: { $ref: "#/components/schemas/FacetOption" },
                     }
+        "400":
+          {
+            description: "请求体不是合法 JSON（http.bad_request）",
+            $ref: "#/components/responses/Error",
+          }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "422":
@@ -674,6 +689,11 @@ paths:
                       type: array,
                       items: { $ref: "#/components/schemas/BrowseNode" },
                     }
+        "400":
+          {
+            description: "请求体不是合法 JSON（http.bad_request）",
+            $ref: "#/components/responses/Error",
+          }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "422": { $ref: "#/components/responses/Error" }

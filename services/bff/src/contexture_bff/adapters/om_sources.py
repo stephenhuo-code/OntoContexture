@@ -1024,6 +1024,9 @@ def _split_fqn(fqn: str) -> list[str]:
     return parts
 
 
+split_fqn = _split_fqn  # 006 复用（om_assets）
+
+
 def _ancestors(entity_type: str, fqn: str) -> list[tuple[str, str]]:
     """上级链（最近的在前）。"""
     parts = _split_fqn(fqn)

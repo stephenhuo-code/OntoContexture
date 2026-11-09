@@ -1618,6 +1618,8 @@ export interface operations {
                     "application/json": components["schemas"]["SearchPage"];
                 };
             };
+            /** @description 请求体不是合法 JSON（http.bad_request） */
+            400: components["responses"]["Error"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             /** @description search.invalid_criteria / search.window_exceeded / request.invalid */
@@ -1651,6 +1653,8 @@ export interface operations {
                     "application/json": components["schemas"]["TypeCounts"];
                 };
             };
+            /** @description 请求体不是合法 JSON（http.bad_request） */
+            400: components["responses"]["Error"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             422: components["responses"]["Error"];
@@ -1691,6 +1695,8 @@ export interface operations {
                     };
                 };
             };
+            /** @description 请求体不是合法 JSON（http.bad_request） */
+            400: components["responses"]["Error"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             /** @description 维度不在白名单内，或仅表类型可用的维度在非表类型下使用 */
@@ -1727,6 +1733,8 @@ export interface operations {
                     };
                 };
             };
+            /** @description 请求体不是合法 JSON（http.bad_request） */
+            400: components["responses"]["Error"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             422: components["responses"]["Error"];

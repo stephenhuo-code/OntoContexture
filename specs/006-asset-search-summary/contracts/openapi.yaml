@@ -53,6 +53,8 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SearchPage" }
+        "400":
+          { description: "请求体不是合法 JSON（http.bad_request）", $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "422": { description: "search.invalid_criteria / search.window_exceeded / request.invalid", $ref: "#/components/responses/Error" }
@@ -81,6 +83,8 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/TypeCounts" }
+        "400":
+          { description: "请求体不是合法 JSON（http.bad_request）", $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "422": { $ref: "#/components/responses/Error" }
@@ -123,6 +127,8 @@ paths:
                   dimension: { $ref: "#/components/schemas/FacetDimension" }
                   supportsNone: { type: boolean, description: 该维度是否提供「无」 }
                   options: { type: array, items: { $ref: "#/components/schemas/FacetOption" } }
+        "400":
+          { description: "请求体不是合法 JSON（http.bad_request）", $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "422": { description: "维度不在白名单内，或仅表类型可用的维度在非表类型下使用", $ref: "#/components/responses/Error" }
@@ -159,6 +165,8 @@ paths:
                 required: [nodes]
                 properties:
                   nodes: { type: array, items: { $ref: "#/components/schemas/BrowseNode" } }
+        "400":
+          { description: "请求体不是合法 JSON（http.bad_request）", $ref: "#/components/responses/Error" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "422": { $ref: "#/components/responses/Error" }
