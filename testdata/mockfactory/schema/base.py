@@ -17,6 +17,11 @@ _TYPES: dict[str, dict[str, str]] = {
 }
 
 
+def dialect_type(logical: str, dialect: str) -> str:
+    """逻辑类型在指定方言下的列类型（006 开发态导入复用）。"""
+    return _TYPES[logical][dialect]
+
+
 @dataclass(frozen=True)
 class Column:
     name: str
