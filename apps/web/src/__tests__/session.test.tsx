@@ -189,7 +189,7 @@ it("同一用户重新聚焦：核验后页面状态保留（打开的弹窗与�
       return response(200, { data: [] });
     }),
   );
-  open("/sources");
+  open("/assets/sources");
   await userEvent.click(
     await screen.findByRole("button", { name: "添加数据源" }),
   );

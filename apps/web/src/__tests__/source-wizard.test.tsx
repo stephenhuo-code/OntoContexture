@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { renderQ } from "./query-wrapper";
 import { afterEach, expect, it, vi } from "vitest";
-import { SourcesWorkspace } from "../features/sources/SourcesWorkspace";
+import { AssetsWorkspace } from "../features/assets/AssetsWorkspace";
 import { sourcesFixture, stubBff } from "./sources-fixtures";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -24,9 +24,9 @@ const okSteps = [
 
 function open() {
   renderQ(
-    <MemoryRouter initialEntries={["/sources"]}>
+    <MemoryRouter initialEntries={["/assets/sources"]}>
       <Routes>
-        <Route path="/sources/*" element={<SourcesWorkspace />} />
+        <Route path="/assets/*" element={<AssetsWorkspace />} />
       </Routes>
     </MemoryRouter>,
   );

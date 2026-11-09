@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { renderQ } from "./query-wrapper";
 import { afterEach, expect, it, vi } from "vitest";
-import { SourcesWorkspace } from "../features/sources/SourcesWorkspace";
+import { AssetsWorkspace } from "../features/assets/AssetsWorkspace";
 import { sourcesFixture, stubBff } from "./sources-fixtures";
 
 // US4 组件测试：选项与实体均来自夹具（BFF 响应），不基于原型示例值
@@ -170,11 +170,9 @@ function open(entity: unknown, patched?: unknown, status = 200) {
     },
   ]);
   renderQ(
-    <MemoryRouter
-      initialEntries={[`/sources/fixture-mes/assets/table/${enc(TABLE)}`]}
-    >
+    <MemoryRouter initialEntries={[`/assets/table/${enc(TABLE)}`]}>
       <Routes>
-        <Route path="/sources/*" element={<SourcesWorkspace />} />
+        <Route path="/assets/*" element={<AssetsWorkspace />} />
       </Routes>
     </MemoryRouter>,
   );

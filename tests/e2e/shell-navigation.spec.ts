@@ -25,24 +25,21 @@ for (const viewport of [
     await expect(
       page.getByRole("button", { name: "展开二级菜单" }),
     ).toBeVisible();
-    // 005：一级“资产”进入数据源；二级“资产搜索”（006）尚未开放
+    // 006：一级“资产”进入统一的数据资产页（/assets）；二级栏不再有“资产搜索”“数据源”链接（D2）
     await nav.getByRole("link", { name: "资产" }).click();
     await expect(
-      page.getByRole("heading", { name: "数据源", level: 1 }),
+      page.getByRole("heading", { name: "数据资产", level: 1 }),
     ).toBeVisible();
-    // 切页时保留收起状态；展开后进入二级“资产搜索”，再收起以延续后续断言
+    // 切页时保留收起状态；展开后二级栏中没有“资产搜索”链接，再收起以延续后续断言
     const expand = page.getByRole("button", { name: "展开二级菜单" });
     await expect(expand).toBeVisible();
     await expand.click();
-    await page
-      .getByRole("navigation", { name: "数据资产导航" })
-      .getByRole("link", { name: "资产搜索" })
-      .click();
     await expect(
-      page.getByRole("heading", { name: "资产搜索尚未开放" }),
-    ).toBeVisible();
+      page
+        .locator("#secondary-navigation")
+        .getByRole("link", { name: "资产搜索" }),
+    ).toHaveCount(0);
     await page.getByRole("button", { name: "收起二级菜单" }).click();
-    await page.goBack();
     await page.goBack();
     await expect(
       page.getByRole("heading", { name: "审批中心", level: 1 }),
@@ -111,8 +108,6 @@ test("生产示例路由不存在，未知地址可恢复且占位不请求业�
   for (const path of [
     "/__dev/ui",
     "/missing",
-    "/assets",
-    "/assets/",
     "/agents",
     "/agents/new",
     "/approvals",
@@ -146,7 +141,7 @@ test("二级栏可用鼠标拖动调整宽度，刷新后保持（负责人 2026
       sessionStorage.setItem("ctx.e2e.widthReset", "1");
     }
   });
-  await login(page, "engineer1", "/sources");
+  await login(page, "engineer1", "/assets/sources");
   const sep = page.getByRole("separator", { name: "调整二级栏宽度" });
   const b = (await sep.boundingBox())!;
   await page.mouse.move(b.x + 3, b.y + 300);

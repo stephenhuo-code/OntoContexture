@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { renderQ } from "./query-wrapper";
 import { afterEach, expect, it, vi } from "vitest";
 import { CatalogTree } from "../features/sources/CatalogTree";
-import { SourcesWorkspace } from "../features/sources/SourcesWorkspace";
+import { AssetsWorkspace } from "../features/assets/AssetsWorkspace";
 import { sourcesFixture, stubBff } from "./sources-fixtures";
 
 // US3 组件测试：断言基于夹具（BFF 目录实体），不基于原型示例值
@@ -188,7 +188,7 @@ function open(path: string, withTree = false) {
     <MemoryRouter initialEntries={[path]}>
       {withTree && <CatalogTree />}
       <Routes>
-        <Route path="/sources/*" element={<SourcesWorkspace />} />
+        <Route path="/assets/*" element={<AssetsWorkspace />} />
       </Routes>
       <Where />
     </MemoryRouter>,
@@ -197,7 +197,7 @@ function open(path: string, withTree = false) {
 
 it("目录树：服务节点显示表数或“未采集”，逐层展开到表并进入资产详情", async () => {
   stubBff(routes);
-  open("/sources", true);
+  open("/assets/sources", true);
   const tree = await screen.findByRole("navigation", { name: "数据源目录" });
   const mes = await within(tree).findByRole("button", { name: /^fixture-mes/ });
   expect(mes).toHaveTextContent("13");
@@ -221,7 +221,7 @@ it("目录树：服务节点显示表数或“未采集”，逐层展开到表�
     await within(tree).findByRole("button", { name: "工单" }),
   );
   expect(screen.getByLabelText("当前地址")).toHaveTextContent(
-    "/sources/fixture-mes/assets/table/fixture-mes.default.mes.work_order",
+    "/assets/table/fixture-mes.default.mes.work_order",
   );
   expect(within(tree).getByRole("button", { name: "工单" })).toHaveAttribute(
     "aria-current",
@@ -231,7 +231,7 @@ it("目录树：服务节点显示表数或“未采集”，逐层展开到表�
 
 it("数据库资产页：眉标、标题、FQN、面包屑只到当前层级、返回所属数据源，无源级控制", async () => {
   stubBff(routes);
-  open(`/sources/fixture-mes/assets/database/${enc("fixture-mes.default")}`);
+  open(`/assets/database/${enc("fixture-mes.default")}`);
   expect(await screen.findByText("METADATA CATALOG")).toBeVisible();
   expect(
     screen.getByRole("heading", { level: 2, name: "default" }),
@@ -245,7 +245,7 @@ it("数据库资产页：眉标、标题、FQN、面包屑只到当前层级、�
   );
   expect(
     screen.getByRole("link", { name: "← 返回所属数据源" }),
-  ).toHaveAttribute("href", "/sources/fixture-mes");
+  ).toHaveAttribute("href", "/assets/sources/fixture-mes");
   expect(
     screen.queryByRole("button", { name: /配置连接与范围|继续配置/ }),
   ).not.toBeInTheDocument();
@@ -261,9 +261,7 @@ it("数据库资产页：眉标、标题、FQN、面包屑只到当前层级、�
 
 it("表资产页：结构信息只显示 OM 实际约束、字段 PK 徽章、标签与术语；切换同 Schema 下的表", async () => {
   stubBff(routes);
-  open(
-    `/sources/fixture-mes/assets/table/${enc("fixture-mes.default.mes.work_order")}`,
-  );
+  open(`/assets/table/${enc("fixture-mes.default.mes.work_order")}`);
   expect(
     await screen.findByRole("heading", { level: 2, name: "工单" }),
   ).toBeVisible();
@@ -298,17 +296,17 @@ it("表资产页：结构信息只显示 OM 实际约束、字段 PK 徽章、�
     "源未提供约束信息",
   );
   expect(screen.getByLabelText("当前地址")).toHaveTextContent(
-    "/sources/fixture-mes/assets/table/fixture-mes.default.mes.line",
+    "/assets/table/fixture-mes.default.mes.line",
   );
 });
 
 it("已采集元数据页签：列出数据库与 Schema 数；未采集的数据源显示暂无元数据", async () => {
   stubBff(routes);
-  const view = open("/sources/fixture-mes?tab=metadata");
+  const view = open("/assets/sources/fixture-mes?tab=metadata");
   const list = await screen.findByRole("table", { name: "数据库目录" });
   expect(within(list).getByRole("link", { name: "default" })).toHaveAttribute(
     "href",
-    `/sources/fixture-mes/assets/database/${enc("fixture-mes.default")}`,
+    `/assets/database/${enc("fixture-mes.default")}`,
   );
   expect(within(list).getByRole("row", { name: /default/ })).toHaveTextContent(
     "1",
@@ -339,7 +337,7 @@ it("已采集元数据页签：列出数据库与 Schema 数；未采集的数�
       },
     },
   ]);
-  open("/sources/fixture-erp?tab=metadata");
+  open("/assets/sources/fixture-erp?tab=metadata");
   expect(await screen.findByText("暂无元数据")).toBeVisible();
 });
 
@@ -355,9 +353,7 @@ it("目录读取失败时如实显示错误码，不显示示例数据", async (
       },
     },
   ]);
-  open(
-    `/sources/fixture-mes/assets/table/${enc("fixture-mes.default.mes.work_order")}`,
-  );
+  open(`/assets/table/${enc("fixture-mes.default.mes.work_order")}`);
   expect(await screen.findByText("OpenMetadata 不可用")).toBeVisible();
   expect(screen.getByText(/upstream.unavailable/)).toBeVisible();
   expect(
@@ -367,7 +363,7 @@ it("目录读取失败时如实显示错误码，不显示示例数据", async (
 
 it("窄屏“目录”按钮打开目录抽屉，选择后关闭", async () => {
   stubBff(routes);
-  open("/sources");
+  open("/assets/sources");
   const toggle = await screen.findByRole("button", { name: "目录" });
   expect(toggle).toHaveAttribute("aria-expanded", "false");
   await userEvent.click(toggle);
@@ -380,7 +376,7 @@ it("窄屏“目录”按钮打开目录抽屉，选择后关闭", async () => {
     screen.queryByRole("dialog", { name: "数据源目录" }),
   ).not.toBeInTheDocument();
   expect(screen.getByLabelText("当前地址")).toHaveTextContent(
-    /^\/sources\/fixture-mes$/,
+    /^\/assets\/sources\/fixture-mes$/,
   );
 });
 
@@ -416,9 +412,7 @@ it("单列主键只在 OM 列级约束中时，表约束据列约束显示", asy
       body: station,
     },
   ]);
-  open(
-    `/sources/fixture-mes/assets/table/${enc("fixture-mes.default.mes.station")}`,
-  );
+  open(`/assets/table/${enc("fixture-mes.default.mes.station")}`);
   const info = await screen.findByRole("region", { name: "结构信息" });
   expect(info).toHaveTextContent("PRIMARY_KEY (code)；UNIQUE (sn)");
 });
@@ -436,7 +430,7 @@ it("目录读取失败时如实显示错误码并可重试", async () => {
     },
   ]);
   renderQ(
-    <MemoryRouter initialEntries={["/sources"]}>
+    <MemoryRouter initialEntries={["/assets/sources"]}>
       <CatalogTree />
     </MemoryRouter>,
   );
@@ -489,7 +483,7 @@ it("采集运行结束后左侧目录自动更新，无需刷新页面", async (
       body: { data: [running] } as unknown,
     };
     stubBff([list, detail, runs, ...routes]);
-    open("/sources/fixture-mes?tab=tasks&task=metadata", true);
+    open("/assets/sources/fixture-mes?tab=tasks&task=metadata", true);
     const tree = await screen.findByRole("navigation", { name: "数据源目录" });
     expect(
       await within(tree).findByRole("button", { name: /^fixture-mes/ }),

@@ -72,7 +72,7 @@ const median = (xs: number[]) => sorted(xs)[Math.floor(xs.length / 2)]!;
 
 test("T078：测试连接、保存到首采完成、列表与目录读取 p95", async ({ page }) => {
   test.setTimeout(600_000);
-  await login(page, "engineer1", "/sources");
+  await login(page, "engineer1", "/assets/sources");
   const connection = {
     hostPort: "mock-mes.mock-sources.svc:3306",
     username: "mes_meta_ro",
@@ -147,8 +147,8 @@ test("T078：测试连接、保存到首采完成、列表与目录读取 p95", 
 
   const enc = encodeURIComponent;
   const targets: [string, string][] = [
-    ["数据源列表 GET /sources", "/bff/v1/sources"],
-    ["数据源详情 GET /sources/{name}", `/bff/v1/sources/${SERVICE}`],
+    ["数据源列表 GET /assets/sources", "/bff/v1/sources"],
+    ["数据源详情 GET /assets/sources/{name}", `/bff/v1/sources/${SERVICE}`],
     ["目录·服务", `/bff/v1/catalog/databaseService/${SERVICE}`],
     ["目录·数据库", `/bff/v1/catalog/database/${enc(`${SERVICE}.default`)}`],
     [

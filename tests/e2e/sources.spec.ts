@@ -51,9 +51,9 @@ test("US1：接入 MES 并首采，统计等于 003 金标准，响应无明文�
 }) => {
   test.setTimeout(300_000);
   const password = secret("mock-sources", "mock-readonly", "mes-meta-ro");
-  await login(page, "engineer1", "/sources");
+  await login(page, "engineer1", "/assets/sources");
   await expect(
-    page.getByRole("heading", { name: "数据源", level: 1 }),
+    page.getByRole("heading", { name: "数据资产", level: 1 }),
   ).toBeVisible();
   const bodies: string[] = [];
   page.on("response", async (r) => {
@@ -89,7 +89,7 @@ test("US1：接入 MES 并首采，统计等于 003 金标准，响应无明文�
   await dialog.getByRole("button", { name: "保存配置" }).click();
   await expect(dialog).toBeHidden({ timeout: 60_000 });
 
-  await expect(page).toHaveURL(new RegExp(`/sources/${SERVICE}`));
+  await expect(page).toHaveURL(new RegExp(`/assets/sources/${SERVICE}`));
   await page.getByRole("tab", { name: "采集任务" }).click();
   await page.getByRole("button", { name: /e2e_mes_metadata_/ }).click();
   await page.getByRole("button", { name: "立即运行" }).click();
@@ -120,14 +120,18 @@ test("US2：手动任务的配置调度入口、运行详情步骤统计与最�
   page,
 }) => {
   test.setTimeout(180_000);
-  await login(page, "engineer1", `/sources/${SERVICE}?tab=tasks&task=metadata`);
+  await login(
+    page,
+    "engineer1",
+    `/assets/sources/${SERVICE}?tab=tasks&task=metadata`,
+  );
   const runs = page.getByRole("table", { name: "运行记录" });
   await expect(runs.getByRole("row")).toHaveCount(2); // 表头 + US1 的那次运行
   await page.getByRole("button", { name: "配置调度" }).click();
   await expect(
     page.getByRole("tab", { name: "采集配置", selected: true }),
   ).toBeVisible();
-  await page.goto(`/sources/${SERVICE}?tab=tasks&task=metadata`);
+  await page.goto(`/assets/sources/${SERVICE}?tab=tasks&task=metadata`);
   await runs.getByRole("button", { name: "查看运行" }).first().click();
   const dialog = page.getByRole("dialog", { name: "运行详情" });
   const steps = dialog.getByRole("table", { name: "步骤统计" });
@@ -145,7 +149,7 @@ test("US3：MES / QMS / Doris 四层目录浏览、面包屑与表结构", async
   page,
 }) => {
   test.setTimeout(420_000);
-  await login(page, "engineer1", "/sources");
+  await login(page, "engineer1", "/assets/sources");
   // QMS、Doris 经 BFF 接口接入并首采（US1 的界面流程已在上面覆盖）
   const sources = [
     {
@@ -209,7 +213,7 @@ test("US3：MES / QMS / Doris 四层目录浏览、面包屑与表结构", async
       .toBe("success");
 
   // MES：已采集元数据页签 → 数据库 → Schema → 表（MySQL 为 default → 物理库 → 表）
-  await page.goto(`/sources/${SERVICE}?tab=metadata`);
+  await page.goto(`/assets/sources/${SERVICE}?tab=metadata`);
   await page
     .getByRole("table", { name: "数据库目录" })
     .getByRole("link", { name: "default" })
@@ -236,7 +240,7 @@ test("US3：MES / QMS / Doris 四层目录浏览、面包屑与表结构", async
     page.getByRole("table", { name: "字段元数据" }).getByText("PK").first(),
   ).toBeVisible();
   await page.getByRole("link", { name: "← 返回所属数据源" }).click();
-  await expect(page).toHaveURL(new RegExp(`/sources/${SERVICE}$`));
+  await expect(page).toHaveURL(new RegExp(`/assets/sources/${SERVICE}$`));
 
   // QMS：左侧目录树（PostgreSQL 为 物理库 → public → 表）
   const tree = page.getByRole("navigation", { name: "数据源目录" });
@@ -305,7 +309,7 @@ test("US4：五层级编辑属性、保留周期继承与恢复、重新采集�
   const card = (name: string) => page.getByRole("region", { name });
 
   // 数据源：描述与 Tier
-  await login(page, "engineer1", `/sources/${SERVICE}`);
+  await login(page, "engineer1", `/assets/sources/${SERVICE}`);
   await card("数据源属性").getByRole("button", { name: "编辑属性" }).click();
   let dialog = page.getByRole("dialog", { name: "编辑数据源属性" });
   await dialog.getByLabel("描述").fill("E2E 服务说明");
@@ -315,9 +319,7 @@ test("US4：五层级编辑属性、保留周期继承与恢复、重新采集�
   await expect(card("数据源属性")).toContainText("Tier.Tier2");
 
   // 数据库：保留周期
-  await page.goto(
-    `/sources/${SERVICE}/assets/database/${enc(`${SERVICE}.default`)}`,
-  );
+  await page.goto(`/assets/database/${enc(`${SERVICE}.default`)}`);
   await card("数据库属性").getByRole("button", { name: "编辑属性" }).click();
   await page
     .getByRole("dialog", { name: "编辑数据库属性" })
@@ -327,9 +329,7 @@ test("US4：五层级编辑属性、保留周期继承与恢复、重新采集�
   await expect(card("数据库属性")).toContainText("P30D");
 
   // Schema：显示名称；保留周期继承自数据库
-  await page.goto(
-    `/sources/${SERVICE}/assets/databaseSchema/${enc(`${SERVICE}.default.mes`)}`,
-  );
+  await page.goto(`/assets/databaseSchema/${enc(`${SERVICE}.default.mes`)}`);
   await expect(card("Schema属性")).toContainText(
     `继承自 数据库 · ${SERVICE}.default`,
   );
@@ -418,7 +418,7 @@ test("US4：五层级编辑属性、保留周期继承与恢复、重新采集�
   await expect(page.getByRole("table", { name: "字段元数据" })).toContainText(
     "E2E 字段说明",
   );
-  await page.goto(`/sources/${SERVICE}`);
+  await page.goto(`/assets/sources/${SERVICE}`);
   await expect(card("数据源属性")).toContainText("E2E 服务说明");
 });
 
@@ -427,7 +427,7 @@ test("US5：viewlab 接入并创建视图血缘任务，两条任务依次运行
 }) => {
   test.setTimeout(480_000);
   const name = "e2e-viewlab";
-  await login(page, "engineer1", "/sources");
+  await login(page, "engineer1", "/assets/sources");
   await page.getByRole("button", { name: "添加数据源" }).click();
   const dialog = page.getByRole("dialog", { name: "添加数据源" });
   await dialog.getByLabel("显示名称 *").fill("E2E 视图测试库");
@@ -466,7 +466,7 @@ test("US5：viewlab 接入并创建视图血缘任务，两条任务依次运行
           stdio: "inherit",
         },
       );
-    await page.goto(`/sources/${name}?tab=tasks&task=${kind}`);
+    await page.goto(`/assets/sources/${name}?tab=tasks&task=${kind}`);
     await page.getByRole("button", { name: "立即运行" }).click();
     await expect(
       page.getByRole("table", { name: "运行记录" }).getByText("成功"),
@@ -505,12 +505,12 @@ test("SC-007：1280 / 768 / 390 视口下列表、详情四页签、向导、资
         document.documentElement.scrollWidth -
         document.documentElement.clientWidth,
     );
-  await login(page, "engineer1", "/sources");
+  await login(page, "engineer1", "/assets/sources");
   for (const width of [1280, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     const check = async (where: string) =>
       expect(await overflow(), `${width}px · ${where}`).toBeLessThanOrEqual(0);
-    await page.goto("/sources");
+    await page.goto("/assets/sources");
     await expect(page.getByRole("table", { name: "数据源列表" })).toBeVisible();
     await check("数据源列表");
     // “目录”抽屉入口只在窄屏（≤ 850px）出现；宽屏目录在二级栏
@@ -543,14 +543,12 @@ test("SC-007：1280 / 768 / 390 视口下列表、详情四页签、向导、资
     expect(unreadable, `${width}px · 连接器名称不可见`).toEqual([]);
     await page.keyboard.press("Escape");
     for (const tab of ["overview", "metadata", "scope", "tasks"]) {
-      await page.goto(`/sources/${SERVICE}?tab=${tab}`);
+      await page.goto(`/assets/sources/${SERVICE}?tab=${tab}`);
       await expect(page.getByRole("tab", { selected: true })).toBeVisible();
       await page.waitForLoadState("networkidle");
       await check(`详情 ${tab}`);
     }
-    await page.goto(
-      `/sources/${SERVICE}/assets/databaseSchema/${enc(`${SERVICE}.default.mes`)}`,
-    );
+    await page.goto(`/assets/databaseSchema/${enc(`${SERVICE}.default.mes`)}`);
     await page
       .getByRole("table", { name: "数据表列表" })
       .getByRole("link")
@@ -577,7 +575,7 @@ test("SC-007：1280 / 768 / 390 视口下列表、详情四页签、向导、资
   }
 });
 
-test("场景 F：OpenMetadata 不可用时 /sources 显示真实错误与重试，不显示示例数据；恢复后正常", async ({
+test("场景 F：OpenMetadata 不可用时 /assets/sources 显示真实错误与重试，不显示示例数据；恢复后正常", async ({
   page,
 }) => {
   test.setTimeout(600_000);
@@ -588,7 +586,7 @@ test("场景 F：OpenMetadata 不可用时 /sources 显示真实错误与重试�
   const healthy = main
     .getByRole("table", { name: "数据源列表" })
     .or(main.getByRole("heading", { name: "还没有数据源" }));
-  await login(page, "engineer1", "/sources");
+  await login(page, "engineer1", "/assets/sources");
   await expect(healthy).toBeVisible();
   kubectl("scale", "deploy/openmetadata", "--replicas=0");
   try {
