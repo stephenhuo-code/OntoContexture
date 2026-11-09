@@ -208,7 +208,7 @@ description: "006 资产搜索与摘要的实施任务清单"
 
 ### Tests for User Story 1 ⚠️（先写，确认失败）
 
-- [ ] T025 [P] [US1] 编写契约测试 `services/bff/tests/contract/test_assets_search_contract.py`，使用 `contract_helpers.check` 与 `om_fake`。
+- [x] T025 [P] [US1] 编写契约测试 `services/bff/tests/contract/test_assets_search_contract.py`，使用 `contract_helpers.check` 与 `om_fake`。
   - `searchAssets`：
     - 200 的响应符合 `SearchPage`；
     - 以下请求返回 422 `search.invalid_criteria`：`pageSize=20`、`scope≠entityType`、维度不在白名单内、在非表类型下使用仅表类型可用的维度、`keyword` 超过 200 字符；
@@ -218,14 +218,14 @@ description: "006 资产搜索与摘要的实施任务清单"
   - `suggestAssets`：每组 `items` 不超过 5 条；列的建议项带有 `parentTable`。
   - 对应：FR-004、FR-005、FR-007、FR-019。
   - 完成判定：测试失败（404）。
-- [ ] T026 [P] [US1] 编写契约测试 `services/bff/tests/contract/test_asset_summary_contract.py`，验证 `getAssetSummary`：
+- [x] T026 [P] [US1] 编写契约测试 `services/bff/tests/contract/test_asset_summary_contract.py`，验证 `getAssetSummary`：
   - table 有 `columns`；
   - tableColumn 有 `column` 与 `parentTable`；
   - glossaryTerm 返回 200；
   - FQN 不存在时返回 `404 catalog.not_found`。
   - 对应：FR-012。
   - 完成判定：测试失败。
-- [ ] T027 [P] [US1] 编写单元测试 `services/bff/tests/unit/test_search_criteria.py`，验证条件翻译（research R2、R5）：
+- [x] T027 [P] [US1] 编写单元测试 `services/bff/tests/unit/test_search_criteria.py`，验证条件翻译（research R2、R5）：
   - **关键词**：
     - 去掉首尾空白，长度不超过 200，空串转为 `*`；
     - 转义这些保留字符：`+ - = && || > < ! ( ) { } [ ] ^ " ~ * ? : \ /`；
@@ -240,7 +240,7 @@ description: "006 资产搜索与摘要的实施任务清单"
   - **排序映射**：`popularity` → `totalVotes`，`name` → `displayName.keyword`，`relevance` → `_score`，`updatedAt` → `updatedAt`；默认 `desc`。
   - **分页**：`from=(page-1)×pageSize`；超过结果窗口时报错。
   - 完成判定：测试失败。
-- [ ] T028 [P] [US1] 编写单元测试 `services/bff/tests/unit/test_search_projection.py`，验证结果投影（research R8、R10；data-model 第 3 节）：
+- [x] T028 [P] [US1] 编写单元测试 `services/bff/tests/unit/test_search_projection.py`，验证结果投影（research R8、R10；data-model 第 3 节）：
   - **高亮**：解析为 `TextSegment[]`，只有 `text-highlighter` 片段的 `match` 为 true；原文中的 `<script>` 等内容按普通文本保留，不作为 HTML 输出。
   - **命中字段**：`matchedFields` 不统计含 `.ngram` 的键，也不统计 `table_name`、`topic_name`、`dashboard_name`、`pipeline_name`；计数为每个键的片段数。
   - **来源**：带开发态标识的为 `origin=devTest`，否则为 `collected`。
@@ -250,7 +250,7 @@ description: "006 资产搜索与摘要的实施任务清单"
   - **建议**：按 `entityType` 分组，每组最多 5 条。
   - **类型计数**：`/entityTypeCounts` 的 `query_filter` 中包含 `deleted=false`。
   - 完成判定：测试失败。
-- [ ] T029 [P] [US1] 编写单元测试 `services/bff/tests/unit/test_asset_summary.py`，验证摘要读取（research R9、R10）：
+- [x] T029 [P] [US1] 编写单元测试 `services/bff/tests/unit/test_asset_summary.py`，验证摘要读取（research R9、R10）：
   - 各类型请求的 `fields`：
     - table：`owners,domains,tags,dataProducts,columns,tableConstraints,certification`；
     - database、databaseSchema：`owners,domains,tags,dataProducts,certification`；
@@ -265,7 +265,7 @@ description: "006 资产搜索与摘要的实施任务清单"
 
 ### Implementation for User Story 1
 
-- [ ] T030 [US1] 在 `services/bff/src/contexture_bff/adapters/om_search.py` 中实现以下内容：
+- [x] T030 [US1] 在 `services/bff/src/contexture_bff/adapters/om_search.py` 中实现以下内容：
   - Pydantic 模型 `SearchCriteria`，字段约束与契约一致；
   - 条件翻译；
   - `search()`；
@@ -276,15 +276,15 @@ description: "006 资产搜索与摘要的实施任务清单"
   复用 `OmClient` 与 `split_tags()`。
   - 对应：FR-004、FR-005、FR-007、FR-011、FR-018、FR-019。
   - 完成判定：T027、T028 通过。
-- [ ] T031 [US1] 新建 `services/bff/src/contexture_bff/adapters/om_assets.py`，实现 `summary(entityType, fqn)`，包括列到所属表的处理。
+- [x] T031 [US1] 新建 `services/bff/src/contexture_bff/adapters/om_assets.py`，实现 `summary(entityType, fqn)`，包括列到所属表的处理。
   - 对应：FR-012、FR-014。
   - 完成判定：T029 通过。
-- [ ] T032 [US1] 新建 `services/bff/src/contexture_bff/api/assets.py`，提供四个路由：`POST /bff/v1/assets/search`、`POST /bff/v1/assets/type-counts`、`GET /bff/v1/assets/suggestions`、`GET /bff/v1/assets/summary/{entityType}/{fqn}`。
+- [x] T032 [US1] 新建 `services/bff/src/contexture_bff/api/assets.py`，提供四个路由：`POST /bff/v1/assets/search`、`POST /bff/v1/assets/type-counts`、`GET /bff/v1/assets/suggestions`、`GET /bff/v1/assets/summary/{entityType}/{fqn}`。
   - 全部使用 `require_web_context`。
   - 在 `services/bff/src/contexture_bff/main.py` 中挂载这些路由，在 `Services` 中注入适配器，与 sources 共用同一个 `OmClient`。
   - 对应：FR-020（鉴权部分）。
   - 完成判定：T025、T026 通过，Schemathesis 对新路径通过。
-- [ ] T033 [P] [US1] 编写组件测试 `apps/web/src/__tests__/assets-search.test.tsx`，使用 vitest 的假定时器。测试数据由测试内的构造函数生成，不使用原型数值。覆盖：
+- [x] T033 [P] [US1] 编写组件测试 `apps/web/src/__tests__/assets-search.test.tsx`，使用 vitest 的假定时器。测试数据由测试内的构造函数生成，不使用原型数值。覆盖：
   - **防抖**：输入停顿 400ms 后才请求建议；新输入会取消旧请求。
   - **搜索范围**：选项来自 `keyword` 为空时的 type-counts，只列有数据的类型；默认不选，即搜索全部。
   - **回车**：排序改为「相关性」。
@@ -296,7 +296,7 @@ description: "006 资产搜索与摘要的实施任务清单"
     - 其他没有详情页的类型（如 metric）→ 把该资产名称填入关键词并执行搜索，不跳转（U1）。
   - 对应：FR-004、FR-005、FR-012。
   - 完成判定：测试失败。
-- [ ] T034 [P] [US1] 编写组件测试 `apps/web/src/__tests__/assets-results.test.tsx`，覆盖：
+- [x] T034 [P] [US1] 编写组件测试 `apps/web/src/__tests__/assets-results.test.tsx`，覆盖：
   - **TypeList**：只列计数大于 0 的类型，按 `defaultType` 默认选中；切换类型时只刷新列表。
   - **ResultCard**：
     - 显示位置面包屑、资产类型图标和名称；名称只对库、Schema、表、列、术语、标签渲染为链接，其他类型不是链接，点击卡片只选中（U1）；
@@ -315,33 +315,33 @@ description: "006 资产搜索与摘要的实施任务清单"
   - **顶栏面包屑**：探索视图显示「数据资产」；有位置条件时依次接上各层位置（research R14）。
   - 对应：FR-007、FR-011、FR-012、FR-014、US1 场景 2–7、spec 界面基线第 3 条。
   - 完成判定：测试失败。
-- [ ] T035 [US1] 实现 `apps/web/src/features/assets/` 下的 `SearchBar.tsx`（顶栏中，包括范围下拉和建议浮层）、`TypeList.tsx`、`ResultCard.tsx`、`SummaryPanel.tsx`、`ExploreView.tsx`，以及顶栏面包屑 `TopBreadcrumb.tsx`（探索视图部分，规则见 research R14），并在 `apps/web/src/i18n/zh-CN.ts` 中补充文案。
+- [x] T035 [US1] 实现 `apps/web/src/features/assets/` 下的 `SearchBar.tsx`（顶栏中，包括范围下拉和建议浮层）、`TypeList.tsx`、`ResultCard.tsx`、`SummaryPanel.tsx`、`ExploreView.tsx`，以及顶栏面包屑 `TopBreadcrumb.tsx`（探索视图部分，规则见 research R14），并在 `apps/web/src/i18n/zh-CN.ts` 中补充文案。
   - 所有数据都来自 BFF，没有内置示例数据，出错时不回退。
   - 完成判定：T033、T034 通过。
 
 ### 集成与实测（US1）
 
-- [ ] T036 [US1] 编写集成测试 `services/bff/tests/integration/test_assets_search_cluster.py`（`-m cluster`，前置条件为 `make dev-metadata`），覆盖：
+- [x] T036 [US1] 编写集成测试 `services/bff/tests/integration/test_assets_search_cluster.py`（`-m cluster`，前置条件为 `make dev-metadata`），覆盖：
   - fixture 中每张表都能按英文表名搜到（SC-001 的搜索部分）；
   - type-counts 与直接调用 OM `/entityTypeCounts` 的结果一致；
   - 同名表的每条结果，面包屑中的服务和 Schema 能区分开（SC-005）；
   - 含 `( ) : " AND OR NOT * ?` 的关键词不报错，结果数与去掉这些符号后的关键词一致（research R2 的验证）。
   - 完成判定：通过；环境阻塞时如实记录。
-- [ ] T037 [P] [US1] 编写集成实测 `services/bff/tests/integration/test_om_unconfirmed_cluster.py::test_result_window`：
+- [x] T037 [P] [US1] 编写集成实测 `services/bff/tests/integration/test_om_unconfirmed_cluster.py::test_result_window`：
   - 直接调用 OM `/search/query`，参数 `from=9995&size=15`，记录返回的状态码和消息；
   - 断言 BFF 在调用 OM 之前就返回 422。
   - 结论写入 research R6 和 acceptance 草稿。
   - 完成判定：实测结论已记录。
-- [ ] T038 [P] [US1] 在同一文件中编写 `test_timeout_shape`。**只在 T001、T002 闸门通过后执行**，避免冲击不稳定的本地 OpenSearch：
+- [x] T038 [P] [US1] 在同一文件中编写 `test_timeout_shape`。**只在 T001、T002 闸门通过后执行**，避免冲击不稳定的本地 OpenSearch：
   - 尝试用超大 `size` 加复杂查询触发 OpenSearch 超时，记录 OM 的实际返回（`timed_out` 字段与 HTTP 状态码）；
   - 无法复现时，记录为「本地不可复现」，映射逻辑由 T016 的契约测试保证。
   - 结论写入 research R6。
   - 完成判定：已记录。
-- [ ] T039 [P] [US1] 在同一文件中编写 `test_certification_field`：
+- [x] T039 [P] [US1] 在同一文件中编写 `test_certification_field`：
   - 实测 `GET /v1/databases/name/{fqn}?fields=certification` 与 `/v1/databaseSchemas/...` 是否被 OM 接受；
   - 不被接受时，从 `om_assets.py` 和 research R9 的表格中去掉 `certification`，并补充对应的单元测试断言。
   - 完成判定：已记录，代码与 research 一致。
-- [ ] T040 [US1] 编写集成测试 `services/bff/tests/integration/test_assets_summary_cluster.py`：
+- [x] T040 [US1] 编写集成测试 `services/bff/tests/integration/test_assets_summary_cluster.py`：
   - fixture 表的摘要（字段、约束、分级、数据级别、业务术语、分类标签、来源）与 OM 实体逐项一致；
   - 列摘要能正确取到所属表。
   - 对应：FR-012、FR-014。
