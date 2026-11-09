@@ -1,5 +1,7 @@
 """006 结果投影：高亮片段、命中字段、来源、位置、列的所属表、类型计数（research R7、R8、R10）。"""
 
+from typing import Any
+
 from contexture_bff.adapters.om_search import (
     default_type,
     group_suggestions,
@@ -33,7 +35,7 @@ def test_matched_fields_skip_ngram_and_entity_name_keys() -> None:
     ]
 
 
-def _hit(**src: object) -> dict:
+def _hit(**src: object) -> dict[str, Any]:
     base = {
         "id": "id-1",
         "entityType": "table",

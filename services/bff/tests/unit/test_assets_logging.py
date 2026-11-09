@@ -2,6 +2,7 @@
 
 import json
 import logging
+from typing import Any
 
 import pytest
 from assets_helpers import TABLE_FQN, seed
@@ -29,7 +30,11 @@ CALLS = [
 
 @pytest.mark.parametrize("method,path,body,operation", CALLS, ids=[c[3] for c in CALLS])
 def test_one_structured_log_per_request(
-    caplog: pytest.LogCaptureFixture, method: str, path: str, body: dict | None, operation: str
+    caplog: pytest.LogCaptureFixture,
+    method: str,
+    path: str,
+    body: dict[str, Any] | None,
+    operation: str,
 ) -> None:
     om = FakeOM()
     seed(om)

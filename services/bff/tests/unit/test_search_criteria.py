@@ -1,6 +1,7 @@
 """006 条件翻译：SearchCriteria → OM /v1/search/query 参数（research R2、R5；FR-019）。"""
 
 import json
+from typing import Any
 
 import pytest
 
@@ -16,7 +17,7 @@ from contexture_bff.adapters.om_search import (
 from contexture_core.errors import ContextureError
 
 
-def _err(raw: dict) -> ContextureError:
+def _err(raw: dict[str, Any]) -> ContextureError:
     with pytest.raises(ContextureError) as ei:
         parse_criteria(raw)
     return ei.value
@@ -50,7 +51,7 @@ def test_index_priority_and_whitelist() -> None:
     assert index_for(parse_criteria({"scope": "table", "entityType": "table"})) == "table"
     assert len(ENTITY_TYPES) == 24 and "tableColumn" in ENTITY_TYPES
     assert _err({"scope": "databaseService"}).code == "search.invalid_criteria"
-    assert _err({"scope": "table", "entityType": "tag"}).details["field"] == "entityType"
+    assert (_err({"scope": "table", "entityType": "tag"}).details or {})["field"] == "entityType"
 
 
 def test_query_filter_always_excludes_deleted() -> None:
@@ -79,7 +80,7 @@ def test_sort_mapping_and_params() -> None:
 
 @pytest.mark.parametrize("size", [0, 20, 100])
 def test_page_size_whitelist(size: int) -> None:
-    assert _err({"pageSize": size}).details["field"] == "pageSize"
+    assert (_err({"pageSize": size}).details or {})["field"] == "pageSize"
 
 
 def test_result_window() -> None:

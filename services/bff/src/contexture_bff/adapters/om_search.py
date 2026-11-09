@@ -9,7 +9,7 @@ import asyncio
 import html
 import json
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -455,7 +455,7 @@ def default_type(counts: list[dict[str, Any]], top_hit: str | None) -> str | Non
     return str(max(counts, key=lambda c: c["count"])["entityType"])
 
 
-def group_suggestions(hits: list[Mapping[str, Any]]) -> list[dict[str, Any]]:
+def group_suggestions(hits: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     groups: dict[str, list[dict[str, Any]]] = {}
     for hit in hits:
         src: Mapping[str, Any] = hit.get("_source") or {}
