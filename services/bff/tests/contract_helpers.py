@@ -6,6 +6,7 @@ from typing import Any
 
 import jsonschema
 import yaml
+from assets_helpers import reader, search_service
 from bff_fakes import FakeObjectData, FakeObjectTypes, FakeOidc, FakeSessions, user_context
 from fastapi.testclient import TestClient
 from om_fake import FakeOM
@@ -38,6 +39,8 @@ def make(om: FakeOM, roles: tuple[str, ...] = ("ai-engineer",)) -> TestClient:
             object_data=FakeObjectData(),
             authenticator=None,
             sources=service(om),
+            assets=search_service(om),
+            asset_reader=reader(om),
         ),
     )
     app.dependency_overrides[current_context] = lambda: user_context(roles=roles)
