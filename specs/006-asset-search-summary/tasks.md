@@ -535,7 +535,7 @@ description: "006 资产搜索与摘要的实施任务清单"
 
 ## Phase 6: Polish & Cross-Cutting（阶段 E）
 
-- [ ] T061 [P] 编写组件测试 `apps/web/src/__tests__/assets-states.test.tsx`，覆盖：
+- [x] T061 [P] 编写组件测试 `apps/web/src/__tests__/assets-states.test.tsx`，覆盖：
   - **加载中**：显示加载状态，不先显示旧结果。
   - **出错**：显示真实的错误码（如 `search.index_missing`、`upstream.unavailable`）和重试入口，并且没有任何示例数据。
   - **零资产**：显示空状态，提供「添加数据源」入口，并说明可以用开发态导入。
@@ -543,7 +543,7 @@ description: "006 资产搜索与摘要的实施任务清单"
   - **窄屏**：视口不超过 850px 时，摘要以覆盖层显示。
   - 对应：FR-015、SC-006、spec 边界情况。
   - 完成判定：测试失败。
-- [ ] T062 在 `apps/web/src/features/assets/ExploreView.tsx`、`SummaryPanel.tsx` 和新建的 `apps/web/src/features/assets/assets.css` 中实现各种页面状态和窄屏样式。
+- [x] T062 在 `apps/web/src/features/assets/ExploreView.tsx`、`SummaryPanel.tsx` 和新建的 `apps/web/src/features/assets/assets.css` 中实现各种页面状态和窄屏样式。
   - 完成判定：T061 通过。
 - [x] T063 [P] 编写单元测试 `services/bff/tests/unit/test_assets_logging.py`，覆盖：
   - assets 和 governance 详情接口每次请求输出一条 JSON 日志；
@@ -553,7 +553,7 @@ description: "006 资产搜索与摘要的实施任务清单"
   - 完成判定：测试失败。
 - [x] T064 在 `services/bff/src/contexture_bff/api/assets.py` 与 `api/catalog.py` 的新路由中实现结构化日志，复用 `contexture_core.telemetry`。
   - 完成判定：T063 通过。
-- [ ] T065 在 `tests/e2e/assets.spec.ts` 中补充以下用例：
+- [x] T065 在 `tests/e2e/assets.spec.ts` 中补充以下用例：
   - US1、US2、US3 的主路径，使用 fixture 数据；
   - SC-002：通过搜索和浏览树两条路径到达摘要和字段，操作都不超过 5 步；
   - 在 1280、768、390 三种视口下，`document.documentElement.scrollWidth ≤ clientWidth`；
@@ -561,19 +561,19 @@ description: "006 资产搜索与摘要的实施任务清单"
   - SC-003：搜索、筛选、翻页各统计至少 20 次从操作到结果出现的耗时，计算 p95 并与 2 秒比较，结果输出到 `test-results/` 并写入 acceptance 草稿；因环境故障失败的样本单独列出，不计入统计；不达标时如实记录，不放宽阈值；
   - FR-019：监听页面的网络请求，断言浏览器只请求同源的 `/bff/` 路径，不直连 OM 或 OpenSearch。
   - 完成判定：通过；p95 与 2 秒的比较结论、SC-002 的耗时都已记录。
-- [ ] T066 核对 SC-006：
+- [x] T066 核对 SC-006：
   - 在 `apps/web/src/features/assets/`、`services/bff/src/contexture_bff/adapters/om_search.py`、`om_assets.py` 中检查是否有示例数据、写死的数值，或者出错时回退的路径；
   - 确认 T025、T061 的错误用例都已覆盖；
   - 三种情况分别写明验证方式：OM 不可用在真实环境中验证（T067）；索引缺失和零资产只由契约测试与组件测试验证，在真实环境中未验证；
   - 结论写入 acceptance 草稿。
   - 完成判定：没有发现示例数据路径，三种情况的验证方式都已写明。
-- [ ] T067 按 `specs/006-asset-search-summary/quickstart.md` 第 0～5 节逐项验证。OM 不可用的场景：执行 `kubectl -n contexture scale deploy/openmetadata --replicas=0`，验证完恢复为 1。
+- [x] T067 按 `specs/006-asset-search-summary/quickstart.md` 第 0～5 节逐项验证。OM 不可用的场景：执行 `kubectl -n contexture scale deploy/openmetadata --replicas=0`，验证完恢复为 1。
   - 完成判定：每一节都有结论。
-- [ ] T068 运行全部自动化验证：`make lint`、`make test`、`make coverage-check`（新增和修改代码行覆盖率不低于 80%）、`pnpm --filter @contexture/ts-api check`、`pnpm --filter @contexture/web test`、`uv run pytest -m cluster services/bff/tests/integration testdata/tests`、`make e2e`。
+- [x] T068 运行全部自动化验证：`make lint`、`make test`、`make coverage-check`（新增和修改代码行覆盖率不低于 80%）、`pnpm --filter @contexture/ts-api check`、`pnpm --filter @contexture/web test`、`uv run pytest -m cluster services/bff/tests/integration testdata/tests`、`make e2e`。
   - 完成判定：全部通过。因环境原因失败的项，如实记录原因与处理方式。
-- [ ] T069 [P] 把 T037～T039、T050 的实测结论回写到 `specs/006-asset-search-summary/research.md`（R3、R4、R6、R9），去掉已确认项的 UNCONFIRMED 标记；如果 `platform-architecture.md` 中有与之相关的描述，一并核对。
+- [x] T069 [P] 把 T037～T039、T050 的实测结论回写到 `specs/006-asset-search-summary/research.md`（R3、R4、R6、R9），去掉已确认项的 UNCONFIRMED 标记；如果 `platform-architecture.md` 中有与之相关的描述，一并核对。
   - 完成判定：research 与代码一致。
-- [ ] T070 编写 `specs/006-asset-search-summary/acceptance.md`（**最后一个任务**，在 T068 之后进行）。内容包括：
+- [x] T070 编写 `specs/006-asset-search-summary/acceptance.md`（**最后一个任务**，在 T068 之后进行）。内容包括：
   - 前置条件与数据准备：`make up`、`make seed`、`make dev-metadata`，以及 D11 的排查结论；
   - 预计用时；
   - 逐步操作与每步的预期结果，标明对应的 US1～US3 与 SC-001～SC-009；其中 SC-002 由验收人手动计时一次；
