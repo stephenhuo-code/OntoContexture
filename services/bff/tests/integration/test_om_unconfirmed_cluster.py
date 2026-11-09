@@ -43,9 +43,7 @@ def test_timeout_shape() -> None:
                 "/search/query",
                 params={"q": "*", "index": "dataAsset", "size": 10000, "track_total_hits": "true"},
             )
-            print(
-                f"\n[006 实测] timed_out={body.get('timed_out')} took={body.get('took')}ms"
-            )
+            print(f"\n[006 实测] timed_out={body.get('timed_out')} took={body.get('took')}ms")
             assert body.get("timed_out") is False
 
     asyncio.run(run())
