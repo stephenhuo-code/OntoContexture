@@ -323,6 +323,172 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/bff/v1/assets/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 主结果列表（OM /v1/search/query）
+         * @description 结果只读，使用 POST 是为了在请求体中携带结构化条件。
+         *     index 的选择：criteria.entityType 优先，其次 scope，都没有时用 dataAsset（research R2）。
+         *     BFF 总是带上 deleted=false 与 track_total_hits=true。
+         */
+        post: operations["searchAssets"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/assets/type-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 按类型计数（OM /v1/search/entityTypeCounts），以及首条命中结果的类型
+         * @description 用于两处：
+         *     - 有关键词时左栏的类型列表（FR-007）；
+         *     - keyword 为空时，提供搜索范围下拉中「有数据的类型」（FR-004）。
+         *     计算计数时忽略 criteria 中的 entityType、scope、sort、page、pageSize。
+         *     只返回计数大于 0 的类型；tableColumn 作为独立类型返回（D8）。
+         */
+        post: operations["countAssetTypes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/assets/facets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 单个快速筛选维度的选项与计数（OM /v1/search/aggregate）
+         * @description 计数排除本维度自身的已选条件，同时受关键词、位置与其他维度的条件约束（research R4）。
+         *     选项按 OM 返回的顺序排列（键名字母升序）。
+         *     「无」不在选项中，由前端固定显示，没有计数。
+         */
+        post: operations["getAssetFacet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/assets/browse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 浏览树的一层节点（OM /v1/search/aggregate；展开时才加载）
+         * @description parentPath 为空时返回根节点（大类）；否则返回 parentPath 下一层的节点。
+         *     计数受 criteria 中的筛选条件约束；criteria.browsePath 会被忽略，以 parentPath 为准。
+         *     计数为 0 的根节点不返回（FR-006）。
+         */
+        post: operations["browseAssets"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/assets/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 输入建议（OM /v1/search/query，size=15；按类型分组，每组最多 5 条） */
+        get: operations["suggestAssets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/assets/summary/{entityType}/{fqn}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityType: components["schemas"]["EntityType"];
+                /** @description URL 编码的完整 FQN */
+                fqn: string;
+            };
+            cookie?: never;
+        };
+        /** 只读摘要（按身份读取 OM 实体；列读取所属表，research R9 / R10） */
+        get: operations["getAssetSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/governance/glossary-terms/{fqn}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fqn: string;
+            };
+            cookie?: never;
+        };
+        /** 业务术语只读详情（OM /v1/glossaryTerms/name/{fqn}） */
+        get: operations["getGlossaryTermDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/bff/v1/governance/tags/{fqn}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fqn: string;
+            };
+            cookie?: never;
+        };
+        /** 分类标签只读详情（OM /v1/tags/name/{fqn}） */
+        get: operations["getTagDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -582,6 +748,221 @@ export interface components {
                 tags?: string[];
             }[];
             glossaryTerms?: string[];
+        };
+        /**
+         * @description OM dataAsset 别名覆盖的实体类型（indexMapping.json）；BFF 以白名单校验
+         * @enum {string}
+         */
+        EntityType: "table" | "tableColumn" | "storedProcedure" | "databaseSchema" | "database" | "chart" | "dashboard" | "dashboardDataModel" | "pipeline" | "topic" | "container" | "directory" | "file" | "spreadsheet" | "worksheet" | "searchIndex" | "mlmodel" | "dataProduct" | "metric" | "glossaryTerm" | "tag" | "apiCollection" | "apiEndpoint" | "page";
+        /**
+         * @description 最后 5 项只能在 entityType=table 时使用；字段映射见 research R4
+         * @enum {string}
+         */
+        FacetDimension: "entityType" | "domain" | "dataProduct" | "owner" | "tag" | "tier" | "service" | "serviceType" | "certification" | "database" | "databaseSchema" | "column" | "tableType" | "columnDescriptionStatus";
+        BrowseStep: {
+            /** @enum {string} */
+            level: "root" | "serviceType" | "service" | "database" | "databaseSchema" | "entityType";
+            value: string;
+            /** @description 只用于在条件条上显示；BFF 不使用 */
+            label?: string;
+        };
+        SearchCriteria: {
+            /** @default  */
+            keyword: string;
+            scope?: components["schemas"]["EntityType"] | null;
+            entityType?: components["schemas"]["EntityType"] | null;
+            /** @default [] */
+            browsePath: components["schemas"]["BrowseStep"][];
+            /** @default {} */
+            filters: {
+                [key: string]: {
+                    values?: string[];
+                    /**
+                     * @description 只用于 owner / domain / tier / tag / certification
+                     * @default false
+                     */
+                    includeNone: boolean;
+                };
+            };
+            sort?: {
+                /**
+                 * @default popularity
+                 * @enum {string}
+                 */
+                field: "popularity" | "name" | "relevance" | "updatedAt";
+                /**
+                 * @default desc
+                 * @enum {string}
+                 */
+                order: "asc" | "desc";
+            };
+            /** @default 1 */
+            page: number;
+            /**
+             * @default 15
+             * @enum {integer}
+             */
+            pageSize: 15 | 25 | 50;
+        };
+        AssetRef: {
+            entityType: components["schemas"]["EntityType"];
+            id: string;
+            fqn: string;
+        };
+        TextSegment: {
+            text: string;
+            /** @description 是否为命中词；由 OM highlight 解析得到，不返回 HTML */
+            match: boolean;
+        };
+        GovernanceSummary: {
+            owners?: components["schemas"]["Ref"][];
+            domains?: components["schemas"]["Ref"][];
+            dataProducts?: components["schemas"]["Ref"][];
+            /** @description Tier.* 标签 FQN；显示为「分级（Tier）」 */
+            tier?: string | null;
+            /** @description 分类「数据级别」下的标签 FQN（ADR-0008） */
+            dataLevel?: string | null;
+            /** @description certification.tagLabel.tagFQN */
+            certification?: string | null;
+            glossaryTerms?: string[];
+            /** @description 不含 Tier、数据级别、术语与开发态标识 */
+            tags?: string[];
+            /**
+             * @description 带开发态标识标签的为 devTest（research R12）
+             * @enum {string}
+             */
+            origin?: "collected" | "devTest";
+        };
+        SearchHit: {
+            ref: components["schemas"]["AssetRef"];
+            name: string;
+            displayName?: string | null;
+            serviceType?: string | null;
+            /** @description 服务 / 库 / Schema 的位置（显示名，原始 FQN 见 ref.fqn） */
+            breadcrumb?: {
+                entityType?: string;
+                label?: string;
+            }[];
+            nameHighlight?: components["schemas"]["TextSegment"][];
+            descriptionHighlight?: components["schemas"]["TextSegment"][];
+            description?: string | null;
+            governance?: components["schemas"]["GovernanceSummary"];
+            /** @enum {string} */
+            origin: "collected" | "devTest";
+            matchedFields?: {
+                field: string;
+                count: number;
+            }[];
+            /** @description 仅 tableColumn */
+            parentTable?: components["schemas"]["AssetRef"] | null;
+            /** @description 仅 tableColumn */
+            columnName?: string | null;
+        };
+        SearchPage: {
+            total: number;
+            page: number;
+            pageSize: number;
+            /** @description total 超过 10000，只能翻到前 10000 条 */
+            windowLimited: boolean;
+            /** @description 实际查询的 OM 索引别名，便于核对 */
+            index?: string;
+            hits: components["schemas"]["SearchHit"][];
+        };
+        TypeCounts: {
+            counts: {
+                entityType: components["schemas"]["EntityType"];
+                count: number;
+            }[];
+            topHitType?: components["schemas"]["EntityType"] | null;
+            /** @description topHitType 的计数大于 0 时取它，否则取计数最多的类型（FR-007） */
+            defaultType?: components["schemas"]["EntityType"] | null;
+        };
+        FacetOption: {
+            /** @description OM 桶键，作为筛选取值回传 */
+            value: string;
+            /** @description 原始大小写的显示名（top_hits），没有时等于 value */
+            label?: string;
+            count: number;
+        };
+        BrowseNode: {
+            /** @enum {string} */
+            level: "root" | "serviceType" | "service" | "database" | "databaseSchema" | "entityType";
+            value: string;
+            label: string;
+            count: number;
+            hasChildren: boolean;
+        };
+        Suggestion: {
+            ref: components["schemas"]["AssetRef"];
+            /** @description displayName，没有时为 name */
+            label: string;
+            /** @description 位置（完整 FQN） */
+            location?: string;
+            parentTable?: components["schemas"]["AssetRef"] | null;
+            columnName?: string | null;
+        };
+        SummaryColumn: {
+            name: string;
+            dataTypeDisplay?: string | null;
+            /** @description PRIMARY_KEY / UNIQUE 等，取自列约束与表约束 */
+            constraint?: string | null;
+            description?: string | null;
+            displayName?: string | null;
+            /** @description 含数据级别标签 */
+            tags?: string[];
+            dataLevel?: string | null;
+        };
+        AssetSummary: {
+            ref: components["schemas"]["AssetRef"];
+            name: string;
+            displayName?: string | null;
+            description?: string | null;
+            breadcrumb?: {
+                entityType?: string;
+                label?: string;
+            }[];
+            governance: components["schemas"]["GovernanceSummary"];
+            /** @description 仅 table */
+            columns?: components["schemas"]["SummaryColumn"][];
+            /** @description 仅 tableColumn */
+            column?: components["schemas"]["SummaryColumn"] | null;
+            /** @description 仅 tableColumn */
+            parentTable?: components["schemas"]["AssetRef"] | null;
+        };
+        /** @description 字段清单见 research R9（负责人 2026-11-09 确认）；只读，无编辑字段 */
+        GlossaryTermDetail: {
+            ref: components["schemas"]["AssetRef"];
+            name: string;
+            displayName?: string | null;
+            description?: string | null;
+            glossary?: components["schemas"]["Ref"];
+            parent?: components["schemas"]["Ref"] | null;
+            synonyms?: string[];
+            relatedTerms?: components["schemas"]["Ref"][];
+            references?: {
+                name?: string;
+                endpoint?: string;
+            }[];
+            owners?: components["schemas"]["Ref"][];
+            reviewers?: components["schemas"]["Ref"][];
+            domains?: components["schemas"]["Ref"][];
+            tags?: string[];
+            entityStatus?: string | null;
+            /** @enum {string} */
+            origin?: "collected" | "devTest";
+        };
+        /** @description 字段清单见 research R9（负责人 2026-11-09 确认）；只读，无编辑字段 */
+        TagDetail: {
+            ref: components["schemas"]["AssetRef"];
+            name: string;
+            displayName?: string | null;
+            description?: string | null;
+            classification?: components["schemas"]["Ref"];
+            parent?: components["schemas"]["Ref"] | null;
+            owners?: components["schemas"]["Ref"][];
+            reviewers?: components["schemas"]["Ref"][];
+            domains?: components["schemas"]["Ref"][];
+            deprecated?: boolean;
         };
         /** ErrorEnvelope */
         error: {
@@ -1212,6 +1593,263 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             /** @description 请求参数不合法 request.invalid（py-core 统一处理） */
             422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+        };
+    };
+    searchAssets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SearchCriteria"];
+            };
+        };
+        responses: {
+            /** @description 一页结果；total 为 OM 返回的真实总数 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchPage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description search.invalid_criteria / search.window_exceeded / request.invalid */
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+            /** @description search.index_missing（OM 返回 500 Failed to find index，research R11） */
+            503: components["responses"]["Error"];
+            /** @description search.timeout（OpenSearch timed_out=true，不返回部分结果） */
+            504: components["responses"]["Error"];
+        };
+    };
+    countAssetTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SearchCriteria"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TypeCounts"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+            503: components["responses"]["Error"];
+            504: components["responses"]["Error"];
+        };
+    };
+    getAssetFacet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    criteria: components["schemas"]["SearchCriteria"];
+                    dimension: components["schemas"]["FacetDimension"];
+                    /** @description 选项内搜索的文本；BFF 转义后以 .*文本.* 传给 OM 的 value 参数 */
+                    optionQuery?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        dimension: components["schemas"]["FacetDimension"];
+                        /** @description 该维度是否提供「无」 */
+                        supportsNone?: boolean;
+                        options: components["schemas"]["FacetOption"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description 维度不在白名单内，或仅表类型可用的维度在非表类型下使用 */
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+            503: components["responses"]["Error"];
+            504: components["responses"]["Error"];
+        };
+    };
+    browseAssets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    criteria: components["schemas"]["SearchCriteria"];
+                    parentPath: components["schemas"]["BrowseStep"][];
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        nodes: components["schemas"]["BrowseNode"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+            503: components["responses"]["Error"];
+            504: components["responses"]["Error"];
+        };
+    };
+    suggestAssets: {
+        parameters: {
+            query: {
+                keyword: string;
+                scope?: components["schemas"]["EntityType"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        groups: {
+                            entityType: components["schemas"]["EntityType"];
+                            items: components["schemas"]["Suggestion"][];
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+            503: components["responses"]["Error"];
+            504: components["responses"]["Error"];
+        };
+    };
+    getAssetSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entityType: components["schemas"]["EntityType"];
+                /** @description URL 编码的完整 FQN */
+                fqn: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssetSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description catalog.not_found */
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+        };
+    };
+    getGlossaryTermDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fqn: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GlossaryTermDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description catalog.not_found（实体已删除或不存在） */
+            404: components["responses"]["Error"];
+            502: components["responses"]["Unavailable"];
+        };
+    };
+    getTagDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fqn: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagDetail"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            /** @description catalog.not_found */
+            404: components["responses"]["Error"];
             502: components["responses"]["Unavailable"];
         };
     };

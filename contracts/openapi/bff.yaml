@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: 织境 bff 接口
-  version: 0.2.0
+  version: 0.3.0
   description: |
     织境 Web 的后端（BFF 模式，ADR-0003）。
     取数不经自建 REST 服务：bff 经 AI 网关以 MCP 调用 MCP Toolbox 的工具（ADR-0013），契约在 contracts/mcp/。
@@ -11,6 +11,9 @@ info:
     登录导航失败以 303 回到同源恢复页；退出仅结束当前织境会话，不调用 IdP logout。
     005 源系统元数据采集错误码：source.name_conflict、source.deploy_failed、source.pipeline_in_flight、source.schedule_not_set、
     source.immutable_field、upstream.unavailable；上游不可用时如实返回错误，不返回示例数据。
+    006 资产搜索与摘要错误码：search.invalid_criteria（422）、search.window_exceeded（422）、search.index_missing（503）、
+    search.timeout（504）；沿用 upstream.unavailable、catalog.not_found、auth.om_forbidden。浏览器只提交结构化条件，
+    BFF 生成并校验 OM 查询；数据全部来自 OpenMetadata，不返回示例数据。
 servers:
   - url: /
 security:
@@ -515,6 +518,291 @@ paths:
               schema: { $ref: "#/components/schemas/GovernanceOptions" }
         "502": { $ref: "#/components/responses/Unavailable" }
 
+  # ---------- 006 资产搜索与摘要（specs/006-asset-search-summary/contracts/openapi.yaml） ----------
+  /bff/v1/assets/search:
+    post:
+      operationId: searchAssets
+      summary: 主结果列表（OM /v1/search/query）
+      description: |
+        结果只读，使用 POST 是为了在请求体中携带结构化条件。
+        index 的选择：criteria.entityType 优先，其次 scope，都没有时用 dataAsset（research R2）。
+        BFF 总是带上 deleted=false 与 track_total_hits=true。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SearchCriteria" }
+      responses:
+        "200":
+          description: 一页结果；total 为 OM 返回的真实总数
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SearchPage" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          {
+            description: "search.invalid_criteria / search.window_exceeded / request.invalid",
+            $ref: "#/components/responses/Error",
+          }
+        "502": { $ref: "#/components/responses/Unavailable" }
+        "503":
+          {
+            description: "search.index_missing（OM 返回 500 Failed to find index，research R11）",
+            $ref: "#/components/responses/Error",
+          }
+        "504":
+          {
+            description: "search.timeout（OpenSearch timed_out=true，不返回部分结果）",
+            $ref: "#/components/responses/Error",
+          }
+
+  /bff/v1/assets/type-counts:
+    post:
+      operationId: countAssetTypes
+      summary: 按类型计数（OM /v1/search/entityTypeCounts），以及首条命中结果的类型
+      description: |
+        用于两处：
+        - 有关键词时左栏的类型列表（FR-007）；
+        - keyword 为空时，提供搜索范围下拉中「有数据的类型」（FR-004）。
+        计算计数时忽略 criteria 中的 entityType、scope、sort、page、pageSize。
+        只返回计数大于 0 的类型；tableColumn 作为独立类型返回（D8）。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SearchCriteria" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TypeCounts" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+        "503": { $ref: "#/components/responses/Error" }
+        "504": { $ref: "#/components/responses/Error" }
+
+  /bff/v1/assets/facets:
+    post:
+      operationId: getAssetFacet
+      summary: 单个快速筛选维度的选项与计数（OM /v1/search/aggregate）
+      description: |
+        计数排除本维度自身的已选条件，同时受关键词、位置与其他维度的条件约束（research R4）。
+        选项按 OM 返回的顺序排列（键名字母升序）。
+        「无」不在选项中，由前端固定显示，没有计数。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [criteria, dimension]
+              additionalProperties: false
+              properties:
+                criteria: { $ref: "#/components/schemas/SearchCriteria" }
+                dimension: { $ref: "#/components/schemas/FacetDimension" }
+                optionQuery:
+                  type: string
+                  maxLength: 100
+                  description: 选项内搜索的文本；BFF 转义后以 .*文本.* 传给 OM 的 value 参数
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [dimension, options]
+                properties:
+                  dimension: { $ref: "#/components/schemas/FacetDimension" }
+                  supportsNone:
+                    { type: boolean, description: 该维度是否提供「无」 }
+                  options:
+                    {
+                      type: array,
+                      items: { $ref: "#/components/schemas/FacetOption" },
+                    }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422":
+          {
+            description: "维度不在白名单内，或仅表类型可用的维度在非表类型下使用",
+            $ref: "#/components/responses/Error",
+          }
+        "502": { $ref: "#/components/responses/Unavailable" }
+        "503": { $ref: "#/components/responses/Error" }
+        "504": { $ref: "#/components/responses/Error" }
+
+  /bff/v1/assets/browse:
+    post:
+      operationId: browseAssets
+      summary: 浏览树的一层节点（OM /v1/search/aggregate；展开时才加载）
+      description: |
+        parentPath 为空时返回根节点（大类）；否则返回 parentPath 下一层的节点。
+        计数受 criteria 中的筛选条件约束；criteria.browsePath 会被忽略，以 parentPath 为准。
+        计数为 0 的根节点不返回（FR-006）。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [criteria, parentPath]
+              additionalProperties: false
+              properties:
+                criteria: { $ref: "#/components/schemas/SearchCriteria" }
+                parentPath:
+                  {
+                    type: array,
+                    maxItems: 5,
+                    items: { $ref: "#/components/schemas/BrowseStep" },
+                  }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [nodes]
+                properties:
+                  nodes:
+                    {
+                      type: array,
+                      items: { $ref: "#/components/schemas/BrowseNode" },
+                    }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+        "503": { $ref: "#/components/responses/Error" }
+        "504": { $ref: "#/components/responses/Error" }
+
+  /bff/v1/assets/suggestions:
+    get:
+      operationId: suggestAssets
+      summary: 输入建议（OM /v1/search/query，size=15；按类型分组，每组最多 5 条）
+      parameters:
+        - {
+            name: keyword,
+            in: query,
+            required: true,
+            schema: { type: string, minLength: 1, maxLength: 200 },
+          }
+        - {
+            name: scope,
+            in: query,
+            required: false,
+            schema: { $ref: "#/components/schemas/EntityType" },
+          }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [groups]
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      type: object
+                      required: [entityType, items]
+                      properties:
+                        entityType: { $ref: "#/components/schemas/EntityType" }
+                        items:
+                          {
+                            type: array,
+                            maxItems: 5,
+                            items: { $ref: "#/components/schemas/Suggestion" },
+                          }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+        "503": { $ref: "#/components/responses/Error" }
+        "504": { $ref: "#/components/responses/Error" }
+
+  /bff/v1/assets/summary/{entityType}/{fqn}:
+    parameters:
+      - {
+          name: entityType,
+          in: path,
+          required: true,
+          schema: { $ref: "#/components/schemas/EntityType" },
+        }
+      - {
+          name: fqn,
+          in: path,
+          required: true,
+          schema: { type: string },
+          description: URL 编码的完整 FQN,
+        }
+    get:
+      operationId: getAssetSummary
+      summary: 只读摘要（按身份读取 OM 实体；列读取所属表，research R9 / R10）
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssetSummary" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          {
+            description: catalog.not_found,
+            $ref: "#/components/responses/Error",
+          }
+        "422": { $ref: "#/components/responses/Error" }
+        "502": { $ref: "#/components/responses/Unavailable" }
+
+  /bff/v1/governance/glossary-terms/{fqn}:
+    parameters:
+      - { name: fqn, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getGlossaryTermDetail
+      summary: 业务术语只读详情（OM /v1/glossaryTerms/name/{fqn}）
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GlossaryTermDetail" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          {
+            description: catalog.not_found（实体已删除或不存在）,
+            $ref: "#/components/responses/Error",
+          }
+        "502": { $ref: "#/components/responses/Unavailable" }
+
+  /bff/v1/governance/tags/{fqn}:
+    parameters:
+      - { name: fqn, in: path, required: true, schema: { type: string } }
+    get:
+      operationId: getTagDetail
+      summary: 分类标签只读详情（OM /v1/tags/name/{fqn}）
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TagDetail" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404":
+          {
+            description: catalog.not_found,
+            $ref: "#/components/responses/Error",
+          }
+        "502": { $ref: "#/components/responses/Unavailable" }
+
 components:
   parameters:
     SourceName:
@@ -964,3 +1252,401 @@ components:
               mutuallyExclusive: { type: boolean }
               tags: { type: array, items: { type: string } }
         glossaryTerms: { type: array, items: { type: string } }
+    # ---------- 006 资产搜索与摘要 ----------
+    EntityType:
+      type: string
+      description: OM dataAsset 别名覆盖的实体类型（indexMapping.json）；BFF 以白名单校验
+      enum:
+        [
+          table,
+          tableColumn,
+          storedProcedure,
+          databaseSchema,
+          database,
+          chart,
+          dashboard,
+          dashboardDataModel,
+          pipeline,
+          topic,
+          container,
+          directory,
+          file,
+          spreadsheet,
+          worksheet,
+          searchIndex,
+          mlmodel,
+          dataProduct,
+          metric,
+          glossaryTerm,
+          tag,
+          apiCollection,
+          apiEndpoint,
+          page,
+        ]
+      x-source: indexMapping.json 中 parentAliases 含 dataAsset 的 24 类实体（OM 2.0.3，b76076bf），已逐项核对
+    FacetDimension:
+      type: string
+      enum:
+        [
+          entityType,
+          domain,
+          dataProduct,
+          owner,
+          tag,
+          tier,
+          service,
+          serviceType,
+          certification,
+          database,
+          databaseSchema,
+          column,
+          tableType,
+          columnDescriptionStatus,
+        ]
+      description: 最后 5 项只能在 entityType=table 时使用；字段映射见 research R4
+    BrowseStep:
+      type: object
+      required: [level, value]
+      additionalProperties: false
+      properties:
+        level:
+          {
+            type: string,
+            enum:
+              [
+                root,
+                serviceType,
+                service,
+                database,
+                databaseSchema,
+                entityType,
+              ],
+          }
+        value: { type: string, minLength: 1, maxLength: 256 }
+        label: { type: string, description: 只用于在条件条上显示；BFF 不使用 }
+    SearchCriteria:
+      type: object
+      additionalProperties: false
+      properties:
+        keyword: { type: string, maxLength: 200, default: "" }
+        scope:
+          {
+            oneOf:
+              [{ $ref: "#/components/schemas/EntityType" }, { type: "null" }],
+          }
+        entityType:
+          {
+            oneOf:
+              [{ $ref: "#/components/schemas/EntityType" }, { type: "null" }],
+          }
+        browsePath:
+          {
+            type: array,
+            maxItems: 6,
+            items: { $ref: "#/components/schemas/BrowseStep" },
+            default: [],
+          }
+        filters:
+          type: object
+          propertyNames: { $ref: "#/components/schemas/FacetDimension" }
+          additionalProperties:
+            type: object
+            additionalProperties: false
+            properties:
+              values:
+                {
+                  type: array,
+                  maxItems: 50,
+                  items: { type: string, minLength: 1, maxLength: 256 },
+                }
+              includeNone:
+                {
+                  type: boolean,
+                  default: false,
+                  description: 只用于 owner / domain / tier / tag / certification,
+                }
+          default: {}
+        sort:
+          type: object
+          additionalProperties: false
+          properties:
+            field:
+              {
+                type: string,
+                enum: [popularity, name, relevance, updatedAt],
+                default: popularity,
+              }
+            order: { type: string, enum: [asc, desc], default: desc }
+        page: { type: integer, minimum: 1, default: 1 }
+        pageSize: { type: integer, enum: [15, 25, 50], default: 15 }
+    AssetRef:
+      type: object
+      required: [entityType, id, fqn]
+      properties:
+        entityType: { $ref: "#/components/schemas/EntityType" }
+        id: { type: string }
+        fqn: { type: string }
+    TextSegment:
+      type: object
+      required: [text, match]
+      properties:
+        text: { type: string }
+        match:
+          {
+            type: boolean,
+            description: 是否为命中词；由 OM highlight 解析得到，不返回 HTML,
+          }
+    GovernanceSummary:
+      type: object
+      properties:
+        owners: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        domains: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        dataProducts:
+          { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        tier:
+          {
+            type: [string, "null"],
+            description: "Tier.* 标签 FQN；显示为「分级（Tier）」",
+          }
+        dataLevel:
+          {
+            type: [string, "null"],
+            description: 分类「数据级别」下的标签 FQN（ADR-0008）,
+          }
+        certification:
+          { type: [string, "null"], description: certification.tagLabel.tagFQN }
+        glossaryTerms: { type: array, items: { type: string } }
+        tags:
+          {
+            type: array,
+            items: { type: string },
+            description: 不含 Tier、数据级别、术语与开发态标识,
+          }
+        origin:
+          {
+            type: string,
+            enum: [collected, devTest],
+            description: 带开发态标识标签的为 devTest（research R12）,
+          }
+    SearchHit:
+      type: object
+      required: [ref, name, origin]
+      properties:
+        ref: { $ref: "#/components/schemas/AssetRef" }
+        name: { type: string }
+        displayName: { type: [string, "null"] }
+        serviceType: { type: [string, "null"] }
+        breadcrumb:
+          type: array
+          description: 服务 / 库 / Schema 的位置（显示名，原始 FQN 见 ref.fqn）
+          items:
+            {
+              type: object,
+              properties:
+                { entityType: { type: string }, label: { type: string } },
+            }
+        nameHighlight:
+          { type: array, items: { $ref: "#/components/schemas/TextSegment" } }
+        descriptionHighlight:
+          { type: array, items: { $ref: "#/components/schemas/TextSegment" } }
+        description: { type: [string, "null"] }
+        governance: { $ref: "#/components/schemas/GovernanceSummary" }
+        origin: { type: string, enum: [collected, devTest] }
+        matchedFields:
+          type: array
+          items:
+            {
+              type: object,
+              required: [field, count],
+              properties: { field: { type: string }, count: { type: integer } },
+            }
+        parentTable:
+          {
+            oneOf:
+              [{ $ref: "#/components/schemas/AssetRef" }, { type: "null" }],
+            description: 仅 tableColumn,
+          }
+        columnName: { type: [string, "null"], description: 仅 tableColumn }
+    SearchPage:
+      type: object
+      required: [total, page, pageSize, hits, windowLimited]
+      properties:
+        total: { type: integer, minimum: 0 }
+        page: { type: integer }
+        pageSize: { type: integer }
+        windowLimited:
+          { type: boolean, description: total 超过 10000，只能翻到前 10000 条 }
+        index: { type: string, description: 实际查询的 OM 索引别名，便于核对 }
+        hits: { type: array, items: { $ref: "#/components/schemas/SearchHit" } }
+    TypeCounts:
+      type: object
+      required: [counts]
+      properties:
+        counts:
+          type: array
+          items:
+            {
+              type: object,
+              required: [entityType, count],
+              properties:
+                {
+                  entityType: { $ref: "#/components/schemas/EntityType" },
+                  count: { type: integer, minimum: 1 },
+                },
+            }
+        topHitType:
+          {
+            oneOf:
+              [{ $ref: "#/components/schemas/EntityType" }, { type: "null" }],
+          }
+        defaultType:
+          oneOf: [{ $ref: "#/components/schemas/EntityType" }, { type: "null" }]
+          description: topHitType 的计数大于 0 时取它，否则取计数最多的类型（FR-007）
+    FacetOption:
+      type: object
+      required: [value, count]
+      properties:
+        value: { type: string, description: OM 桶键，作为筛选取值回传 }
+        label:
+          {
+            type: string,
+            description: 原始大小写的显示名（top_hits），没有时等于 value,
+          }
+        count: { type: integer, minimum: 0 }
+    BrowseNode:
+      type: object
+      required: [level, value, label, count, hasChildren]
+      properties:
+        level:
+          {
+            type: string,
+            enum:
+              [
+                root,
+                serviceType,
+                service,
+                database,
+                databaseSchema,
+                entityType,
+              ],
+          }
+        value: { type: string }
+        label: { type: string }
+        count: { type: integer, minimum: 0 }
+        hasChildren: { type: boolean }
+    Suggestion:
+      type: object
+      required: [ref, label]
+      properties:
+        ref: { $ref: "#/components/schemas/AssetRef" }
+        label: { type: string, description: displayName，没有时为 name }
+        location: { type: string, description: 位置（完整 FQN） }
+        parentTable:
+          {
+            oneOf:
+              [{ $ref: "#/components/schemas/AssetRef" }, { type: "null" }],
+          }
+        columnName: { type: [string, "null"] }
+    SummaryColumn:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        dataTypeDisplay: { type: [string, "null"] }
+        constraint:
+          {
+            type: [string, "null"],
+            description: PRIMARY_KEY / UNIQUE 等，取自列约束与表约束,
+          }
+        description: { type: [string, "null"] }
+        displayName: { type: [string, "null"] }
+        tags:
+          { type: array, items: { type: string }, description: 含数据级别标签 }
+        dataLevel: { type: [string, "null"] }
+    AssetSummary:
+      type: object
+      required: [ref, name, governance]
+      properties:
+        ref: { $ref: "#/components/schemas/AssetRef" }
+        name: { type: string }
+        displayName: { type: [string, "null"] }
+        description: { type: [string, "null"] }
+        breadcrumb:
+          {
+            type: array,
+            items:
+              {
+                type: object,
+                properties:
+                  { entityType: { type: string }, label: { type: string } },
+              },
+          }
+        governance: { $ref: "#/components/schemas/GovernanceSummary" }
+        columns:
+          {
+            type: array,
+            items: { $ref: "#/components/schemas/SummaryColumn" },
+            description: 仅 table,
+          }
+        column:
+          {
+            oneOf:
+              [
+                { $ref: "#/components/schemas/SummaryColumn" },
+                { type: "null" },
+              ],
+            description: 仅 tableColumn,
+          }
+        parentTable:
+          {
+            oneOf:
+              [{ $ref: "#/components/schemas/AssetRef" }, { type: "null" }],
+            description: 仅 tableColumn,
+          }
+    GlossaryTermDetail:
+      type: object
+      description: 字段清单见 research R9（负责人 2026-11-09 确认）；只读，无编辑字段
+      required: [ref, name]
+      properties:
+        ref: { $ref: "#/components/schemas/AssetRef" }
+        name: { type: string }
+        displayName: { type: [string, "null"] }
+        description: { type: [string, "null"] }
+        glossary: { $ref: "#/components/schemas/Ref" }
+        parent:
+          { oneOf: [{ $ref: "#/components/schemas/Ref" }, { type: "null" }] }
+        synonyms: { type: array, items: { type: string } }
+        relatedTerms:
+          { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        references:
+          {
+            type: array,
+            items:
+              {
+                type: object,
+                properties:
+                  { name: { type: string }, endpoint: { type: string } },
+              },
+          }
+        owners: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        reviewers: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        domains: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        tags: { type: array, items: { type: string } }
+        entityStatus: { type: [string, "null"] }
+        origin: { type: string, enum: [collected, devTest] }
+    TagDetail:
+      type: object
+      description: 字段清单见 research R9（负责人 2026-11-09 确认）；只读，无编辑字段
+      required: [ref, name]
+      properties:
+        ref: { $ref: "#/components/schemas/AssetRef" }
+        name: { type: string }
+        displayName: { type: [string, "null"] }
+        description: { type: [string, "null"] }
+        classification: { $ref: "#/components/schemas/Ref" }
+        parent:
+          { oneOf: [{ $ref: "#/components/schemas/Ref" }, { type: "null" }] }
+        owners: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        reviewers: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        domains: { type: array, items: { $ref: "#/components/schemas/Ref" } }
+        deprecated: { type: boolean }
