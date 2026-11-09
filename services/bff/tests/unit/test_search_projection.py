@@ -109,3 +109,12 @@ def test_suggestions_grouped_max_five_per_type() -> None:
         ("glossaryTerm", 1),
     ]
     assert groups[0]["items"][0]["location"] == "s.d.sc.t0"
+
+
+def test_name_highlight_never_replaces_display_name() -> None:
+    """e2e 实测：只命中 name 时，卡片标题仍应是 displayName，不能显示成高亮的 name。"""
+    hl = '<span class="text-highlighter">work_order</span>'
+    h = project_hit({**_hit(displayName="生产工单"), "highlight": {"name": [hl]}})
+    assert h["nameHighlight"] == []
+    same = project_hit({**_hit(displayName="work_order"), "highlight": {"name": [hl]}})
+    assert "".join(s["text"] for s in same["nameHighlight"]) == "work_order"
