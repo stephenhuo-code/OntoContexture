@@ -25,7 +25,7 @@ const tierOptions = {
 };
 
 function setup(total = 40) {
-  return stubAssets([
+  const calls = stubAssets([
     { method: "POST", path: "/bff/v1/assets/browse", body: { nodes: [] } },
     {
       method: "POST",
@@ -45,6 +45,7 @@ function setup(total = 40) {
     { path: /\/bff\/v1\/assets\/suggestions/, body: { groups: [] } },
     { path: /\/bff\/v1\/assets\/summary\//, body: summary },
   ]);
+  return () => calls;
 }
 
 const lastSearch = (calls: Call[]) =>
@@ -70,6 +71,7 @@ it("快速筛选维度与 OM 一致；选中表类型时增加 5 个维度（FR-
     "服务类型",
     "认证",
   ]);
+  await screen.findByRole("option", { name: "数据表" });
   await userEvent.selectOptions(
     screen.getByRole("combobox", { name: "搜索范围" }),
     "数据表",
@@ -189,7 +191,7 @@ it("排序：热度（默认）、名称、相关性、最近更新，可切换�
       .map((o) => o.textContent),
   ).toEqual(["热度", "名称", "相关性", "最近更新"]);
   expect(sort).toHaveValue("popularity");
-  await userEvent.click(screen.getByRole("button", { name: "下一页" }));
+  await userEvent.click(await screen.findByRole("button", { name: "下一页" }));
   await waitFor(() => expect(lastSearch(calls()).page).toBe(2));
   await userEvent.selectOptions(sort, "名称");
   await waitFor(() =>

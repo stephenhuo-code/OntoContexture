@@ -21,7 +21,12 @@ export type SortField = "popularity" | "name" | "relevance" | "updatedAt";
 export type SortOrder = "asc" | "desc";
 export type PageSize = 15 | 25 | 50;
 export type BrowseLevel = BrowseStep["level"];
-export type FilterValue = { values: string[]; includeNone: boolean };
+export type FilterValue = {
+  values: string[];
+  includeNone: boolean;
+  /** 取值的显示名（只用于条件条显示，不发给 BFF） */
+  labels?: Record<string, string>;
+};
 
 export interface Criteria {
   keyword: string;
@@ -82,6 +87,7 @@ export type CriteriaAction =
       dimension: FacetDimension;
       values: readonly string[];
       includeNone: boolean;
+      labels?: Record<string, string>;
     }
   | { type: "sort"; field: SortField; order: SortOrder }
   | { type: "page"; page: number }
@@ -119,6 +125,10 @@ export function criteriaReducer(
         filters[action.dimension] = {
           values: [...action.values],
           includeNone: action.includeNone,
+          labels: {
+            ...state.filters[action.dimension]?.labels,
+            ...action.labels,
+          },
         };
       else delete filters[action.dimension];
       return { ...state, filters, page: 1 };
@@ -156,7 +166,12 @@ export function toRequest(c: Criteria): SearchCriteria {
     scope: c.scope,
     entityType: c.entityType,
     browsePath: c.browsePath,
-    filters: c.filters,
+    filters: Object.fromEntries(
+      Object.entries(c.filters).map(([k, v]) => [
+        k,
+        { values: v.values, includeNone: v.includeNone },
+      ]),
+    ),
     sort: c.sort,
     page: c.page,
     pageSize: c.pageSize,

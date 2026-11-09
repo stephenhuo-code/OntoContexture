@@ -31,7 +31,7 @@ export function AssetsWorkspace() {
           目录
         </button>
         {drawer && (
-          <div role="dialog" aria-label="数据源目录" className="catalog-drawer">
+          <div role="dialog" aria-label="资产目录" className="catalog-drawer">
             <AssetsRail onPick={() => setDrawer(false)} />
           </div>
         )}

@@ -2,7 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 import { PageState } from "@contexture/ui";
 import type { SearchHit } from "@contexture/ts-api";
-import { useAssetsCriteria } from "./criteria";
+import { toRequest, useAssetsCriteria } from "./criteria";
+import { FilterChips } from "./FilterChips";
+import { Pagination } from "./Pagination";
+import { QuickFilters } from "./QuickFilters";
+import { SortControl } from "./SortControl";
 import { effectiveRequest } from "./explore";
 import { useSearch, useTypeCounts } from "./queries";
 import { ResultCard } from "./ResultCard";
@@ -115,8 +119,24 @@ export function ExploreView() {
           </Link>
         </div>
       </div>
+      <div className="asset-explore__toolbar">
+        <QuickFilters
+          request={eff.body ?? toRequest(criteria)}
+          tableType={eff.entityType === "table"}
+        />
+        <SortControl />
+      </div>
+      <FilterChips />
       <div className={`asset-explore__body${selected ? " has-summary" : ""}`}>
-        <div className="asset-explore__results">{body}</div>
+        <div className="asset-explore__results">
+          {body}
+          {result.state.status === "ready" && result.state.data.total > 0 && (
+            <Pagination
+              total={result.state.data.total}
+              windowLimited={result.state.data.windowLimited}
+            />
+          )}
+        </div>
         {selected && hits && hits.length > 0 && (
           <SummaryPanel
             key={`${selected.ref.entityType}:${selected.ref.fqn}`}

@@ -85,29 +85,35 @@ export const assetSummary = async (type: EntityType, fqn: string) =>
     (d) => !!d.ref && typeof d.governance === "object",
   );
 
-export const assetFacet = (
+export const assetFacet = async (
   criteria: SearchCriteria,
   dimension: FacetDimension,
   optionQuery?: string,
 ) =>
-  unwrap<{
-    dimension: FacetDimension;
-    supportsNone?: boolean;
-    options: FacetOption[];
-  }>(
-    bff.POST("/bff/v1/assets/facets", {
-      body: optionQuery
-        ? { criteria, dimension, optionQuery }
-        : { criteria, dimension },
-    }),
+  shaped(
+    await unwrap<{
+      dimension: FacetDimension;
+      supportsNone?: boolean;
+      options: FacetOption[];
+    }>(
+      bff.POST("/bff/v1/assets/facets", {
+        body: optionQuery
+          ? { criteria, dimension, optionQuery }
+          : { criteria, dimension },
+      }),
+    ),
+    (d) => Array.isArray(d.options),
   );
 
-export const browseAssets = (
+export const browseAssets = async (
   criteria: SearchCriteria,
   parentPath: BrowseStep[],
 ) =>
-  unwrap<{ nodes: BrowseNode[] }>(
-    bff.POST("/bff/v1/assets/browse", { body: { criteria, parentPath } }),
+  shaped(
+    await unwrap<{ nodes: BrowseNode[] }>(
+      bff.POST("/bff/v1/assets/browse", { body: { criteria, parentPath } }),
+    ),
+    (d) => Array.isArray(d.nodes),
   );
 
 export const glossaryTermDetail = (fqn: string) =>

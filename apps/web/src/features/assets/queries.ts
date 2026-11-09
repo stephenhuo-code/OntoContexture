@@ -1,9 +1,16 @@
 // 006 资产搜索的共享读取（React Query）：与 005 相同的选项——不自动重试、不在聚焦时刷新、不使用过期缓存。
 import { useQuery } from "@tanstack/react-query";
-import type { EntityType, SearchCriteria } from "@contexture/ts-api";
+import type {
+  BrowseStep,
+  EntityType,
+  FacetDimension,
+  SearchCriteria,
+} from "@contexture/ts-api";
 import { asApiError, type Load } from "../sources/useLoad";
 import {
+  assetFacet,
   assetSummary,
+  browseAssets,
   countAssetTypes,
   searchAssets,
   suggestAssets,
@@ -84,6 +91,41 @@ export function useSummary(type: EntityType, fqn: string) {
   const q = useQuery({
     queryKey: [...ASSETS_KEY, "summary", type, fqn],
     queryFn: () => assetSummary(type, fqn),
+    ...options,
+  });
+  return { state: toLoad(q), reload: () => void q.refetch() };
+}
+
+/** 浏览树的一层：计数受筛选条件约束；位置、排序与分页不影响计数，缓存键中去掉 */
+export function useBrowse(
+  criteria: Criteria,
+  parentPath: BrowseStep[],
+  enabled = true,
+) {
+  const body = {
+    ...toRequest({ ...initialCriteria, filters: criteria.filters }),
+  };
+  const path = parentPath.map(({ level, value }) => ({ level, value }));
+  const q = useQuery({
+    queryKey: [...ASSETS_KEY, "browse", body, path],
+    queryFn: () => browseAssets(body, path),
+    enabled,
+    ...options,
+  });
+  return { state: toLoad(q), reload: () => void q.refetch() };
+}
+
+export function useFacet(
+  request: SearchCriteria,
+  dimension: FacetDimension,
+  optionQuery: string,
+  enabled: boolean,
+) {
+  const body = { ...request, page: 1, pageSize: 15 as const };
+  const q = useQuery({
+    queryKey: [...ASSETS_KEY, "facet", body, dimension, optionQuery],
+    queryFn: () => assetFacet(body, dimension, optionQuery || undefined),
+    enabled,
     ...options,
   });
   return { state: toLoad(q), reload: () => void q.refetch() };
