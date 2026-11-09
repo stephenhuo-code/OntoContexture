@@ -3,6 +3,10 @@
 浏览器只提交结构化条件（SearchCriteria），由 BFF 生成并校验 OM 查询（FR-019）；全部为只读接口。
 """
 
+import json
+import logging
+import time
+from collections.abc import Awaitable
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Path, Query, Request
@@ -12,9 +16,54 @@ from contexture_bff.adapters.om_assets import AssetReader
 from contexture_bff.adapters.om_search import SearchService
 from contexture_bff.api.deps import services
 from contexture_bff.api.sources import WebContext
-from contexture_core.errors import UpstreamUnavailable
+from contexture_core.auth import RequestContext
+from contexture_core.errors import ContextureError, UpstreamUnavailable
 
 router = APIRouter(prefix="/bff/v1")
+ASSETS_LOGGER = "contexture_bff.assets"
+_logger = logging.getLogger(ASSETS_LOGGER)
+
+
+def _count(result: dict[str, Any]) -> int:
+    for key, size in (("total", None), ("counts", len), ("options", len), ("nodes", len)):
+        if key in result:
+            value = result[key]
+            return int(value) if size is None else size(value)
+    if "groups" in result:
+        return sum(len(g["items"]) for g in result["groups"])
+    return 1
+
+
+async def logged(
+    ctx: RequestContext,
+    operation: str,
+    call: Awaitable[dict[str, Any]],
+    criteria: dict[str, Any] | None = None,
+    entity_type: str | None = None,
+) -> dict[str, Any]:
+    """FR-020：每次请求一条结构化日志（含 trace_id、tenant_id）；只记关键词长度，不记原文与令牌。"""
+    started = time.monotonic()
+    event: dict[str, Any] = {
+        "operation": operation,
+        "tenant_id": ctx.tenant_id,
+        "user_id": ctx.user_id,
+        "agent_id": ctx.agent_id,
+        "trace_id": ctx.trace_id,
+        "entity_type": entity_type or (criteria or {}).get("entityType"),
+    }
+    if criteria is not None:
+        event["keyword_length"] = len(criteria.get("keyword") or "")
+        event["dimensions"] = sorted(criteria.get("filters") or {})
+    try:
+        result = await call
+        event.update(outcome="ok", result_count=_count(result))
+        return result
+    except ContextureError as exc:
+        event.update(outcome="error", error_code=exc.code)
+        raise
+    finally:
+        event["duration_ms"] = int((time.monotonic() - started) * 1000)
+        _logger.info(json.dumps(event, ensure_ascii=False))
 
 
 def search_service(request: Request) -> SearchService:
@@ -103,24 +152,30 @@ def raw(model: BaseModel) -> dict[str, Any]:
 
 @router.post("/assets/search")
 async def search_assets(body: SearchCriteriaModel, ctx: WebContext, svc: Search) -> dict[str, Any]:
-    return await svc.search(ctx, raw(body))
+    criteria = raw(body)
+    return await logged(ctx, "search", svc.search(ctx, criteria), criteria)
 
 
 @router.post("/assets/type-counts")
 async def count_asset_types(
     body: SearchCriteriaModel, ctx: WebContext, svc: Search
 ) -> dict[str, Any]:
-    return await svc.type_counts(ctx, raw(body))
+    criteria = raw(body)
+    return await logged(ctx, "type-counts", svc.type_counts(ctx, criteria), criteria)
 
 
 @router.post("/assets/facets")
 async def get_asset_facet(body: FacetRequest, ctx: WebContext, svc: Search) -> dict[str, Any]:
-    return await svc.facets(ctx, raw(body.criteria), body.dimension, body.optionQuery)
+    criteria = raw(body.criteria)
+    call = svc.facets(ctx, criteria, body.dimension, body.optionQuery)
+    return await logged(ctx, "facets", call, criteria)
 
 
 @router.post("/assets/browse")
 async def browse_assets(body: BrowseRequest, ctx: WebContext, svc: Search) -> dict[str, Any]:
-    return await svc.browse(ctx, raw(body.criteria), [raw(s) for s in body.parentPath])
+    criteria = raw(body.criteria)
+    call = svc.browse(ctx, criteria, [raw(s) for s in body.parentPath])
+    return await logged(ctx, "browse", call, criteria)
 
 
 @router.get("/assets/suggestions")
@@ -130,7 +185,8 @@ async def suggest_assets(
     keyword: Annotated[str, Query(min_length=1, max_length=200)],
     scope: Annotated[EntityType | None, Query()] = None,
 ) -> dict[str, Any]:
-    return await svc.suggestions(ctx, keyword, scope)
+    call = svc.suggestions(ctx, keyword, scope)
+    return await logged(ctx, "suggestions", call, {"keyword": keyword, "entityType": scope})
 
 
 @router.get("/assets/summary/{entityType}/{fqn}")
@@ -140,18 +196,20 @@ async def get_asset_summary(
     ctx: WebContext,
     svc: Reader,
 ) -> dict[str, Any]:
-    return await svc.summary(ctx, entityType, fqn)
+    return await logged(ctx, "summary", svc.summary(ctx, entityType, fqn), entity_type=entityType)
 
 
 @router.get("/governance/glossary-terms/{fqn}")
 async def get_glossary_term_detail(
     fqn: Annotated[str, Path(min_length=1)], ctx: WebContext, svc: Reader
 ) -> dict[str, Any]:
-    return await svc.glossary_term(ctx, fqn)
+    return await logged(
+        ctx, "glossary-term", svc.glossary_term(ctx, fqn), entity_type="glossaryTerm"
+    )
 
 
 @router.get("/governance/tags/{fqn}")
 async def get_tag_detail(
     fqn: Annotated[str, Path(min_length=1)], ctx: WebContext, svc: Reader
 ) -> dict[str, Any]:
-    return await svc.tag(ctx, fqn)
+    return await logged(ctx, "tag", svc.tag(ctx, fqn), entity_type="tag")
