@@ -239,7 +239,8 @@ def test_native_ingestion_chain(om: httpx.Client, tokens: dict[str, str]) -> Non
     tables = om.get(
         "/tables",
         headers=_bearer(eng),
-        params={"service": SERVICE, "limit": 100, "fields": "columns"},
+        # OM /tables 不支持 service 过滤（会返回全部表），按数据库过滤（MySQL 为 default 库）
+        params={"database": f"{SERVICE}.default", "limit": 100, "fields": "columns"},
     ).json()["data"]
     assert len(tables) == 13  # 003 金标准
     assert sum(len(t["columns"]) for t in tables) == 79
