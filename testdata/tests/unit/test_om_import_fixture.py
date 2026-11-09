@@ -1,6 +1,7 @@
 """006 开发态元数据导入：fixture 由 003 表定义生成（FR-016；research R12、R13）。"""
 
 from collections import Counter
+from typing import Any
 
 import pytest
 
@@ -22,7 +23,7 @@ def _of(entities: list[fx.Entity], kind: str) -> list[fx.Entity]:
     return [e for e in entities if e.kind == kind]
 
 
-def _tag_fqns(body: dict) -> set[str]:
+def _tag_fqns(body: dict[str, Any]) -> set[str]:
     return {t["tagFQN"] for t in body.get("tags") or []}
 
 

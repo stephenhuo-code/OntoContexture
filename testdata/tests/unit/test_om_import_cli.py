@@ -110,9 +110,11 @@ def test_cli_refuses_without_explicit_target(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     called: list[Any] = []
-    monkeypatch.setattr(
-        "mockfactory.om_import.writer.urllib_transport", lambda *a, **k: called.append(a)
-    )
+
+    def record(*a: object, **k: object) -> None:
+        called.append(a)
+
+    monkeypatch.setattr("mockfactory.om_import.writer.urllib_transport", record)
     monkeypatch.setenv("OM_TOKEN", "x")
     code = main(["om-import", "--om-url", "http://localhost:8585"])
     assert code != 0
@@ -135,7 +137,11 @@ def test_cli_prints_counts_without_token(
 ) -> None:
     om = FakeOM()
     monkeypatch.setenv("OM_TOKEN", "secret-token-value")
-    monkeypatch.setattr("mockfactory.om_import.writer.urllib_transport", lambda url, token: om)
+
+    def transport(url: str, token: str) -> FakeOM:
+        return om
+
+    monkeypatch.setattr("mockfactory.om_import.writer.urllib_transport", transport)
     code = main(["om-import", "--target", "local", "--om-url", "http://localhost:8585"])
     out = capsys.readouterr()
     assert code == 0
