@@ -5,7 +5,15 @@ import type { CatalogEntity, CatalogEntityType } from "@contexture/ts-api";
 import { getCatalogEntity } from "./api";
 import { Chips } from "./AssetProperties";
 import { EditableProperties, PropertyEditModal } from "./PropertyEditModal";
-import { KIND_NAME, LEVELS, assetChain, assetHref } from "./format";
+import {
+  KIND_NAME,
+  LEVELS,
+  assetChain,
+  assetHref,
+  fqnLabel,
+  sourceHref,
+  splitFqn,
+} from "./format";
 import { useLoad } from "./useLoad";
 
 type Child = NonNullable<CatalogEntity["children"]>[number];
@@ -266,7 +274,9 @@ function Structure({
 
 /** 数据库 / Schema / 表独立资产详情（METADATA CATALOG）：不显示连接配置、采集页签与源级状态。 */
 export function CatalogAssetDetailView() {
-  const { name = "", entityType = "", fqn = "" } = useParams();
+  const { entityType = "", fqn = "" } = useParams();
+  // 006：详情地址不再带服务名，服务名取 FQN 第一段
+  const name = fqnLabel(splitFqn(fqn)[0] ?? "");
   const type = entityType as CatalogEntityType;
   const valid = LEVELS.includes(type) && type !== "databaseService";
   const entity = useLoad(
@@ -277,7 +287,7 @@ export function CatalogAssetDetailView() {
     [type, fqn],
   );
   const back = (
-    <Link to={`/sources/${name}`} className="back-link">
+    <Link to={sourceHref(name)} className="back-link">
       ← 返回所属数据源
     </Link>
   );

@@ -28,27 +28,6 @@ const homeItems: readonly RouteEntry[] = [
     isAction: false,
   },
 ];
-// 005：资产工作空间的二级入口；资产搜索归 006（未开放）
-const assetItems: readonly RouteEntry[] = [
-  {
-    id: "asset-search",
-    label: zh.nav.assets,
-    path: "/assets",
-    module: "asset",
-    secondaryItems: [],
-    availability: "not_open",
-    isAction: false,
-  },
-  {
-    id: "sources",
-    label: zh.nav.sources,
-    path: "/sources",
-    module: "asset",
-    secondaryItems: [],
-    availability: "shell",
-    isAction: false,
-  },
-];
 export const primaryRoutes: readonly RouteEntry[] = [
   {
     id: "new",
@@ -71,9 +50,10 @@ export const primaryRoutes: readonly RouteEntry[] = [
   {
     id: "assets",
     label: zh.nav.assetWorkspace,
-    path: "/sources",
+    path: "/assets",
     module: "asset",
-    secondaryItems: assetItems,
+    // 006 D2：二级栏不再放「资产搜索」「数据源」链接，只承载浏览树或类型列表
+    secondaryItems: [],
     availability: "shell",
     isAction: false,
   },
@@ -94,8 +74,8 @@ export function routePresentation(
   examplesEnabled = uiExamplesEnabled,
 ) {
   path = path.replace(/\/+$/, "") || "/";
-  // 005：/sources/<服务>… 为数据源详情与目录资产，归属“数据源”入口
-  const base = path.startsWith("/sources/") ? "/sources" : path;
+  // 006：/assets 下的探索、数据源管理与资产详情同属「数据资产」页面
+  const base = path.startsWith("/assets/") ? "/assets" : path;
   const primary = primaryRoutes.find(
     (r) => r.path === base || r.secondaryItems.some((s) => s.path === base),
   );
@@ -106,7 +86,7 @@ export function routePresentation(
     primary,
     current,
     title:
-      current?.label ??
+      (base === "/assets" ? zh.nav.assetModule : current?.label) ??
       (/^\/objects\/[^/]+$/.test(path)
         ? zh.nav.legacy
         : path === "/__dev/ui" && examplesEnabled

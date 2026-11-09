@@ -4,12 +4,11 @@ import type { SourceDetail } from "@contexture/ts-api";
 import { SourcesList } from "./SourcesList";
 import { SourceDetailView } from "./SourceDetailView";
 import { SourceWizardModal } from "./SourceWizardModal";
-import { CatalogAssetDetailView } from "./CatalogAssetDetailView";
-import { CatalogTree } from "./CatalogTree";
 import { useInvalidateSources, useSources } from "./queries";
 import "./sources.css";
+import { SOURCES_BASE } from "./format";
 
-/** 数据源工作空间（005）：页面结构与交互对齐原型；数字、时间、运行与表结构全部来自 BFF。 */
+/** 数据源管理（005，006 起为 /assets/sources 子视图）：页面结构与交互对齐原型；数字、时间、运行与表结构全部来自 BFF。 */
 export function SourcesWorkspace() {
   const navigate = useNavigate();
   const sources = useSources();
@@ -20,27 +19,12 @@ export function SourcesWorkspace() {
   }>({
     open: false,
   });
-  const [drawer, setDrawer] = useState(false);
   const existingNames =
     sources.state.status === "ready"
       ? sources.state.data.map((s) => s.name)
       : [];
   return (
-    <div className="sources-workspace">
-      {/* 窄屏（≤ 850px）下二级栏目录隐藏，改由“目录”抽屉浏览（原型 tree-mobile） */}
-      <button
-        type="button"
-        className="ctx-button ctx-button--secondary tree-mobile"
-        aria-expanded={drawer}
-        onClick={() => setDrawer(!drawer)}
-      >
-        目录
-      </button>
-      {drawer && (
-        <div role="dialog" aria-label="数据源目录" className="catalog-drawer">
-          <CatalogTree onPick={() => setDrawer(false)} />
-        </div>
-      )}
+    <div className="sources-subview">
       <Routes>
         <Route
           index
@@ -61,10 +45,6 @@ export function SourcesWorkspace() {
             />
           }
         />
-        <Route
-          path=":name/assets/:entityType/:fqn"
-          element={<CatalogAssetDetailView />}
-        />
       </Routes>
       {wizard.open && (
         <SourceWizardModal
@@ -74,7 +54,7 @@ export function SourcesWorkspace() {
           onSaved={(saved) => {
             setWizard({ open: false });
             void invalidate();
-            navigate(`/sources/${saved.name}`, {
+            navigate(`${SOURCES_BASE}/${saved.name}`, {
               state: { saved: Date.now() },
             });
           }}

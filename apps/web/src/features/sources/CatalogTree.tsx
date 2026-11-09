@@ -32,18 +32,20 @@ type Child = {
 
 const keyOf = (type: string, fqn: string) => `${type}:${fqn}`;
 
-/** 当前地址对应的资产（/sources/:service 或 /sources/:service/assets/:type/:fqn） */
+/** 当前地址对应的资产（/assets/sources/:service 或 /assets/:type/:fqn） */
 function currentAsset(
   pathname: string,
 ): { type: CatalogEntityType; fqn: string } | null {
-  const m = /^\/sources\/([^/]+)(?:\/assets\/([^/]+)\/([^/]+))?\/?$/.exec(
+  const svc = /^\/assets\/sources\/([^/]+)\/?$/.exec(pathname);
+  if (svc?.[1])
+    return { type: "databaseService", fqn: decodeURIComponent(svc[1]) };
+  const m = /^\/assets\/(database|databaseSchema|table)\/([^/]+)\/?$/.exec(
     pathname,
   );
-  if (!m || m[1] === undefined) return null;
-  if (!m[2]) return { type: "databaseService", fqn: decodeURIComponent(m[1]) };
+  if (!m?.[1]) return null;
   return {
-    type: m[2] as CatalogEntityType,
-    fqn: decodeURIComponent(m[3] ?? ""),
+    type: m[1] as CatalogEntityType,
+    fqn: decodeURIComponent(m[2] ?? ""),
   };
 }
 
@@ -160,7 +162,7 @@ export function CatalogTree({ onPick }: { onPick?: () => void }) {
   const currentKey = current ? keyOf(current.type, current.fqn) : "";
 
   // 进入数据源列表或某个数据源详情时重新读取（后台定时运行结束时 OM 不推送通知）
-  const onSourcePage = /^\/sources(\/[^/]+)?\/?$/.test(pathname);
+  const onSourcePage = /^\/assets\/sources(\/[^/]+)?\/?$/.test(pathname);
   useEffect(() => {
     if (onSourcePage) void invalidate();
   }, [pathname, onSourcePage, invalidate]);

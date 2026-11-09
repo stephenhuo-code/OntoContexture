@@ -15,6 +15,7 @@ import {
   stateTone,
 } from "./format";
 import type { Load } from "./useLoad";
+import { SOURCES_BASE } from "./format";
 
 const FILTERS = [
   ["", "全部状态"],
@@ -229,7 +230,7 @@ export function SourcesList({
                           <ConnectorBadge type={s.serviceType} />
                           <div>
                             <Link
-                              to={`/sources/${s.name}`}
+                              to={`${SOURCES_BASE}/${s.name}`}
                               className="source-name"
                             >
                               {s.displayName}
@@ -284,7 +285,7 @@ export function SourcesList({
                       <td>
                         <Link
                           className="ctx-button ctx-button--secondary"
-                          to={`/sources/${s.name}`}
+                          to={`${SOURCES_BASE}/${s.name}`}
                         >
                           {s.configured ? "查看详情" : "继续配置"}
                         </Link>
@@ -319,7 +320,7 @@ export function SourcesList({
               : "最近运行均已完成。可在数据源详情的采集任务中查看运行记录。"}
           </p>
           {attention[0] && (
-            <Link to={`/sources/${attention[0].name}?tab=tasks`}>
+            <Link to={`${SOURCES_BASE}/${attention[0].name}?tab=tasks`}>
               查看运行与日志 →
             </Link>
           )}

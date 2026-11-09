@@ -6,7 +6,8 @@ import { uiExamplesEnabled } from "./layout/navigation";
 import { HomePage } from "./pages/HomePage";
 import { LoginFailurePage } from "./pages/LoginFailurePage";
 import { ObjectsPage } from "./pages/ObjectsPage";
-import { SourcesPage } from "./pages/SourcesPage";
+import { AssetsWorkspace } from "./features/assets/AssetsWorkspace";
+import { LegacySourcesRedirect } from "./features/assets/LegacySourcesRedirect";
 import { NotOpenPage } from "./pages/NotOpenPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { lazy, Suspense, useState } from "react";
@@ -36,8 +37,9 @@ export function App() {
       <Route element={<ProtectedShell />}>
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="/home" element={<HomePage />} />
-        <Route path="/sources/*" element={<SourcesPage />} />
-        {["/assets", "/agents", "/agents/new", "/approvals"].map((path) => (
+        <Route path="/assets/*" element={<AssetsWorkspace />} />
+        <Route path="/sources/*" element={<LegacySourcesRedirect />} />
+        {["/agents", "/agents/new", "/approvals"].map((path) => (
           <Route key={path} path={path} element={<NotOpenPage />} />
         ))}
         <Route path="/objects/:typeKey" element={<ObjectsPage />} />

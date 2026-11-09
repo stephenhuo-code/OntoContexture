@@ -177,14 +177,18 @@ export function splitFqn(fqn: string): string[] {
 
 export const fqnLabel = (part: string) => part.replace(/^"(.*)"$/, "$1");
 
+/** 006 D1：数据源管理在 /assets/sources 下，库 / Schema / 表详情在 /assets/{类型}/{fqn} 下 */
+export const SOURCES_BASE = "/assets/sources";
+export const sourceHref = (service: string) => `${SOURCES_BASE}/${service}`;
+
 export const assetHref = (
   service: string,
   type: CatalogEntityType,
   fqn: string,
 ) =>
   type === "databaseService"
-    ? `/sources/${service}`
-    : `/sources/${service}/assets/${type}/${encodeURIComponent(fqn)}`;
+    ? sourceHref(service)
+    : `/assets/${type}/${encodeURIComponent(fqn)}`;
 
 /** 当前地址对应的目录层级链（从服务到当前资产），用于展开目录树与面包屑 */
 export function assetChain(type: CatalogEntityType, fqn: string) {
