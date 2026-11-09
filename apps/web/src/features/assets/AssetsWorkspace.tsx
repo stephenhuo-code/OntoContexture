@@ -4,6 +4,7 @@ import { SourcesWorkspace } from "../sources/SourcesWorkspace";
 import { CatalogAssetDetailView } from "../sources/CatalogAssetDetailView";
 import { AssetsRail } from "./AssetsRail";
 import { ExploreView } from "./ExploreView";
+import { GovernanceDetail } from "./GovernanceDetail";
 import { NotFoundPage } from "../../pages/NotFoundPage";
 import { AssetsCriteriaProvider } from "./criteria";
 import "../sources/sources.css";
@@ -45,12 +46,11 @@ export function AssetsWorkspace() {
   );
 }
 
-/** /assets/{类型}/{fqn}：库、Schema、表进入 005 的资产详情；其他类型在后续故事中接入。 */
+/** /assets/{类型}/{fqn}：库、Schema、表进入 005 的资产详情；业务术语、分类标签进入只读详情（FR-013）。 */
 function AssetDetailRoute() {
   const { entityType = "" } = useParams();
-  return CATALOG_TYPES.has(entityType) ? (
-    <CatalogAssetDetailView />
-  ) : (
-    <NotFoundPage />
-  );
+  if (CATALOG_TYPES.has(entityType)) return <CatalogAssetDetailView />;
+  if (entityType === "glossaryTerm" || entityType === "tag")
+    return <GovernanceDetail key={entityType} kind={entityType} />;
+  return <NotFoundPage />;
 }

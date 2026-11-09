@@ -520,3 +520,17 @@
 .asset-pagination__hint {
   color: #9a3412;
 }
+.governance-detail {
+  display: grid;
+  gap: 14px;
+  max-width: 860px;
+}
+.governance-detail__head h2 {
+  margin: 2px 0;
+}
+.governance-detail__head small {
+  color: var(--ctx-muted);
+}
+.governance-detail__fields > div {
+  grid-template-columns: 140px minmax(0, 1fr);
+}

@@ -341,10 +341,7 @@ export function PropertyEditModal({
                 </select>
               )}
             </Field>
-            <Field
-              label="重要程度（Tier）"
-              help="业务重要程度；不等同于敏感级别。"
-            >
+            <Field label="分级（Tier）" help="分级（Tier）；不等同于敏感级别。">
               {(p) => (
                 <select
                   {...p}

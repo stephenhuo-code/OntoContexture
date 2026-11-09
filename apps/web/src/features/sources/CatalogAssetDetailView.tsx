@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { Button, PageState } from "@contexture/ui";
 import type { CatalogEntity, CatalogEntityType } from "@contexture/ts-api";
 import { getCatalogEntity } from "./api";
@@ -137,12 +137,19 @@ function Structure({
   entity,
   t,
   onSaved,
+  locate,
 }: {
   entity: CatalogEntity;
   t: Table;
   onSaved: (e: CatalogEntity) => void;
+  /** 006 Q3：由列结果进入时定位并高亮的列名（来自导航状态，不写入地址） */
+  locate?: string;
 }) {
   const [editing, setEditing] = useState<string | null>(null);
+  const located = useRef<HTMLTableRowElement | null>(null);
+  useEffect(() => {
+    located.current?.scrollIntoView({ block: "center" });
+  }, [locate]);
   const cols = t.columns ?? [];
   // OM：单列约束记在 columns[].constraint，多列约束记在 tableConstraints；两处合并展示，均为 OM 原始数据
   const tableLevel = t.constraints ?? [];
@@ -222,7 +229,12 @@ function Structure({
             </thead>
             <tbody>
               {cols.map((c) => (
-                <tr key={c.name}>
+                <tr
+                  key={c.name}
+                  ref={c.name === locate ? located : undefined}
+                  aria-current={c.name === locate ? "true" : undefined}
+                  className={c.name === locate ? "is-located" : undefined}
+                >
                   <td className="mono">
                     {c.name}{" "}
                     {(c.constraint === "PRIMARY_KEY" ||
@@ -275,6 +287,7 @@ function Structure({
 /** 数据库 / Schema / 表独立资产详情（METADATA CATALOG）：不显示连接配置、采集页签与源级状态。 */
 export function CatalogAssetDetailView() {
   const { entityType = "", fqn = "" } = useParams();
+  const location = useLocation();
   // 006：详情地址不再带服务名，服务名取 FQN 第一段
   const name = fqnLabel(splitFqn(fqn)[0] ?? "");
   const type = entityType as CatalogEntityType;
@@ -343,7 +356,12 @@ export function CatalogAssetDetailView() {
       )}
       <EditableProperties entity={e} onSaved={entity.set} />
       {e.entityType === "table" && e.table ? (
-        <Structure entity={e} t={e.table} onSaved={entity.set} />
+        <Structure
+          entity={e}
+          t={e.table}
+          onSaved={entity.set}
+          locate={(location.state as { column?: string } | null)?.column}
+        />
       ) : (
         <Folder service={name} entity={e} />
       )}

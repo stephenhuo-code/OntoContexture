@@ -694,3 +694,7 @@
   font-size: 12px;
   font-family: var(--ctx-mono, monospace);
 }
+/* 006 Q3：由列结果进入时定位并高亮该列 */
+.column-metadata tr.is-located td {
+  background: #fef9c3;
+}

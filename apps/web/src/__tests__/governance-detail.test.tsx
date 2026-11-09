@@ -63,7 +63,7 @@ function setup(status = 200) {
       body: { total: 0, page: 1, pageSize: 15, windowLimited: false, hits: [] },
     },
     {
-      path: "/bff/v1/governance/glossary-terms/ContextureDevGlossary.工单",
+      path: /\/bff\/v1\/governance\/glossary-terms\//,
       status,
       body:
         status === 200
@@ -74,7 +74,7 @@ function setup(status = 200) {
               trace_id: "",
             },
     },
-    { path: "/bff/v1/governance/tags/数据级别.一级", body: tag },
+    { path: /\/bff\/v1\/governance\/tags\//, body: tag },
   ]);
 }
 
