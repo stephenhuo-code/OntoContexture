@@ -10,7 +10,7 @@
 `$UI` = `openmetadata-ui/src/main/resources/ui/src`，`$SPEC` = `openmetadata-spec/src/main/resources`，
 `$RES` = `openmetadata-service/src/main/resources`。OM UI 为 Collate Community License，只读来理解交互，不复制代码。
 
-未能在源码中确认的事项标为 **UNCONFIRMED**，在实施阶段以集成测试实测确认，结论写入 `acceptance.md`。
+未能在源码中确认的事项原标为 UNCONFIRMED，已在实施阶段（2026-11-09）以集成测试实测确认，结论见各节「实测」与文末「实施中的修正」，并写入 `acceptance.md`。
 
 ---
 
@@ -75,12 +75,15 @@
     - 子层：每展开一层，用一次 `/search/aggregate`，`field` 取该层字段，`q` 为「父路径各层 term + 当前筛选条件」的 DSL。这与 `buildTreeCountQueryFilter`（ExplorePureUtils.ts:619-659）一致：在根层还要限定该大类的子实体类型，计数会随当前快速筛选变化。
     - OM UI 在非服务层改用 `/search/query` 的聚合（`ExploreTree.tsx:127-161`）。织境统一用 `/aggregate`，结果等价，接口更少，也符合 FR-018「浏览树计数使用聚合能力」。
   - **按需加载**：BFF 提供 `POST /bff/v1/assets/browse`。请求带父路径，只返回下一层的节点；前端只在展开时请求。
-  - **点击节点**：前端把「根 + 各层 `{level, value}`」写入搜索条件中的 `browsePath`，不跳页。BFF 把每一层转成 `term`：`entityType` 层用 `entityType.keyword`，值转小写（ExplorePureUtils.ts:183-224），其余层用该层字段。
+  - **点击节点**：前端把「根 + 各层 `{level, value}`」写入搜索条件中的 `browsePath`，不跳页。BFF 把每一层转成 `term`。
+  - **实施调整**：浏览树各层改用原始大小写的 keyword 字段（`entityType`、`service.displayName`、`database.displayName`、`databaseSchema.displayName`；`serviceType` 只有小写字段，显示名取 top_hits），桶键即显示名，省去 OM UI 的「小写桶键 + top_hits 取显示名」。字段类型见 `$SPEC/elasticsearch/en/table_index_mapping.json`（均为 keyword），计数口径与 OM 相同。
   - **桶数量与顺序**：`/aggregate` 的桶按键名字母升序返回，不按计数排序（OpenSearchAggregationManager.java:262-292）。浏览树每层取 `size=1000`，远小于 OM 的 `maxAggregateSize=10000`；顺序保持 OM 的返回顺序。
 - **Rationale**：FR-006 要求「服务类型 → 服务 → 库 → Schema → 实体类型」、计数来自聚合、按需加载、点击只设置位置条件；以上都按 OM 现有做法实现。005 原来的逐层 REST 分页计数（`om_sources.py:854-893`）不再用于浏览树。
-- **风险（UNCONFIRMED）**：
-  - 层级按显示名的 term 匹配，不按 FQN 前缀。如果不同服务下的库或 Schema 显示名相同，路径仍然由「服务 → 库」逐层限定，不会串。但如果某个实体没有 `displayName`，索引里是否回退为 `name`，尚未核实。集成测试用导入工具生成「无显示名」样例来确认。
-  - `database.displayName` 能否直接聚合（是否为 keyword）以 OM UI 的用法为依据，集成测试实测确认。
+- **实测（2026-11-09，`test_om_unconfirmed_cluster.py`、`test_assets_browse_cluster.py`）**：
+  - 没有 `displayName` 的实体，索引中 `displayName` 回退为 `name`（fixture 中的 `supplier` 表）；服务没有显示名时，`service.displayName` 同样为服务名。
+  - `database.displayName` 是 keyword 字段，可直接聚合。
+  - `/search/aggregate` 必须传 `value=.*`：不传时 `value` 默认为空串，OM 按空的 include 正则过滤，返回空桶。
+  - fixture 中每张表都能经浏览树「服务类型 → 服务 → 库 → Schema」定位；数据库大类计数与 OM 直接聚合一致。
 
 ## R4：快速筛选（FR-008）
 
@@ -109,7 +112,7 @@
 - **选项内搜索**：`value` 传 `.*<转义后的输入>.*`（`$UI/rest/miscAPI.ts:226-229`）。OM 服务端会转小写，按精确、前缀、包含三档合并去重（`$SVC/search/SearchUtils.java:118-230`）。
 - **选项显示名与取值**：带 `lowercase_normalizer` 的字段，桶键是小写的。BFF 传 `sourceFields=<显示名来源字段>`，从 top_hits 中取原始大小写作为显示名；筛选时仍用桶键做 `term`（OpenSearchAggregationManager.java:204、248-260）。
 - **「无」不显示计数**：OM 的「无」选项只是一个复选框，没有计数（`$UI/components/SearchDropdown/SearchDropdown.tsx:391-412`）。006 保持一致。spec FR-008「显示选项计数」只适用于有取值的选项。
-- **每次取多少选项**：采用 `/aggregate` 的默认值 `size=10`（SearchResource.java:746-812），更多选项通过选项内搜索查找。OM UI 的 `optionPageSize` 具体取值 **UNCONFIRMED**，实施时核对 `$UI` 常量后取同值。
+- **每次取多少选项**：采用 `/aggregate` 的默认值 `size=10`（SearchResource.java:746-812），更多选项通过选项内搜索查找。已核对：OM Explore 的快速筛选不传 `optionPageSize`，`getAggregateFieldOptions`（`$UI/rest/miscAPI.ts:216-245`）也不传 `size`，即服务端默认 10，与 BFF 一致。
 - **已知差异**：列文档没有 `ownerDisplayName`（`$SVC/search/indexes/ColumnSearchIndex.java:107`），所以按负责人筛选时不会出现列。这与 OM 行为一致，写进 `acceptance.md`。
 
 ## R5：排序（FR-010）
@@ -130,11 +133,11 @@
 
 ## R6：结果窗口上限与超时
 
-- **结果窗口**：OM 把 `from` 和 `size` 分别截到 10000 以内，但不检查两者之和（OpenSearchSourceBuilderFactory.java:673-680）。索引没有设置 `max_result_window`，超出时预计 OpenSearch 报错，OM 返回 500（**UNCONFIRMED**）。
+- **结果窗口**：OM 把 `from` 和 `size` 分别截到 10000 以内，但不检查两者之和（OpenSearchSourceBuilderFactory.java:673-680）。索引没有设置 `max_result_window`。实测：`from=9995,size=15` 时 OM 返回 HTTP 500「Search failed … Result window is too large」；BFF 在调用 OM 之前即返回 422 `search.window_exceeded`。
   - **Decision**：BFF 先行校验 `from + size ≤ 10000`。超出时返回 `422 search.window_exceeded`。
   - 前端把可翻到的最大页码限制在窗口以内；总数超过 10000 时，在分页处提示「仅显示前 10000 条，请缩小条件」。
   - 页头显示的总数仍取 `hits.total.value`（`track_total_hits=true`），即真实总数。
-- **超时**：OM 给 OpenSearch 设了 `timeout("30s")`（OpenSearchSearchManager.java:1508）。触发时 OpenSearch 返回部分结果、`timed_out:true`、HTTP 200（**UNCONFIRMED**）。
+- **超时**：OM 给 OpenSearch 设了 `timeout("30s")`（OpenSearchSearchManager.java:1508）。触发时 OpenSearch 返回部分结果、`timed_out:true`、HTTP 200。实测：本地数据量下无法触发超时（`size=10000` 查询 `timed_out=false`，约 140–190ms），返回形式未能在真实环境复现；映射逻辑由契约测试（模拟 `timed_out=true`）保证。
   - **Decision**：BFF 发现 `timed_out=true` 时，不返回部分结果，而是返回 `504 search.timeout`，满足「不显示伪造或不完整的结果」。
   - BFF 的 OM 客户端超时沿用 005 的 30 秒（`om_client.py:61`）。超时后映射为 `502 upstream.unavailable`。
 
@@ -302,3 +305,19 @@
 - OM 的 `enableAccessControl` 默认为 `false`，`/aggregate` 和 `/entityTypeCounts` 本身也不过滤（对齐调研第 7 节）。所有登录用户看到的资产范围相同，按宪法 IV 的 Phase 1 例外处理，写入验收说明。
 - 日志与追踪：沿用 `contexture_core.telemetry` 的 `bind_context` 和 JSON 日志（携带 `trace_id`、`tenant_id`）。每个搜索、摘要、详情请求输出一条结构化日志：操作、类型、关键词长度（不记录关键词原文，避免业务敏感词进入日志）、条件维度、结果数、耗时。日志不记录令牌。
 - 006 全部是只读操作，不触发 005 的写审计（`audit_write`）。
+
+## 实施中的修正（2026-11-09）
+
+- **库与 Schema 的 `certification`**（R9）：实测 OM 接受 `fields=certification`；fixture 中未设置认证，响应不含该键。摘要沿用 R9 的字段清单。
+- **高亮片段**（R8）：OM 返回的高亮片段已做 HTML 实体转义（如 `&#xff1a;`），中文在 EN 映射下按单字高亮。BFF 解析片段时先解码实体，再以纯文本片段返回。
+- **卡片标题**（R8）：只命中 `name` 字段时，不能用 `name` 的高亮代替 `displayName`；只有 `displayName` 缺失或与 `name` 相同时才使用 `name` 的高亮（e2e 实测发现，已补单元测试）。
+- **开发态标识**（R12）：分类（classification）实体没有 `tags` 字段，无法贴标识；导入工具改为在分类描述开头写固定前缀 `[织境开发态测试元数据]` 判断归属。其余实体仍贴标识标签。
+- **导入工具**（R13）：
+  - 经集群网络返回的响应头为小写 `x-openmetadata-change`，统计时按大小写不敏感读取；
+  - OM 不允许删除仍有标签的分类（`HTTP 400 classification is not empty`，即使带 `recursive=true`），撤除时先删标签再删分类；
+  - 导入后立即可搜到全部 29 张表（实测 0.0s）。
+- **Web 构建产物路径**（R14）：Vite 默认把构建产物放在 `/assets/`，与数据资产页的 `/assets/*` 路由冲突（部署后 `/assets/sources` 为 nginx 404）。构建产物改放 `/static/`（`vite.config.ts` 的 `build.assetsDir`），nginx 对 `/static/` 设长缓存，`/assets/*` 回落到单页应用。
+- **005 目录树的自动刷新**（R14）：采集运行结束时，005 原来让数据源相关缓存失效以刷新左侧目录；改为同时让数据资产页的查询失效，浏览树随之刷新（005 e2e 验证）。
+- **OpenSearch 内存**（R15、D11）：lite 环境原为堆 384m、上限 1Gi，被 OOMKilled 321 次。先把上限调到 1280Mi，空载 10 分钟稳定；但完整 e2e 负载下堆接近占满（约 370MB/384MB），再次 OOMKilled。于是改为堆 512m、上限 1536Mi，完整 e2e 期间仍被 OOMKilled 1 次。同一集群中 Airflow scheduler、dag-processor 等组件也在反复 OOM，说明 lite 环境整体内存不足，已作为环境阻塞写入 acceptance.md，由负责人决定是否进一步调整。
+- **接口位置**：术语与标签详情接口放在 `api/assets.py`（与摘要共用 `AssetReader` 依赖），路径与契约一致（`/bff/v1/governance/...`），plan 原写 `api/catalog.py`。
+- **005 的 `governance_view` 未改用 `split_tags`**：改用会让数据级别标签从 005 的可编辑分类标签中消失，造成退化；`split_tags` 只供 006 使用。
