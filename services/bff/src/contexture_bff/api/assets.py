@@ -55,7 +55,7 @@ class BrowseStepModel(BaseModel):
     model_config = Strict
     level: Level
     value: str = Field(min_length=1, max_length=256)
-    label: str | None = None
+    label: str = ""  # 只用于在条件条上显示；契约中为字符串，不接受 null
 
 
 class FilterValueModel(BaseModel):
@@ -84,6 +84,19 @@ class SearchCriteriaModel(BaseModel):
     pageSize: Literal[15, 25, 50] = 15  # noqa: N815
 
 
+class FacetRequest(BaseModel):
+    model_config = Strict
+    criteria: SearchCriteriaModel
+    dimension: FacetDimension
+    optionQuery: str = Field(default="", max_length=100)  # noqa: N815
+
+
+class BrowseRequest(BaseModel):
+    model_config = Strict
+    criteria: SearchCriteriaModel
+    parentPath: list[BrowseStepModel] = Field(max_length=5)  # noqa: N815
+
+
 def raw(model: BaseModel) -> dict[str, Any]:
     return model.model_dump(mode="json")
 
@@ -98,6 +111,16 @@ async def count_asset_types(
     body: SearchCriteriaModel, ctx: WebContext, svc: Search
 ) -> dict[str, Any]:
     return await svc.type_counts(ctx, raw(body))
+
+
+@router.post("/assets/facets")
+async def get_asset_facet(body: FacetRequest, ctx: WebContext, svc: Search) -> dict[str, Any]:
+    return await svc.facets(ctx, raw(body.criteria), body.dimension, body.optionQuery)
+
+
+@router.post("/assets/browse")
+async def browse_assets(body: BrowseRequest, ctx: WebContext, svc: Search) -> dict[str, Any]:
+    return await svc.browse(ctx, raw(body.criteria), [raw(s) for s in body.parentPath])
 
 
 @router.get("/assets/suggestions")

@@ -132,6 +132,8 @@ BROWSE_FIELDS = {
     "entityType": ("entityType", None),
 }
 BROWSE_BUCKETS = 1000
+FACET_SIZE = 10  # /search/aggregate 默认 size（SearchResource.java:746-812）
+_REGEX_RESERVED = set('.?+*|{}[]()"\\#@&<>~')
 
 
 def invalid(field: str, reason: str) -> ContextureError:
@@ -193,8 +195,8 @@ def parse_browse_path(
             if level not in _NEXT_LEVEL[prev]:
                 raise invalid(name, f"位置条件不能从 {prev} 跳到 {level}")
             root_levels = BROWSE_ROOTS[steps[0][1]][2]
-            if level not in root_levels:
-                raise invalid(name, f"{steps[0][1]} 大类下没有 {level} 这一层")
+            if i - 1 >= len(root_levels) or root_levels[i - 1] != level:
+                raise invalid(name, f"{steps[0][1]} 大类下第 {i} 层不是 {level}")
         steps.append((str(level), value))
     return tuple(steps)
 
@@ -499,6 +501,107 @@ def bucket_label(bucket: Mapping[str, Any], label_field: str | None) -> str:
     return str(bucket.get("key"))
 
 
+# ---------- 快速筛选与浏览树（/search/aggregate） ----------
+def _regex_contains(text: str) -> str:
+    """选项内搜索：OM 以 include 正则匹配桶键（服务端转小写），这里转义 Lucene 正则保留字符。"""
+    return ".*" + "".join(f"\\{ch}" if ch in _REGEX_RESERVED else ch for ch in text.lower()) + ".*"
+
+
+def facet_params(c: Criteria, dimension: str, option_query: str | None = None) -> dict[str, Any]:
+    if dimension not in FACETS:
+        raise invalid("dimension", f"不支持的筛选维度：{dimension}")
+    if dimension in TABLE_ONLY and index_for(c) != "table":
+        raise invalid("dimension", f"筛选维度 {dimension} 只能在资产类型为表时使用")
+    if option_query and len(option_query) > MAX_OPTION_QUERY:
+        raise invalid("optionQuery", f"选项搜索最多 {MAX_OPTION_QUERY} 个字符")
+    es_field, label_field = FACETS[dimension]
+    params: dict[str, Any] = {
+        "index": index_for(c),
+        "field": es_field,
+        "size": FACET_SIZE,
+        "deleted": "false",
+        # 本维度的选项计数排除本维度自身的已选条件（$UI/components/Explore/ExploreQuickFilters.tsx）
+        "q": json.dumps(build_query_filter(c, exclude=dimension), ensure_ascii=False),
+        "value": _regex_contains(option_query) if option_query else ".*",
+    }
+    if c.keyword:
+        params["queryText"] = escape_keyword(c.keyword)
+    if label_field:
+        params["sourceFields"] = label_field
+    return params
+
+
+def facet_options(rows: list[dict[str, Any]], label_field: str | None) -> list[dict[str, Any]]:
+    return [
+        {
+            "value": str(b["key"]),
+            "label": bucket_label(b, label_field),
+            "count": int(b.get("doc_count") or 0),
+        }
+        for b in rows
+    ]
+
+
+def browse_params(c: Criteria, parent: tuple[tuple[str, str], ...]) -> dict[str, Any]:
+    """浏览树的一层（research R3）：根层聚合 entityType；其下按大类的层级依次展开。"""
+    params: dict[str, Any] = {
+        "index": "dataAsset",
+        "size": BROWSE_BUCKETS,
+        "deleted": "false",
+        "value": ".*",
+        "q": json.dumps(build_query_filter(c, browse=parent), ensure_ascii=False),
+    }
+    if c.keyword:
+        params["queryText"] = escape_keyword(c.keyword)
+    if not parent:
+        params["field"] = "entityType"
+        return params
+    levels = BROWSE_ROOTS[parent[0][1]][2]
+    depth = len(parent) - 1
+    if depth >= len(levels):
+        raise invalid("parentPath", "该节点没有下一层")
+    es_field, label_field = BROWSE_FIELDS[levels[depth]]
+    params["field"] = es_field
+    if label_field:
+        params["sourceFields"] = label_field
+    return params
+
+
+def browse_nodes(
+    parent: tuple[tuple[str, str], ...], rows: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    if not parent:
+        counts = {str(b["key"]): int(b.get("doc_count") or 0) for b in rows}
+        nodes = []
+        for key, (label, children, _levels) in BROWSE_ROOTS.items():
+            total = sum(counts.get(e, 0) for e in children)
+            if total > 0:  # 计数为 0 的根节点不显示（FR-006）
+                nodes.append(
+                    {
+                        "level": "root",
+                        "value": key,
+                        "label": label,
+                        "count": total,
+                        "hasChildren": True,
+                    }
+                )
+        return nodes
+    levels = BROWSE_ROOTS[parent[0][1]][2]
+    level = levels[len(parent) - 1]
+    label_field = BROWSE_FIELDS[level][1]
+    return [
+        {
+            "level": level,
+            "value": str(b["key"]),
+            "label": bucket_label(b, label_field),
+            "count": int(b.get("doc_count") or 0),
+            "hasChildren": level != "entityType",
+        }
+        for b in rows
+        if int(b.get("doc_count") or 0) > 0
+    ]
+
+
 # ---------- 调用 OM ----------
 async def search_request(
     om: OmClient, ctx: RequestContext, path: str, params: dict[str, Any]
@@ -587,6 +690,31 @@ class SearchService:
         top_hits = (top_body.get("hits") or {}).get("hits") or []
         top = (top_hits[0].get("_source") or {}).get("entityType") if top_hits else None
         return {"counts": counts, "topHitType": top, "defaultType": default_type(counts, top)}
+
+    async def facets(
+        self,
+        ctx: RequestContext,
+        raw: Mapping[str, Any],
+        dimension: str,
+        option_query: str | None = None,
+    ) -> dict[str, Any]:
+        c = parse_criteria(raw)
+        params = facet_params(c, dimension, option_query)
+        body = await search_request(self.om, ctx, "/search/aggregate", params)
+        return {
+            "dimension": dimension,
+            "supportsNone": dimension in NONE_DIMENSIONS,
+            "options": facet_options(buckets(body, params["field"]), FACETS[dimension][1]),
+        }
+
+    async def browse(
+        self, ctx: RequestContext, raw: Mapping[str, Any], parent_raw: Any
+    ) -> dict[str, Any]:
+        c = parse_criteria({**raw, "browsePath": []})
+        parent = parse_browse_path(parent_raw, "parentPath", limit=5)
+        params = browse_params(c, parent)
+        body = await search_request(self.om, ctx, "/search/aggregate", params)
+        return {"nodes": browse_nodes(parent, buckets(body, params["field"]))}
 
     async def suggestions(
         self, ctx: RequestContext, keyword: str, scope: str | None
