@@ -802,7 +802,7 @@ class SourcesService:
         keys: set[str],
     ) -> None:
         if body.get("tier") is not None and not TIER.fullmatch(body["tier"]):
-            raise _governance_error("governance.invalid_tier", "重要程度须为 Tier.Tier1–Tier.Tier5")
+            raise _governance_error("governance.invalid_tier", "分级（Tier）须为 Tier.Tier1–Tier.Tier5")
         if body.get("retentionPeriod") is not None and not ISO_DURATION.fullmatch(
             body["retentionPeriod"]
         ):

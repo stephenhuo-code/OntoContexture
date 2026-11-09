@@ -141,3 +141,17 @@ async def get_asset_summary(
     svc: Reader,
 ) -> dict[str, Any]:
     return await svc.summary(ctx, entityType, fqn)
+
+
+@router.get("/governance/glossary-terms/{fqn}")
+async def get_glossary_term_detail(
+    fqn: Annotated[str, Path(min_length=1)], ctx: WebContext, svc: Reader
+) -> dict[str, Any]:
+    return await svc.glossary_term(ctx, fqn)
+
+
+@router.get("/governance/tags/{fqn}")
+async def get_tag_detail(
+    fqn: Annotated[str, Path(min_length=1)], ctx: WebContext, svc: Reader
+) -> dict[str, Any]:
+    return await svc.tag(ctx, fqn)

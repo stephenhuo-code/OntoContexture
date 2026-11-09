@@ -47,11 +47,27 @@ SUMMARY_FIELDS = {
     "tag": "owners,domains,reviewers",
     "*": "owners,domains,tags",
 }
+GLOSSARY_TERM_FIELDS = "owners,reviewers,domains,tags,relatedTerms"
+TAG_FIELDS = "owners,reviewers,domains"
 
 
 def parent_table_fqn(column_fqn: str) -> str:
     """列 FQN 的前 4 段是所属表（服务.库.Schema.表），含点的名称以双引号包裹。"""
     return ".".join(split_fqn(column_fqn)[:4])
+
+
+def _ref(r: Any) -> dict[str, Any] | None:
+    if not isinstance(r, dict) or not r.get("id") or not r.get("type"):
+        return None
+    return {
+        k: r[k]
+        for k in ("id", "type", "name", "displayName", "fullyQualifiedName")
+        if r.get(k) is not None
+    }
+
+
+def _refs(items: Any) -> list[dict[str, Any]]:
+    return [x for x in (_ref(r) for r in items or []) if x]
 
 
 def _breadcrumb(e: dict[str, Any]) -> list[dict[str, str]]:
@@ -166,3 +182,50 @@ class AssetReader:
         if entity_type == "table":
             out["columns"] = _columns(e)
         return out
+
+    async def glossary_term(self, ctx: RequestContext, fqn: str) -> dict[str, Any]:
+        e = await self._get("/glossaryTerms", ctx, fqn, GLOSSARY_TERM_FIELDS)
+        return {
+            "ref": {
+                "entityType": "glossaryTerm",
+                "id": str(e.get("id") or ""),
+                "fqn": str(e.get("fullyQualifiedName") or fqn),
+            },
+            "name": str(e.get("name") or ""),
+            "displayName": e.get("displayName"),
+            "description": e.get("description"),
+            "glossary": _ref(e.get("glossary")),
+            "parent": _ref(e.get("parent")),
+            "synonyms": [str(s) for s in e.get("synonyms") or []],
+            "relatedTerms": _refs(e.get("relatedTerms")),
+            "references": [
+                {"name": str(r.get("name") or ""), "endpoint": str(r.get("endpoint") or "")}
+                for r in e.get("references") or []
+                if isinstance(r, dict)
+            ],
+            "owners": _refs(e.get("owners")),
+            "reviewers": _refs(e.get("reviewers")),
+            "domains": _refs(e.get("domains")),
+            "tags": [t["tagFQN"] for t in e.get("tags") or [] if t.get("tagFQN")],
+            "entityStatus": e.get("entityStatus"),
+            "origin": split_tags(e.get("tags")).origin,
+        }
+
+    async def tag(self, ctx: RequestContext, fqn: str) -> dict[str, Any]:
+        e = await self._get("/tags", ctx, fqn, TAG_FIELDS)
+        return {
+            "ref": {
+                "entityType": "tag",
+                "id": str(e.get("id") or ""),
+                "fqn": str(e.get("fullyQualifiedName") or fqn),
+            },
+            "name": str(e.get("name") or ""),
+            "displayName": e.get("displayName"),
+            "description": e.get("description"),
+            "classification": _ref(e.get("classification")),
+            "parent": _ref(e.get("parent")),
+            "owners": _refs(e.get("owners")),
+            "reviewers": _refs(e.get("reviewers")),
+            "domains": _refs(e.get("domains")),
+            "deprecated": bool(e.get("deprecated", False)),
+        }
