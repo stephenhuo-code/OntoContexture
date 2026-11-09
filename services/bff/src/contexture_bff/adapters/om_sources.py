@@ -11,6 +11,7 @@ import secrets
 import string
 import time
 import uuid
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import quote
 
@@ -928,6 +929,45 @@ def _tag_fqns(tags: list[dict[str, Any]] | None, glossary: bool) -> list[str]:
         if (t.get("source") == "Glossary") == glossary and not fqn.startswith("Tier."):
             out.append(fqn)
     return out
+
+
+# 006：开发态测试元数据标识（testdata/mockfactory/om_import/fixture.py 的 MARKER_FQN，research R12）
+DEV_TEST_MARKER = "ContextureDevTest.DevTestMetadata"
+# 数据安全级别：OM 分类「数据级别」下的标签（ADR-0008 第 2.4 节；tools/seed.py DATA_LEVEL）
+DATA_LEVEL_PREFIX = "数据级别."
+
+
+@dataclass(frozen=True)
+class TagSplit:
+    tier: str | None
+    data_level: str | None
+    origin: str  # collected | devTest
+    glossary_terms: list[str]
+    tags: list[str]
+
+
+def split_tags(tags: list[dict[str, Any]] | None) -> TagSplit:
+    """006 data-model 第 3 节：按 Tier、数据级别、开发态标识、业务术语、其余标签拆分 OM 的 tags。
+
+    005 的属性编辑仍使用 governance_view（数据级别作为普通分类标签可编辑），行为不变。
+    """
+    tier = data_level = None
+    origin = "collected"
+    glossary: list[str] = []
+    rest: list[str] = []
+    for t in tags or []:
+        fqn = t.get("tagFQN") or ""
+        if t.get("source") == "Glossary":
+            glossary.append(fqn)
+        elif fqn.startswith("Tier."):
+            tier = tier or fqn
+        elif fqn.startswith(DATA_LEVEL_PREFIX):
+            data_level = data_level or fqn
+        elif fqn == DEV_TEST_MARKER:
+            origin = "devTest"
+        else:
+            rest.append(fqn)
+    return TagSplit(tier, data_level, origin, glossary, rest)
 
 
 def _ref(r: dict[str, Any]) -> dict[str, Any]:
