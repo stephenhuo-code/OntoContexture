@@ -58,7 +58,12 @@ export function useCatalogEntity(
 export function useInvalidateSources() {
   const client = useQueryClient();
   return useCallback(
-    () => client.invalidateQueries({ queryKey: SOURCES_KEY }),
+    () =>
+      Promise.all([
+        client.invalidateQueries({ queryKey: SOURCES_KEY }),
+        // 006：采集运行结束等情况同时刷新数据资产页的浏览树与搜索结果（保持 005 的自动更新）
+        client.invalidateQueries({ queryKey: ["assets"] }),
+      ]),
     [client],
   );
 }
