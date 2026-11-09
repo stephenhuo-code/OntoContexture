@@ -29,18 +29,18 @@ description: "006 资产搜索与摘要的实施任务清单"
 
 **Purpose**：确认搜索验收所依赖的 OpenSearch 是稳定的（D11、research R15）。
 
-- [ ] T001 排查本地 OpenSearch 反复重启的原因。
+- [x] T001 排查本地 OpenSearch 反复重启的原因。
   - 记录重启次数基线：`kubectl -n contexture get pod opensearch-cluster-master-0 -o jsonpath='{.status.containerStatuses[0].restartCount}'`。
   - 执行 `kubectl -n contexture describe pod opensearch-cluster-master-0` 与 `kubectl -n contexture logs opensearch-cluster-master-0 --previous`，判断原因：OOMKilled、探针失败或磁盘。
   - 把结论写入 `specs/006-asset-search-summary/acceptance.md` 草稿的「环境前置」一节。
   - 对应：D11、Assumptions「环境前置」。
   - 完成判定：草稿中有原因结论和基线次数。
-- [ ] T002 如果 T001 确认是配置原因，只调整 `deploy/components/opensearch/values/base.yaml`、`local.yaml`、`lite.yaml` 中对应的值（例如堆内存、探针、存储），不改其他组件。
+- [x] T002 如果 T001 确认是配置原因，只调整 `deploy/components/opensearch/values/base.yaml`、`local.yaml`、`lite.yaml` 中对应的值（例如堆内存、探针、存储），不改其他组件。
   - 改完运行 `make components-check`，再执行 `make up` 并观察 10 分钟。
   - 对应：D11、宪法 VI（只改配置）。
   - 完成判定（闸门）：10 分钟内重启次数不增长。
   - 如果仍未解决，在 acceptance 草稿中记为「环境阻塞」，开发继续进行。
-- [ ] T003 [P] 记录开工前的基线：运行 `make lint`、`make test`、`pnpm --filter @contexture/web test`，把结果写入 acceptance 草稿。
+- [x] T003 [P] 记录开工前的基线：运行 `make lint`、`make test`、`pnpm --filter @contexture/web test`，把结果写入 acceptance 草稿。
   - 对应：SC-007（005 不退化的对照基线）。
   - 完成判定：基线结果已记录。
 
@@ -52,7 +52,7 @@ description: "006 资产搜索与摘要的实施任务清单"
 
 ### B. 开发态元数据导入工具（FR-016、FR-017、SC-008；research R12、R13）
 
-- [ ] T004 [P] 编写失败测试 `testdata/tests/test_om_import_fixture.py`，覆盖以下要求：
+- [x] T004 [P] 编写失败测试 `testdata/tests/test_om_import_fixture.py`，覆盖以下要求：
   - fixture 由 `testdata/mockfactory/schema/{mes,qms,dw}.py` 生成；
   - 每张表和每个字段的 `description` 都等于 003 定义中的中文注释；
   - 服务只包含 `name`、`serviceType`、`description`，**不带 `connection`**，描述中注明「开发态测试元数据，由 testdata 导入工具生成」；
@@ -60,7 +60,7 @@ description: "006 资产搜索与摘要的实施任务清单"
   - 样例至少覆盖：同名表（位于不同 Schema）、缺负责人、缺分级、缺业务域、业务域 × 分级 × 标签的组合、带「数据级别.*」标签的字段、无 `displayName` 的实体；
   - 负责人只使用现有的 OM 团队 `admin` 或 `ai-engineer`。
   - 完成判定：测试运行失败，原因是模块不存在。
-- [ ] T005 [P] 编写失败测试 `testdata/tests/test_om_import_cli.py`。用 `httpx.MockTransport` 模拟 OM，覆盖以下要求：
+- [x] T005 [P] 编写失败测试 `testdata/tests/test_om_import_cli.py`。用 `httpx.MockTransport` 模拟 OM，覆盖以下要求：
   - 缺少 `--target local` 时，退出码非 0，且没有发出任何 HTTP 请求；
   - 凭证只从环境变量读取（`OM_TOKEN`，或 `KEYCLOAK_PROVISIONER_CLIENT_ID` / `KEYCLOAK_PROVISIONER_CLIENT_SECRET`）；输出中不出现令牌；
   - 全部写入都使用 `PUT`；
@@ -68,26 +68,26 @@ description: "006 资产搜索与摘要的实施任务清单"
   - 目标服务或术语表已经存在、但没有开发态标识时，拒绝写入并退出；
   - `--remove` 只删除带标识的自有服务（`DELETE /v1/services/databaseServices/name/{name}?hardDelete=true&recursive=true`），以及自有的术语表、分类和业务域。
   - 完成判定：测试运行失败。
-- [ ] T006 实现 fixture 模块 `testdata/mockfactory/om_import/fixture.py`。
+- [x] T006 实现 fixture 模块 `testdata/mockfactory/om_import/fixture.py`。
   - 工具用到的名称定义为常量：服务名前缀、开发态分类与标签的名称（显示名为「开发态测试元数据」）、术语表、业务域、样例分类。
   - 分级使用 OM 自带的 `Tier.*` 标签。
   - 对应：FR-016、research R12、R13。
   - 完成判定：T004 通过。
-- [ ] T007 实现写入与撤除模块 `testdata/mockfactory/om_import/writer.py`。
+- [x] T007 实现写入与撤除模块 `testdata/mockfactory/om_import/writer.py`。
   - 写入顺序：分类 → 标签 → 业务域 → 术语表 → 术语 → 服务 → 库 → Schema → 表。
   - 写入前做自有资产检查（见 T005）；完成后输出统计结果；支持撤除。
   - 对应：FR-016、FR-017。
   - 完成判定：T005 中与写入相关的用例通过。
-- [ ] T008 在 `testdata/mockfactory/__main__.py` 中注册 `om-import` 子命令。
+- [x] T008 在 `testdata/mockfactory/__main__.py` 中注册 `om-import` 子命令。
   - 参数：`--target local`（必填）、`--om-url`（必填）、`--remove`。
   - 对应：FR-017。
   - 完成判定：T005 全部通过。
-- [ ] T009 在根目录 `Makefile` 中新增 `dev-metadata` 与 `dev-metadata-remove` 两个目标。
+- [x] T009 在根目录 `Makefile` 中新增 `dev-metadata` 与 `dev-metadata-remove` 两个目标。
   - 参照 `seed` 目标的做法：加载 `.env.local`、设置 Caddy CA、端口转发 `svc/openmetadata` 8585。
   - 调用 `uv run python -m mockfactory om-import --target local --om-url http://localhost:8585`，撤除时再加 `--remove`。
   - 对应：quickstart 第 1 节。
   - 完成判定：`make dev-metadata` 可以执行。
-- [ ] T010 编写集成测试 `testdata/tests/cluster/test_om_import_cluster.py`（`-m cluster`），覆盖以下要求：
+- [x] T010 编写集成测试 `testdata/tests/cluster/test_om_import_cluster.py`（`-m cluster`），覆盖以下要求：
   - 连续导入两次，第二次「新建」为 0，测试资产总数不变；
   - 005 服务 `mock-mes`（如果存在）的 `version` 与 `updatedAt` 不变；
   - 导入后立即可以通过 OM `/v1/search/query?index=table` 按表名搜到；
