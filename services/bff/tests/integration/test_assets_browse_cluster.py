@@ -1,4 +1,4 @@
-"""US2 集成（真实 OM，-m cluster）：组合条件与 OM 一致（SC-004）；浏览树定位每张表、计数一致（SC-001）。"""
+"""US2 集成（真实 OM，-m cluster）：组合条件与 OM 一致（SC-004）；浏览树定位每张表（SC-001）。"""
 
 import asyncio
 import json
