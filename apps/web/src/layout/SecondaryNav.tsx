@@ -22,8 +22,6 @@ const MODULE_ICON: Record<RouteEntry["module"], string> = {
 const ITEM_ICON: Record<string, string> = {
   overview: "overview",
   approvals: "approval",
-  "asset-search": "search",
-  sources: "database",
 };
 
 // 二级栏宽度：可拖动或用方向键调整（与 OpenMetadata 左栏一致）；仅保存在本人浏览器
@@ -64,11 +62,11 @@ export function SecondaryNav({
 }: {
   route: RouteEntry;
   path: string;
-  /** 二级栏下方的附加内容（005：数据源目录树） */
+  /** 二级栏下方的附加内容（资产工作空间：目录树） */
   children?: ReactNode;
 }) {
   const text = moduleText[route.module];
-  const current = path.startsWith("/sources/") ? "/sources" : path;
+  const current = path;
   const [width, setWidth] = useRailWidth();
   const drag = (e: PointerEvent<HTMLDivElement>) => {
     e.preventDefault(); // 拖动时不选中页面文字
@@ -97,18 +95,20 @@ export function SecondaryNav({
         <NavIcon name={MODULE_ICON[route.module]} />
         {text.title ?? route.label}
       </div>
-      <nav aria-label={text.aria}>
-        {route.secondaryItems.map((item) => (
-          <Link
-            key={item.id}
-            to={item.path}
-            aria-current={current === item.path ? "page" : undefined}
-          >
-            <NavIcon name={ITEM_ICON[item.id] ?? "overview"} />
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+      {route.secondaryItems.length > 0 && (
+        <nav aria-label={text.aria}>
+          {route.secondaryItems.map((item) => (
+            <Link
+              key={item.id}
+              to={item.path}
+              aria-current={current === item.path ? "page" : undefined}
+            >
+              <NavIcon name={ITEM_ICON[item.id] ?? "overview"} />
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      )}
       {children}
       <div
         role="separator"

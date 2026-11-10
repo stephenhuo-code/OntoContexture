@@ -8,6 +8,8 @@ export default defineConfig({
   resolve: {
     dedupe: ["react", "react-dom", "react-router", "react-router-dom"],
   },
+  // 006：/assets 是数据资产页面的地址，构建产物改放 /static/，避免被静态目录规则截走
+  build: { assetsDir: "static" },
   server: {
     port: 5173,
     proxy: { "/bff": "http://localhost:8080" },

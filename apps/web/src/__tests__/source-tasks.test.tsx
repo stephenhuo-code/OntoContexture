@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { renderQ } from "./query-wrapper";
 import { afterEach, expect, it, vi } from "vitest";
-import { SourcesWorkspace } from "../features/sources/SourcesWorkspace";
+import { AssetsWorkspace } from "../features/assets/AssetsWorkspace";
 import { T0, sourcesFixture, stubBff } from "./sources-fixtures";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -74,7 +74,7 @@ function open(path: string) {
   renderQ(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/sources/*" element={<SourcesWorkspace />} />
+        <Route path="/assets/*" element={<AssetsWorkspace />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -96,7 +96,7 @@ function routes(extra: Parameters<typeof stubBff>[0] = []) {
 
 it("任务列表按 pipelines 渲染两条任务；运行记录列与筛选只作用于当前任务", async () => {
   const calls = routes();
-  open("/sources/fixture-mes?tab=tasks");
+  open("/assets/sources/fixture-mes?tab=tasks");
   const tasks = await screen.findByRole("table", { name: "采集任务" });
   expect(within(tasks).getAllByRole("row")).toHaveLength(3);
   expect(within(tasks).getByText("视图血缘").closest("tr")).toHaveTextContent(
@@ -130,7 +130,7 @@ it("任务列表按 pipelines 渲染两条任务；运行记录列与筛选只�
 
 it("运行详情：步骤统计与失败对象；最近一次运行显示日志，更早的注明", async () => {
   routes();
-  open("/sources/fixture-mes?tab=tasks&task=metadata");
+  open("/assets/sources/fixture-mes?tab=tasks&task=metadata");
   const table = await screen.findByRole("table", { name: "运行记录" });
   await userEvent.click(
     within(table).getAllByRole("button", { name: "查看运行" })[0]!,
@@ -174,7 +174,7 @@ it("暂停调度需确认；运行中禁用立即运行；立即运行冲突显�
       },
     },
   ]);
-  open("/sources/fixture-mes?tab=tasks&task=metadata");
+  open("/assets/sources/fixture-mes?tab=tasks&task=metadata");
   await screen.findByRole("table", { name: "运行记录" });
   await userEvent.click(screen.getByRole("button", { name: "暂停调度" }));
   const confirm = screen.getByRole("dialog", { name: "暂停定时采集？" });
@@ -199,7 +199,7 @@ it("暂停调度需确认；运行中禁用立即运行；立即运行冲突显�
 
 it("手动任务显示配置调度；调度详情的 DAG 标识等于任务名", async () => {
   routes();
-  open("/sources/fixture-mes?tab=tasks&task=lineage");
+  open("/assets/sources/fixture-mes?tab=tasks&task=lineage");
   await screen.findByRole("table", { name: "运行记录" });
   expect(screen.getByRole("button", { name: "配置调度" })).toBeVisible();
   await userEvent.click(screen.getByRole("button", { name: "调度详情" }));
@@ -225,7 +225,7 @@ it("排队中的运行禁用立即运行", async () => {
       body: { data: [{ ...runs[1], pipelineState: "queued" }] },
     },
   ]);
-  open("/sources/fixture-mes?tab=tasks&task=metadata");
+  open("/assets/sources/fixture-mes?tab=tasks&task=metadata");
   await screen.findByRole("table", { name: "运行记录" });
   expect(screen.getByRole("button", { name: "立即运行" })).toBeDisabled();
 });
@@ -240,7 +240,7 @@ it("运行未结束时运行详情不请求日志，提示运行结束后显示�
   const calls = routes([
     { path: `${base}/metadata/runs`, body: { data: [running] } },
   ]);
-  open("/sources/fixture-mes?tab=tasks&task=metadata");
+  open("/assets/sources/fixture-mes?tab=tasks&task=metadata");
   const table = await screen.findByRole("table", { name: "运行记录" });
   await userEvent.click(
     within(table).getByRole("button", { name: "查看运行" }),

@@ -13,11 +13,13 @@ from starlette.routing import Match
 from contexture_bff.adapters.data import McpObjectData, ObjectData
 from contexture_bff.adapters.keycloak import KeycloakOidc, Oidc
 from contexture_bff.adapters.om import ObjectTypes, OmObjectTypes
+from contexture_bff.adapters.om_assets import AssetReader
 from contexture_bff.adapters.om_client import OmClient
+from contexture_bff.adapters.om_search import SearchService
 from contexture_bff.adapters.om_sources import SourcesService
 from contexture_bff.adapters.om_users import OmUserSync
 from contexture_bff.adapters.sessions import PostgresSessionStore, SessionStore
-from contexture_bff.api import auth, catalog, deps, me, objects, sources
+from contexture_bff.api import assets, auth, catalog, deps, me, objects, sources
 from contexture_bff.settings import BffSettings
 from contexture_core.auth import Authenticator, TokenVerifier
 from contexture_core.config import load_settings
@@ -39,6 +41,9 @@ class Services:
     # 005：OM 用户同步（research R13）与源系统元数据采集（经用户委托令牌调用 OM）
     om_users: OmUserSync | None = None
     sources: SourcesService | None = None
+    # 006：资产搜索与只读摘要（同样经用户委托令牌调用 OM）
+    assets: SearchService | None = None
+    asset_reader: AssetReader | None = None
 
 
 def build_authenticator(settings: BffSettings) -> Authenticator:
@@ -76,6 +81,7 @@ def create_app(settings: BffSettings | None = None, *, services: Services | None
             client_id=cfg.client_id,
             client_secret=cfg.client_secret.get_secret_value(),
         )
+        om_client = OmClient(om_url=cfg.om_url, exchanger=exchanger, audience=cfg.om_audience)
         app.state.services = Services(
             sessions=store,
             oidc=KeycloakOidc(cfg),
@@ -102,9 +108,9 @@ def create_app(settings: BffSettings | None = None, *, services: Services | None
             )
             if cfg.om_user_sync
             else None,
-            sources=SourcesService(
-                OmClient(om_url=cfg.om_url, exchanger=exchanger, audience=cfg.om_audience)
-            ),
+            sources=SourcesService(om_client),
+            assets=SearchService(om_client),
+            asset_reader=AssetReader(om_client),
         )
         cleanup = asyncio.create_task(_cleanup_loop(store, cfg.session_cleanup_interval_seconds))
         try:
@@ -148,6 +154,7 @@ def create_app(settings: BffSettings | None = None, *, services: Services | None
     app.include_router(objects.router)
     app.include_router(sources.router)
     app.include_router(catalog.router)
+    app.include_router(assets.router)
     return app
 
 

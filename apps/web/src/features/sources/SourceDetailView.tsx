@@ -19,6 +19,7 @@ import { SourceTasks } from "./SourceTasks";
 import { SourceCatalog } from "./SourceCatalog";
 import { SourceProperties } from "./PropertyEditModal";
 import { useLoad } from "./useLoad";
+import { SOURCES_BASE } from "./format";
 
 const TABS = [
   ["overview", "概览"],
@@ -211,7 +212,7 @@ export function SourceDetailView({
   }, [saved]);
 
   const back = (
-    <Link to="/sources" className="back-link">
+    <Link to={SOURCES_BASE} className="back-link">
       ← 返回数据源
     </Link>
   );

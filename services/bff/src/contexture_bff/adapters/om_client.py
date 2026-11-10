@@ -93,7 +93,11 @@ class OmClient:
         if resp.status_code >= 500:
             raise UpstreamUnavailable(
                 "OpenMetadata 不可用",
-                details={"upstream": "openmetadata", "status": resp.status_code},
+                details={
+                    "upstream": "openmetadata",
+                    "status": resp.status_code,
+                    "message": _om_message(resp),
+                },
             )
         if resp.status_code == 404:
             if allow_404:

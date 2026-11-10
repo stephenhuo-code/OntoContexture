@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { renderQ } from "./query-wrapper";
 import { afterEach, expect, it, vi } from "vitest";
-import { SourcesWorkspace } from "../features/sources/SourcesWorkspace";
+import { AssetsWorkspace } from "../features/assets/AssetsWorkspace";
 import { sourcesFixture, stubBff } from "./sources-fixtures";
 
 // US4 组件测试：选项与实体均来自夹具（BFF 响应），不基于原型示例值
@@ -170,11 +170,9 @@ function open(entity: unknown, patched?: unknown, status = 200) {
     },
   ]);
   renderQ(
-    <MemoryRouter
-      initialEntries={[`/sources/fixture-mes/assets/table/${enc(TABLE)}`]}
-    >
+    <MemoryRouter initialEntries={[`/assets/table/${enc(TABLE)}`]}>
       <Routes>
-        <Route path="/sources/*" element={<SourcesWorkspace />} />
+        <Route path="/assets/*" element={<AssetsWorkspace />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -385,4 +383,15 @@ it("字段行编辑只含显示名称、描述、标签与术语，按 columnNam
       glossaryTerms: ["Glossary.Quantity"],
     },
   ]);
+});
+
+// 006 Q4：005 子视图的属性卡片与编辑弹窗统一为「分级（Tier）」
+it("属性卡片与编辑弹窗使用「分级（Tier）」文案", async () => {
+  open(inheritedTable);
+  const card = await screen.findByRole("region", { name: "数据表属性" });
+  expect(within(card).getByText("分级")).toBeVisible();
+  expect(within(card).queryByText("重要程度")).not.toBeInTheDocument();
+  const dialog = await editTable();
+  expect(within(dialog).getByLabelText("分级（Tier）")).toBeVisible();
+  expect(within(dialog).queryByText(/重要程度/)).not.toBeInTheDocument();
 });

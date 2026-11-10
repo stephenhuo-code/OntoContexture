@@ -96,7 +96,7 @@ export function AssetProperties({
             <Chips items={names(g.domains)} />
             {origin("domains", !!g.domains?.length)}
           </dd>
-          <dt>重要程度</dt>
+          <dt>分级</dt>
           <dd>{g.tier || "未设置"}</dd>
           <dt>分类标签</dt>
           <dd>

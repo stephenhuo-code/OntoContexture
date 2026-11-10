@@ -282,3 +282,10 @@ async def test_governance_options_read_from_om() -> None:
         ("Source", False, ["Source.MES", "Source.ERP"]),
     ]
     assert o["glossaryTerms"] == ["Glossary.Quantity"]
+
+
+async def test_invalid_tier_message_uses_tier_wording() -> None:
+    """006 Q4：005 子视图的 Tier 文案统一为「分级（Tier）」。"""
+    _, svc = await setup()
+    err = await reject(svc, "table", TABLE, {"tier": "Tier.Tier9"})
+    assert err.message.startswith("分级（Tier）")

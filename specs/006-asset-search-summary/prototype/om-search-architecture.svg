@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="860" viewBox="0 0 1240 860" font-family="PingFang SC, Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13">
+  <title>OpenMetadata 2.0.3 搜索能力架构（织境 006 视角）</title>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#3b5b8c"/>
+    </marker>
+    <marker id="arrw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2f7d4f"/>
+    </marker>
+    <style>
+      .zone { fill: #f6f8fb; stroke: #c9d3e3; stroke-width: 1.2; rx: 10; }
+      .zt { font-size: 15px; font-weight: 700; fill: #1f2d45; }
+      .box { fill: #ffffff; stroke: #6b86b3; stroke-width: 1.2; rx: 6; }
+      .om { fill: #eef3fb; stroke: #4a6fa8; stroke-width: 1.2; rx: 6; }
+      .os { fill: #fdf5e8; stroke: #c08a2d; stroke-width: 1.2; rx: 6; }
+      .wr { fill: #edf7f0; stroke: #2f7d4f; stroke-width: 1.2; rx: 6; }
+      .warn { fill: #fdecec; stroke: #c0392b; stroke-width: 1.2; rx: 6; }
+      .t { font-weight: 600; fill: #1f2d45; }
+      .s { font-size: 11.5px; fill: #44536b; }
+      .r { stroke: #3b5b8c; stroke-width: 1.4; fill: none; marker-end: url(#arr); }
+      .w { stroke: #2f7d4f; stroke-width: 1.4; fill: none; stroke-dasharray: 6 4; marker-end: url(#arrw); }
+      .lbl { font-size: 11px; fill: #3b5b8c; }
+      .lblw { font-size: 11px; fill: #2f7d4f; }
+    </style>
+  </defs>
+
+  <text x="20" y="30" font-size="18" font-weight="700" fill="#1f2d45">OpenMetadata 2.0.3 搜索能力架构（织境 006 资产搜索与摘要）</text>
+  <text x="20" y="50" class="s">实线：查询链路；虚线：索引写入链路。依据：third_party/openmetadata/src（b76076bf），详见 openmetadata-alignment.md</text>
+
+  <!-- Zone 1: Browser -->
+  <rect class="zone" x="20" y="70" width="230" height="500"/>
+  <text class="zt" x="34" y="94">浏览器 · 织境 Web</text>
+  <rect class="box" x="34" y="108" width="202" height="440"/>
+  <text class="t" x="46" y="130">数据资产页（006，统一页面）</text>
+  <text class="s" x="46" y="154">· 搜索框 + 输入建议</text>
+  <text class="s" x="46" y="174">· 浏览树（服务类型→服务→库</text>
+  <text class="s" x="58" y="190">→Schema→实体类型）</text>
+  <text class="s" x="46" y="210">· 类型切换（有关键词时）</text>
+  <text class="s" x="46" y="230">· 快速筛选（OR / AND）</text>
+  <text class="s" x="46" y="250">· 条件条、排序、分页</text>
+  <text class="s" x="46" y="270">· 结果卡片（命中高亮）</text>
+  <text class="s" x="46" y="290">· 摘要面板（概览/Schema）</text>
+  <text class="s" x="46" y="310">· URL 状态恢复</text>
+  <text class="s" x="46" y="340">只调用 BFF；</text>
+  <text class="s" x="46" y="358">不接触 ES DSL 与 OM 令牌</text>
+  <text class="s" x="46" y="392">005 数据源管理（添加、</text>
+  <text class="s" x="46" y="410">采集任务、属性编辑）</text>
+  <text class="s" x="46" y="428">并入同一页面入口</text>
+
+  <!-- Zone 2: BFF -->
+  <rect class="zone" x="290" y="70" width="250" height="500"/>
+  <text class="zt" x="304" y="94">织境 BFF（FastAPI）</text>
+  <rect class="box" x="304" y="108" width="222" height="120"/>
+  <text class="t" x="316" y="130">资产搜索接口（006 新增，待定）</text>
+  <text class="s" x="316" y="152">· 结构化参数 → q / index /</text>
+  <text class="s" x="328" y="168">query_filter（BFF 校验 DSL，</text>
+  <text class="s" x="328" y="184">OM 解析失败会静默忽略）</text>
+  <text class="s" x="316" y="204">· 列表 / 类型计数 / 筛选项 / 树</text>
+  <rect class="box" x="304" y="244" width="222" height="70"/>
+  <text class="t" x="316" y="266">目录与实体接口（005 已有）</text>
+  <text class="s" x="316" y="286">GET /bff/v1/catalog/{type}/{fqn}</text>
+  <text class="s" x="316" y="302">→ 供摘要面板复用</text>
+  <rect class="box" x="304" y="330" width="222" height="70"/>
+  <text class="t" x="316" y="352">OmClient（005 已有）</text>
+  <text class="s" x="316" y="372">用户委托令牌（Keycloak 令牌交换，</text>
+  <text class="s" x="316" y="388">受众 contexture-openmetadata）</text>
+  <rect class="box" x="304" y="416" width="222" height="56"/>
+  <text class="t" x="316" y="438">Keycloak</text>
+  <text class="s" x="316" y="458">令牌交换（RFC 8693）</text>
+
+  <!-- Zone 3: OM server -->
+  <rect class="zone" x="580" y="70" width="380" height="500"/>
+  <text class="zt" x="594" y="94">OpenMetadata Server 2.0.3（Apache-2.0）</text>
+  <rect class="om" x="594" y="108" width="352" height="112"/>
+  <text class="t" x="606" y="130">SearchResource  /api/v1/search</text>
+  <text class="s" x="606" y="150">GET /query（命中、高亮、聚合、分页、排序）</text>
+  <text class="s" x="606" y="168">GET /entityTypeCounts（按类型计数，无 RBAC）</text>
+  <text class="s" x="606" y="186">GET|POST /aggregate（筛选项与浏览树，无 RBAC）</text>
+  <text class="s" x="606" y="204">无 /suggest；另有 preview、nlq、export</text>
+  <rect class="om" x="594" y="232" width="170" height="70"/>
+  <text class="t" x="606" y="254">实体 API</text>
+  <text class="s" x="606" y="274">/v1/tables/name/{fqn}</text>
+  <text class="s" x="606" y="290">?fields=owners,tags,…</text>
+  <rect class="om" x="776" y="232" width="170" height="70"/>
+  <text class="t" x="788" y="254">SystemResource</text>
+  <text class="s" x="788" y="274">searchSettings（权重、</text>
+  <text class="s" x="788" y="290">聚合、高亮、权限开关）</text>
+  <rect class="om" x="594" y="316" width="352" height="96"/>
+  <text class="t" x="606" y="338">SearchRepository → SearchSourceBuilderFactory</text>
+  <text class="s" x="606" y="358">· 空串 match_all / 语法 query_string / 文本按字段权重</text>
+  <text class="s" x="606" y="376">· function_score（Tier、使用量）· 高亮 · 聚合</text>
+  <text class="s" x="606" y="394">· RBAC 仅在 enableAccessControl=true 时生效（默认 false）</text>
+  <rect class="om" x="594" y="424" width="352" height="54"/>
+  <text class="t" x="606" y="446">OpenSearchClient（opensearch-java 3.4.0）</text>
+  <text class="s" x="606" y="466">from+size ≤ 10000；超时 30s；用户级结果缓存</text>
+  <rect class="om" x="594" y="490" width="352" height="64"/>
+  <text class="t" x="606" y="512">EntityRepository · PostgreSQL（事实来源）</text>
+  <text class="s" x="606" y="532">写入后 SearchIndexHandler 同步写索引（refresh=true）</text>
+  <text class="s" x="606" y="548">失败进入重试队列；SearchIndexingApplication 全量重建</text>
+
+  <!-- Zone 4: OpenSearch -->
+  <rect class="zone" x="1000" y="70" width="220" height="500"/>
+  <text class="zt" x="1014" y="94">OpenSearch 3.4.0</text>
+  <rect class="os" x="1014" y="108" width="192" height="150"/>
+  <text class="t" x="1026" y="130">索引与别名</text>
+  <text class="s" x="1026" y="152">table_search_index（table）</text>
+  <text class="s" x="1026" y="170">database / databaseSchema</text>
+  <text class="s" x="1026" y="188">glossaryTerm / tag / …</text>
+  <text class="s" x="1026" y="210">dataAsset（24 类，含列）</text>
+  <text class="s" x="1026" y="228">all（53 类，含服务）</text>
+  <text class="s" x="1026" y="246">keyword 字段用于聚合</text>
+  <rect class="warn" x="1014" y="272" width="192" height="104"/>
+  <text class="t" x="1026" y="294">中文分词现状（已核查）</text>
+  <text class="s" x="1026" y="314">映射语言 EN（Chart 默认）</text>
+  <text class="s" x="1026" y="332">未安装 IK 插件</text>
+  <text class="s" x="1026" y="350">ZH 映射需 IK + 全量重建</text>
+  <text class="s" x="1026" y="368">→ 006 验收实测后再决定</text>
+
+  <!-- Query arrows -->
+  <line class="r" x1="236" y1="200" x2="304" y2="168"/>
+  <text class="lbl" x="240" y="174">/bff/v1/…</text>
+  <line class="r" x1="236" y1="290" x2="304" y2="280"/>
+  <line class="r" x1="415" y1="228" x2="415" y2="244"/>
+  <line class="r" x1="415" y1="314" x2="415" y2="330"/>
+  <line class="r" x1="415" y1="400" x2="415" y2="416"/>
+  <text class="lbl" x="422" y="412">换取 OM 令牌</text>
+  <line class="r" x1="526" y1="360" x2="594" y2="164"/>
+  <text class="lbl" x="534" y="250">Bearer</text>
+  <line class="r" x1="526" y1="372" x2="594" y2="268"/>
+  <line class="r" x1="770" y1="220" x2="770" y2="316"/>
+  <line class="r" x1="861" y1="302" x2="861" y2="316"/>
+  <line class="r" x1="770" y1="412" x2="770" y2="424"/>
+  <line class="r" x1="946" y1="450" x2="1014" y2="200"/>
+  <text class="lbl" x="950" y="330">查询</text>
+
+  <!-- Write path zone -->
+  <rect class="zone" x="20" y="600" width="1200" height="240"/>
+  <text class="zt" x="34" y="624">索引写入链路（元数据从哪里进入搜索）</text>
+  <rect class="wr" x="34" y="640" width="250" height="84"/>
+  <text class="t" x="46" y="662">005 源系统元数据采集</text>
+  <text class="s" x="46" y="682">Airflow 3.3.2（managed-apis）运行</text>
+  <text class="s" x="46" y="698">OM Ingestion DAG → OM 实体 API</text>
+  <text class="s" x="46" y="714">（真实采集来源）</text>
+  <rect class="wr" x="34" y="738" width="250" height="84"/>
+  <text class="t" x="46" y="760">006 开发态元数据导入工具（待建）</text>
+  <text class="s" x="46" y="780">003 表定义 → OM REST 幂等导入</text>
+  <text class="s" x="46" y="796">（测试元数据，不代表已连通源库）</text>
+  <rect class="wr" x="340" y="690" width="250" height="84"/>
+  <text class="t" x="352" y="712">OM 实体 API（PUT/POST/PATCH）</text>
+  <text class="s" x="352" y="732">EntityRepository 写 PostgreSQL</text>
+  <text class="s" x="352" y="748">EntityLifecycleEventDispatcher</text>
+  <rect class="wr" x="646" y="690" width="270" height="84"/>
+  <text class="t" x="658" y="712">SearchIndexHandler（同步，非异步）</text>
+  <text class="s" x="658" y="732">SearchRepository.create/updateEntityIndex</text>
+  <text class="s" x="658" y="748">表文档同时写列文档；失败入重试队列</text>
+  <text class="s" x="658" y="764">全量重建：SearchIndexingApplication</text>
+  <rect class="wr" x="972" y="690" width="234" height="84"/>
+  <text class="t" x="984" y="712">OpenSearch 索引</text>
+  <text class="s" x="984" y="732">refresh=true，写后即可搜</text>
+  <text class="s" x="984" y="748">（用户级查询缓存可能短暂滞后）</text>
+
+  <line class="w" x1="284" y1="682" x2="340" y2="722"/>
+  <line class="w" x1="284" y1="780" x2="340" y2="742"/>
+  <line class="w" x1="590" y1="732" x2="646" y2="732"/>
+  <line class="w" x1="916" y1="732" x2="972" y2="732"/>
+  <line class="w" x1="1100" y1="690" x2="1100" y2="572"/>
+  <text class="lblw" x="1106" y="640">写入</text>
+</svg>

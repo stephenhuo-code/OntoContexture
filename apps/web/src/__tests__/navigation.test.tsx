@@ -67,8 +67,9 @@ it.each([
   ["/home", "概览", "首页"],
   ["/home/", "概览", "首页"],
   ["/approvals", "审批中心", "首页"],
-  ["/assets", "资产搜索", "资产"],
-  ["/assets/", "资产搜索", "资产"],
+  ["/assets", "数据资产", "资产"],
+  ["/assets/", "数据资产", "资产"],
+  ["/assets/sources", "数据资产", "资产"],
   ["/agents", "Agent 工作台", "Agent 工作台"],
   ["/agents/new", "新建对话", "新建对话"],
 ])("深链 %s 的标题和选中入口一致", async (path, title, current) => {
@@ -134,21 +135,20 @@ it.each(["/unknown/path", "/objects/a/b"])(
   },
 );
 
-// 005：资产工作空间：二级为“资产搜索（未开放）”与“数据源”；不显示“数据接入”分组标题（负责人 2026-11-08 验收反馈）
-it("资产工作空间的二级导航含数据源入口，指向 /sources", async () => {
+// 006 D2：资产工作空间的二级栏不再有「资产搜索」「数据源」链接，只承载浏览树或类型列表；一级「资产」指向 /assets
+it("资产工作空间的二级栏没有资产搜索与数据源链接，一级入口指向 /assets", async () => {
   stubIdentity();
   await openShell("/assets");
-  const secondary = screen.getByRole("navigation", { name: "数据资产导航" });
-  const links = within(secondary).getAllByRole("link");
-  expect(links.map((e) => e.textContent)).toEqual(["资产搜索", "数据源"]);
-  expect(screen.queryByText("数据接入")).not.toBeInTheDocument();
+  const rail = document.getElementById("secondary-navigation")!;
+  expect(rail).toBeVisible();
   expect(
-    within(secondary).getByRole("link", { name: "数据源" }),
-  ).toHaveAttribute("href", "/sources");
+    within(rail).queryByRole("link", { name: /资产搜索|数据源/ }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText("数据接入")).not.toBeInTheDocument();
   const nav = screen.getByRole("navigation", { name: "一级导航" });
   expect(within(nav).getByRole("link", { name: "资产" })).toHaveAttribute(
     "href",
-    "/sources",
+    "/assets",
   );
 });
 
@@ -161,12 +161,6 @@ it("一级与二级导航每个入口带对应图标（2026-11-08 负责人按�
       .getAllByRole("link")
       .map((a) => a.querySelector("svg")?.getAttribute("data-icon")),
   ).toEqual(["new", "home", "assets", "agents"]);
-  const secondary = screen.getByRole("navigation", { name: "数据资产导航" });
-  expect(
-    within(secondary)
-      .getAllByRole("link")
-      .map((a) => a.querySelector("svg")?.getAttribute("data-icon")),
-  ).toEqual(["search", "database"]);
   expect(
     document.querySelector(".module-label svg")?.getAttribute("data-icon"),
   ).toBe("module-asset");

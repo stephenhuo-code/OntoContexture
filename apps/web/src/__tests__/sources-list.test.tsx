@@ -3,16 +3,16 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { renderQ } from "./query-wrapper";
 import { afterEach, expect, it, vi } from "vitest";
-import { SourcesWorkspace } from "../features/sources/SourcesWorkspace";
+import { AssetsWorkspace } from "../features/assets/AssetsWorkspace";
 import { sourcesFixture, stubBff } from "./sources-fixtures";
 
 afterEach(() => vi.unstubAllGlobals());
 
-function open(path = "/sources") {
+function open(path = "/assets/sources") {
   return renderQ(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="/sources/*" element={<SourcesWorkspace />} />
+        <Route path="/assets/*" element={<AssetsWorkspace />} />
       </Routes>
     </MemoryRouter>,
   );

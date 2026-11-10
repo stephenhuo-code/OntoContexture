@@ -29,7 +29,6 @@ it("首页保留四项指标、待办及最近资产，无虚构数量和业务�
   expect(paths).toEqual(["/bff/v1/me"]);
 });
 it.each([
-  ["/assets", "资产搜索"],
   ["/agents", "Agent 工作台"],
   ["/agents/new", "新建对话"],
   ["/approvals", "审批中心"],
@@ -52,4 +51,16 @@ it("长中文身份保留完整问候和可用账号操作", async () => {
   await openShell();
   expect(screen.getByRole("heading", { name: `你好，${name}` })).toBeVisible();
   expect(screen.getByRole("button", { name: "退出" })).toBeEnabled();
+});
+
+// 006 FR-001：/assets 是统一的「数据资产」页面，不再显示「尚未开放」占位；D3：搜索框只在本页出现
+it("/assets 显示数据资产页面而不是尚未开放", async () => {
+  stubIdentity();
+  await openShell("/assets");
+  expect(
+    screen.getByRole("heading", { name: "数据资产", level: 1 }),
+  ).toBeVisible();
+  expect(
+    screen.queryByRole("heading", { name: /尚未开放/ }),
+  ).not.toBeInTheDocument();
 });

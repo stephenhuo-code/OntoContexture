@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 import schemathesis
 import yaml
+from assets_helpers import reader, search_service
 from bff_fakes import FakeObjectData, FakeObjectTypes, FakeOidc, FakeSessions
 from hypothesis import HealthCheck, settings
 from om_fake import FakeOM
@@ -38,6 +39,7 @@ def load_contract() -> dict[str, Any]:
 
 
 issuer = LocalIssuer()
+_om = FakeOM()
 verifier = TokenVerifier(
     jwks_url=JWKS_URL,
     issuer=ISSUER,
@@ -54,6 +56,9 @@ app = create_app(
         authenticator=Authenticator(tenant_id="local", verifier=verifier),
         # 005：经内存 OM 夹具运行真实映射代码
         sources=sources_service(FakeOM()),
+        # 006：搜索与摘要同样经内存 OM 夹具运行真实翻译与投影代码
+        assets=search_service(_om),
+        asset_reader=reader(_om),
     ),
 )
 
@@ -85,8 +90,13 @@ def test_bff_matches_contract(case: schemathesis.Case) -> None:
     # 此处不做“合法数据必被接受”检查
     # 治理属性 PATCH 同理：Tier 取值、ISO 8601 周期、互斥分类、域与产品一致性返回 400，由
     # test_governance*.py 覆盖
-    business_rules = case.path.startswith("/bff/v1/sources") or (
-        case.method == "PATCH" and case.path.startswith("/bff/v1/catalog")
+    # 006：搜索条件的组合规则（「无」只用于 5 个维度、仅表类型可用的维度、范围与类型一致、结果窗口）
+    # 返回 422 search.invalid_criteria / search.window_exceeded；由 test_assets_*_contract.py 与
+    # test_search_criteria.py 覆盖
+    business_rules = (
+        case.path.startswith("/bff/v1/sources")
+        or (case.method == "PATCH" and case.path.startswith("/bff/v1/catalog"))
+        or (case.method == "POST" and case.path.startswith("/bff/v1/assets"))
     )
     excluded = [positive_data_acceptance] if business_rules else []
     case.call_and_validate(allow_redirects=False, excluded_checks=excluded)

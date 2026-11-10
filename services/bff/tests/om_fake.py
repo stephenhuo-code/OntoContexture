@@ -119,6 +119,14 @@ class FakeOM:
         self.test_connection_ok = True
         self.test_steps_override: list[dict[str, Any]] | None = None
         self.down = False
+        # 006 搜索：索引文档（_source）、术语与标签实体、故障注入、请求记录
+        self.search_docs: list[dict[str, Any]] = []
+        self.glossary_terms: dict[str, dict[str, Any]] = {}
+        self.tag_entities: dict[str, dict[str, Any]] = {}
+        self.search_error: httpx.Response | None = None
+        self.search_timed_out = False
+        self.connect_error = False
+        self.search_requests: list[tuple[str, dict[str, str]]] = []
 
     # ---------- 测试辅助 ----------
     def add_tables(
@@ -193,18 +201,46 @@ class FakeOM:
         return next(p for p in self.pipelines.values() if p["name"] == name)
 
     # ---------- 传输 ----------
+    def add_search_doc(self, entity_type: str, fqn: str, **fields: Any) -> dict[str, Any]:
+        """登记一条索引文档（OM 搜索返回的 _source）。"""
+        doc: dict[str, Any] = {
+            "id": str(uuid.uuid5(uuid.NAMESPACE_URL, f"{entity_type}:{fqn}")),
+            "entityType": entity_type,
+            "name": fqn.split(".")[-1],
+            "fullyQualifiedName": fqn,
+            "tags": [],
+            "owners": [],
+            "domains": [],
+            **fields,
+        }
+        self.search_docs.append(doc)
+        return doc
+
     def transport(self) -> httpx.MockTransport:
         return httpx.MockTransport(self._handle)
 
     def _handle(self, req: httpx.Request) -> httpx.Response:
         if self.down:
             return httpx.Response(503, text="down")
+        if self.connect_error:
+            raise httpx.ConnectError("fake OM: connection refused", request=req)
         path = req.url.path.removeprefix("/api/v1")
         self.calls.append((req.method, path))
         body = json.loads(req.content) if req.content else None
         q = dict(req.url.params)
         m = req.method
 
+        if path.startswith("/search/"):
+            self.search_requests.append((path, q))
+            if self.search_error is not None:
+                return self.search_error
+            return self._search(path, q)
+        if mm := re.fullmatch(r"/glossaryTerms/name/(.+)", path):
+            hit = self.glossary_terms.get(mm.group(1))
+            return self._ok(hit) if hit else httpx.Response(404, json={"message": "not found"})
+        if mm := re.fullmatch(r"/tags/name/(.+)", path):
+            hit = self.tag_entities.get(mm.group(1))
+            return self._ok(hit) if hit else httpx.Response(404, json={"message": "not found"})
         if path == "/services/databaseServices" and m == "GET":
             return self._ok(
                 {
@@ -392,6 +428,101 @@ class FakeOM:
             data = [t for t in self.tables if t["fullyQualifiedName"].startswith(f"{prefix}.")]
             return self._ok({"data": data, "paging": {"total": len(data)}})
         return httpx.Response(404, json={"message": f"fake OM: {m} {path}"})
+
+    # ---------- 006 搜索（只模拟 OM 返回结构，不求值 DSL；过滤正确性由集群集成测试验证） ----------
+    def _docs_for(self, index: str) -> list[dict[str, Any]]:
+        if index in ("dataAsset", "all"):
+            return list(self.search_docs)
+        return [d for d in self.search_docs if d["entityType"] == index]
+
+    @staticmethod
+    def _values(doc: dict[str, Any], field: str) -> list[str]:
+        nodes: list[Any] = [doc]
+        for part in field.removesuffix(".keyword").split("."):
+            nxt: list[Any] = []
+            for n in nodes:
+                v = n.get(part) if isinstance(n, dict) else None
+                nxt.extend(v if isinstance(v, list) else [v] if v is not None else [])
+            nodes = nxt
+        return [str(v) for v in nodes if not isinstance(v, dict)]
+
+    def _search(self, path: str, q: dict[str, str]) -> httpx.Response:
+        if path == "/search/aggregate":
+            docs = self._docs_for(q.get("index", "table"))
+            field = q["field"]
+            counts: dict[str, int] = {}
+            for d in docs:
+                for v in set(self._values(d, field)):
+                    key = v.lower() if field != "entityType.keyword" else v
+                    counts[key] = counts.get(key, 0) + 1
+            size = int(q.get("size", 10))
+            buckets = []
+            for key in sorted(counts)[:size]:
+                bucket: dict[str, Any] = {"key": key, "doc_count": counts[key]}
+                if q.get("sourceFields"):
+                    label_field = q["sourceFields"].split(",")[0]
+                    src = next(
+                        (d for d in docs if key in [x.lower() for x in self._values(d, field)]),
+                        {},
+                    )
+                    labels = self._values(src, label_field)
+                    bucket["top_hits#top"] = {
+                        "hits": {"hits": [{"_source": {label_field: labels[0] if labels else key}}]}
+                    }
+                buckets.append(bucket)
+            return self._ok({"aggregations": {f"sterms#{field}": {"buckets": buckets}}})
+        index = q.get("index", "dataAsset")
+        docs = self._docs_for(index)
+        text = q.get("q", "*")
+        if text not in ("", "*"):
+            needle = text.lower().replace("\\", "")
+            docs = [
+                d
+                for d in docs
+                if needle in (d.get("name") or "").lower()
+                or needle in (d.get("displayName") or "").lower()
+                or needle in (d.get("description") or "").lower()
+            ]
+        type_counts: dict[str, int] = {}
+        for d in docs:
+            type_counts[d["entityType"]] = type_counts.get(d["entityType"], 0) + 1
+        aggs = {
+            "sterms#entityType": {
+                "buckets": [{"key": k, "doc_count": v} for k, v in sorted(type_counts.items())]
+            }
+        }
+        if path == "/search/entityTypeCounts":
+            return self._ok(
+                {"hits": {"total": {"value": len(docs)}, "hits": []}, "aggregations": aggs}
+            )
+        start, size = int(q.get("from", 0)), int(q.get("size", 10))
+        hits = []
+        for d in docs[start : start + size]:
+            hit: dict[str, Any] = {"_id": d["id"], "_source": d}
+            if text not in ("", "*"):
+                hl = {}
+                for f in ("name", "displayName", "description"):
+                    value = d.get(f) or ""
+                    pos = value.lower().find(text.lower())
+                    if pos >= 0:
+                        hl[f] = [
+                            value[:pos]
+                            + '<span class="text-highlighter">'
+                            + value[pos : pos + len(text)]
+                            + "</span>"
+                            + value[pos + len(text) :]
+                        ]
+                if hl:
+                    hit["highlight"] = hl
+            hits.append(hit)
+        return self._ok(
+            {
+                "took": 1,
+                "timed_out": self.search_timed_out,
+                "hits": {"total": {"value": len(docs), "relation": "eq"}, "hits": hits},
+                "aggregations": aggs,
+            }
+        )
 
     def _entity(self, fqn: str) -> dict[str, Any] | None:
         if fqn in self.assets:
