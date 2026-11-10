@@ -192,3 +192,28 @@ it("窄屏「目录」按钮打开抽屉，抽屉内为浏览树", async () => {
     await within(drawer).findByRole("button", { name: "数据库 43" }),
   ).toBeVisible();
 });
+
+it("顶栏面包屑按原型显示完整位置：数据资产 / 数据库 / Mysql / devtest-mes（验收反馈 2026-11-10）", async () => {
+  setup();
+  openAssets();
+  const tree = await screen.findByRole("navigation", {
+    name: "数据资产浏览树",
+  });
+  await userEvent.click(
+    await within(tree).findByRole("button", { name: "数据库 43" }),
+  );
+  const crumb = document.querySelector(".asset-breadcrumb") as HTMLElement;
+  await waitFor(() => expect(crumb).toHaveTextContent(/^数据资产\/数据库$/));
+  await userEvent.click(
+    within(tree).getByRole("button", { name: "展开 数据库" }),
+  );
+  await userEvent.click(
+    await within(tree).findByRole("button", { name: "展开 Mysql" }),
+  );
+  await userEvent.click(
+    await within(tree).findByRole("button", { name: "devtest-mes 14" }),
+  );
+  await waitFor(() =>
+    expect(crumb).toHaveTextContent(/^数据资产\/数据库\/Mysql\/devtest-mes$/),
+  );
+});
