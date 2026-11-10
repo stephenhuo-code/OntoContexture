@@ -11,11 +11,21 @@
 
 在仓库根目录执行。本地集群为 kind，部署环境为 `lite`。
 
-> **注意 kubectl 上下文**：2026-11-09 实施期间，本机 kubectl 当前上下文曾被切到 `do-sfo2-…`（DigitalOcean 集群）。下面的集群命令都显式指定 `--context kind-contexture`；`make` 目标中的 kubectl 会使用当前上下文，执行前请先确认它指向本地集群：
+> **只操作本地集群**：本机 kubectl 的全局当前上下文会被其他程序切到 `do-sfo2-…`（DigitalOcean 集群，2026-11-09、11-10 两次发现）。
+> 部分 `make` 目标中的 kubectl 使用当前上下文，所以验收期间先在终端中固定使用本地集群的 kubeconfig 副本，之后的命令都在这个终端里执行：
 >
 > ```bash
-> kubectl config use-context kind-contexture
+> export KUBECONFIG=/tmp/006-kubeconfig     # 本机 kubeconfig 的副本，当前上下文固定为 kind-contexture
+> kubectl config current-context            # 必须显示 kind-contexture，否则不要继续
 > ```
+>
+> 如果 `/tmp/006-kubeconfig` 不存在，用下面的命令重建：
+>
+> ```bash
+> cp ~/.kube/config /tmp/006-kubeconfig && chmod 600 /tmp/006-kubeconfig && KUBECONFIG=/tmp/006-kubeconfig kubectl config use-context kind-contexture
+> ```
+
+本地集群已由开发方部署完成，**可以跳过 `make up`**。确实需要重新部署时，在上面的终端里执行；2026-11-10 曾因 Doris Helm 仓库 `charts.selectdb.com` 暂时不可达而失败，重试即可。
 
 ```bash
 make up ENV=lite          # 平台组件（已部署的可跳过）
