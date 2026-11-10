@@ -15,7 +15,8 @@ export function TopBreadcrumb() {
     if (parts.length > 1) trail.push(parts[0] ?? "");
     trail.push(parts.at(-1) ?? "");
   } else
-    trail.push(...criteria.browsePath.slice(1).map((s) => s.label ?? s.value));
+    // 按原型 renderBreadcrumb()：浏览路径的每一层（含大类）都显示
+    trail.push(...criteria.browsePath.map((s) => s.label || s.value));
   return (
     <div className="asset-breadcrumb">
       <h1>
