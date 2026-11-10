@@ -7,7 +7,7 @@ from typing import Any
 from urllib.parse import quote
 
 from contexture_bff.adapters.om_client import OmClient
-from contexture_bff.adapters.om_search import governance
+from contexture_bff.adapters.om_search import governance, plain
 from contexture_bff.adapters.om_sources import split_fqn, split_tags
 from contexture_core.auth import RequestContext
 from contexture_core.errors import ContextureError
@@ -101,7 +101,7 @@ def _columns(table: dict[str, Any]) -> list[dict[str, Any]]:
                 "name": c["name"],
                 "dataTypeDisplay": c.get("dataTypeDisplay") or c.get("dataType"),
                 "constraint": c.get("constraint") or by_table.get(c["name"]),
-                "description": c.get("description"),
+                "description": plain(c.get("description")),
                 "displayName": c.get("displayName"),
                 "tags": tags,
                 "dataLevel": split.data_level,
@@ -175,7 +175,7 @@ class AssetReader:
             },
             "name": str(e.get("name") or ""),
             "displayName": e.get("displayName"),
-            "description": e.get("description"),
+            "description": plain(e.get("description")),
             "breadcrumb": _breadcrumb(e),
             "governance": governance(e),
         }
@@ -193,7 +193,7 @@ class AssetReader:
             },
             "name": str(e.get("name") or ""),
             "displayName": e.get("displayName"),
-            "description": e.get("description"),
+            "description": plain(e.get("description")),
             "glossary": _ref(e.get("glossary")),
             "parent": _ref(e.get("parent")),
             "synonyms": [str(s) for s in e.get("synonyms") or []],
@@ -221,7 +221,7 @@ class AssetReader:
             },
             "name": str(e.get("name") or ""),
             "displayName": e.get("displayName"),
-            "description": e.get("description"),
+            "description": plain(e.get("description")),
             "classification": _ref(e.get("classification")),
             "parent": _ref(e.get("parent")),
             "owners": _refs(e.get("owners")),

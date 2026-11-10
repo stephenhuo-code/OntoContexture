@@ -136,6 +136,11 @@ FACET_SIZE = 10  # /search/aggregate 默认 size（SearchResource.java:746-812�
 _REGEX_RESERVED = set('.?+*|{}[]()"\\#@&<>~')
 
 
+def plain(text: Any) -> Any:
+    """OM 描述可能带 HTML 实体（如 &#xff1a;）；解码为纯文本显示，不渲染 HTML。"""
+    return html.unescape(text) if isinstance(text, str) else text
+
+
 def invalid(field: str, reason: str) -> ContextureError:
     return ContextureError(
         "search.invalid_criteria", reason, status_code=422, details={"field": field}
@@ -436,7 +441,7 @@ def project_hit(hit: Mapping[str, Any]) -> dict[str, Any]:
         "breadcrumb": breadcrumb(src),
         "nameHighlight": segments(name_frag) if name_frag else [],
         "descriptionHighlight": segments(desc_frag) if desc_frag else [],
-        "description": src.get("description"),
+        "description": plain(src.get("description")),
         "governance": gov,
         "origin": gov["origin"],
         "matchedFields": matched_fields(hl),
