@@ -320,3 +320,63 @@ test("OM 不可用时数据资产页显示真实错误码与重试，不显示�
     )
     .toBe(1);
 });
+
+test("视觉：按钮文字可见（不继承全局白字）、图标不超过 20px（验收反馈 2026-11-10）", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await login(page, "engineer1", "/assets");
+  await expect(page.getByRole("list", { name: "搜索结果" })).toBeVisible();
+  await page
+    .getByRole("navigation", { name: "数据资产浏览树" })
+    .getByRole("button", { name: "展开 数据治理" })
+    .click();
+  await expect(page.locator(".browse-tree__pick svg").first()).toBeVisible();
+  const check = () =>
+    page.evaluate(() => {
+      const rgb = (v: string) => v.replace(/\s/g, "");
+      const bgOf = (el: Element | null): string => {
+        for (let e = el; e; e = e.parentElement) {
+          const bg = getComputedStyle(e).backgroundColor;
+          if (bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") return bg;
+        }
+        return "rgb(255, 255, 255)";
+      };
+      const bad: string[] = [];
+      for (const sel of [
+        ".browse-tree__pick",
+        ".browse-tree__toggle",
+        ".quick-filter__button",
+        ".asset-sort button",
+        ".type-list button",
+        ".asset-pagination button",
+        ".asset-summary__tabs button",
+      ])
+        for (const el of Array.from(document.querySelectorAll(sel))) {
+          const cs = getComputedStyle(el);
+          if (rgb(cs.color) === rgb(bgOf(el)))
+            bad.push(`${sel} 文字与背景同色 ${cs.color}`);
+        }
+      for (const sel of [".asset-card__title svg", ".browse-tree__pick svg"])
+        for (const el of Array.from(document.querySelectorAll(sel))) {
+          const r = el.getBoundingClientRect();
+          if (r.width > 20 || r.height > 20)
+            bad.push(
+              `${sel} 尺寸 ${Math.round(r.width)}×${Math.round(r.height)}`,
+            );
+        }
+      return bad;
+    });
+  expect(await check()).toEqual([]);
+  await page
+    .getByRole("searchbox", { name: "搜索数据资产" })
+    .fill("work_order");
+  await page.getByRole("searchbox", { name: "搜索数据资产" }).press("Enter");
+  await expect(
+    page
+      .getByRole("navigation", { name: "资产类型" })
+      .getByRole("button")
+      .first(),
+  ).toBeVisible();
+  expect(await check()).toEqual([]);
+});
