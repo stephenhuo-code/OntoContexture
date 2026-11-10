@@ -53,3 +53,24 @@ async def test_unknown_fqn_is_catalog_not_found() -> None:
     with pytest.raises(ContextureError) as ei:
         await reader(om).summary(user_context(), "table", "x.y.z.none")
     assert (ei.value.code, ei.value.status_code) == ("catalog.not_found", 404)
+
+
+async def test_summary_and_details_decode_html_entities() -> None:
+    om = FakeOM()
+    seed(om)
+    table = next(t for t in om.tables if t["fullyQualifiedName"] == TABLE_FQN)
+    table["description"] = "生产工单&#xff1a;主表"
+    table["columns"][0]["description"] = "工单号&#xff1a;唯一"
+    om.glossary_terms["ContextureDevGlossary.工单"]["description"] = "设备属性&#xff1a;投产日期"
+    om.tag_entities["数据级别.一级"]["description"] = "公开&amp;内部"
+    r = reader(om)
+    s = await r.summary(user_context(), "table", TABLE_FQN)
+    assert s["description"] == "生产工单：主表"
+    assert s["columns"][0]["description"] == "工单号：唯一"
+    assert (await r.summary(user_context(), "glossaryTerm", "ContextureDevGlossary.工单"))[
+        "description"
+    ] == "设备属性：投产日期"
+    assert (await r.glossary_term(user_context(), "ContextureDevGlossary.工单"))[
+        "description"
+    ] == "设备属性：投产日期"
+    assert (await r.tag(user_context(), "数据级别.一级"))["description"] == "公开&内部"

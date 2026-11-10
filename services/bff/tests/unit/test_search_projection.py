@@ -120,3 +120,9 @@ def test_name_highlight_never_replaces_display_name() -> None:
     assert h["nameHighlight"] == []
     same = project_hit({**_hit(displayName="work_order"), "highlight": {"name": [hl]}})
     assert "".join(s["text"] for s in same["nameHighlight"]) == "work_order"
+
+
+def test_descriptions_decode_html_entities_as_plain_text() -> None:
+    """验收反馈（2026-11-10）：OM 中的描述带 HTML 实体（如 &#xff1a;），显示时须解码为纯文本。"""
+    h = project_hit(_hit(description="设备属性&#xff1a;投产日期 &lt;b&gt;"))
+    assert h["description"] == "设备属性：投产日期 <b>"

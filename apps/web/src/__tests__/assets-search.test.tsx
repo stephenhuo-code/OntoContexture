@@ -175,3 +175,48 @@ it("搜索范围只列有数据的类型，默认搜索全部；回车后按相�
     expect(last.scope).toBe("table");
   });
 });
+
+it("清空搜索框即退出关键词搜索：关键词与类型清空、左栏回到浏览树，排序与 OM 一致保持不变（验收反馈 2026-11-10）", async () => {
+  const calls = stubAssets([
+    ...routes(),
+    {
+      method: "POST",
+      path: "/bff/v1/assets/browse",
+      body: {
+        nodes: [
+          {
+            level: "root",
+            value: "governance",
+            label: "数据治理",
+            count: 3,
+            hasChildren: true,
+          },
+        ],
+      },
+    },
+  ]);
+  openAssets();
+  const box = await screen.findByRole("searchbox", { name: "搜索数据资产" });
+  await user().type(box, "工单{Enter}");
+  expect(
+    await screen.findByRole("navigation", { name: "资产类型" }),
+  ).toBeVisible();
+  await user().clear(box);
+  await waitFor(() => {
+    const last = calls.filter((c) => c.path === "/bff/v1/assets/search").at(-1)
+      ?.body as {
+      keyword: string;
+      entityType: string | null;
+      sort: { field: string };
+    };
+    expect(last.keyword).toBe("");
+    expect(last.entityType).toBeNull();
+    expect(last.sort.field).toBe("relevance");
+  });
+  expect(
+    await screen.findByRole("navigation", { name: "数据资产浏览树" }),
+  ).toBeVisible();
+  expect(
+    screen.queryByRole("navigation", { name: "资产类型" }),
+  ).not.toBeInTheDocument();
+});
