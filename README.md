@@ -82,4 +82,5 @@ make e2e KUBE_CONTEXT=kind-contexture # 临时 kubeconfig 隔离上下文；只�
 
 2026-11-03：004 已经产品负责人验收通过并关闭，见 [验收记录](specs/004-web-shell/acceptance.md)。
 2026-11-08：005 源系统元数据采集已经产品负责人验收通过并关闭，见 [验收记录](specs/005-source-metadata-ingestion/acceptance.md)。
-下一项为 006 资产搜索与摘要；后续按 007 → 008 推进。
+2026-11-10：006 资产搜索与摘要已经产品负责人验收通过并关闭，见 [验收记录](specs/006-asset-search-summary/acceptance.md)。
+下一项为 007 Agent 工作台与页面助手；后续按 008 推进。
