@@ -84,6 +84,12 @@ export function SearchBar() {
           onChange={(e) => {
             setText(e.target.value);
             setOpen(true);
+            // 清空搜索框（删光或点框内 ✕）即退出关键词搜索，左栏回到浏览树；
+            // 与 OM GlobalSearchBar.handleClear 一致，排序、位置与快速筛选保持不变
+            if (!e.target.value.trim() && criteria.keyword) {
+              dispatch({ type: "keyword", keyword: "" });
+              dispatch({ type: "entityType", entityType: null });
+            }
           }}
           onFocus={() => setOpen(true)}
           onBlur={() => {
