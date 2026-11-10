@@ -534,3 +534,37 @@
 .governance-detail__fields > div {
   grid-template-columns: 140px minmax(0, 1fr);
 }
+
+/* 验收反馈（2026-11-10）：外壳的全局 button 规则（styles.css）为主按钮白字；
+   006 的按钮自定义了背景和边框，须同时显式指定文字颜色与字体，不继承白字。 */
+.browse-tree__pick,
+.browse-tree__toggle,
+.quick-filter__button,
+.asset-sort button,
+.asset-pagination button,
+.type-list button,
+.asset-summary__tabs button,
+.filter-chip button {
+  color: var(--ctx-ink);
+  font: inherit;
+}
+.quick-filter__button.is-active,
+.type-list button[aria-pressed="true"],
+.browse-tree__pick[aria-current="true"],
+.asset-summary__tabs button[aria-selected="true"] {
+  color: var(--ctx-primary);
+}
+.browse-tree__toggle {
+  color: var(--ctx-muted);
+}
+.asset-pagination button:disabled {
+  color: var(--ctx-muted);
+  cursor: not-allowed;
+}
+/* 公共图标组件不带尺寸，由所在位置限定；卡片标题与浏览树叶子节点固定 16px */
+.asset-card__title svg,
+.browse-tree__pick svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
