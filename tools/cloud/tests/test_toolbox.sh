@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # T034：集群内工具箱运行封装（FR-015、FR-016、R12、R18）
 source "$REPO_ROOT/tools/cloud/common.sh"
+source "$REPO_ROOT/tools/cloud/lib/tags.sh"
+source "$REPO_ROOT/tools/cloud/lib/state.sh"
 source "$REPO_ROOT/tools/cloud/lib/toolbox.sh"
 stub_log_init
 CTX_CLOUD_KUBECONFIG=/k/doks.yaml CTX_CLOUD_CONTEXT=ctx-cloud CTX_CLOUD_NAMESPACE=contexture
@@ -11,6 +13,7 @@ ctx_kubectl() {
   case "$*" in
     *"apply -f -"*) cat > "$STUB_LOG.manifest" ;;
     *"exec -i"*"tar"*) cat > "$UPLOAD" ;;
+    *"exec "*"-- bash -lc"*"sleep"*) sleep 3 ;;
     *"exec "*"-- bash -lc"*) echo "running: ${*: -1}"; return "${RUN_STATUS:-0}" ;;
     *"exec "*"cat /workspace/coverage/bash/cobertura.xml"*) echo "<coverage/>" ;;
   esac
@@ -49,7 +52,8 @@ test_residual_pod_is_removed_before_start_and_pod_deleted_after() {
 }
 
 test_interrupt_deletes_pod() {
-  ( ctx_toolbox_run "sleep 1" >/dev/null & pid=$!; sleep 0.2; kill -INT $pid; wait $pid ) || true
+  # 后台子 shell 会忽略 SIGINT，这里用 SIGTERM 模拟中断（交互式 Ctrl+C 走同一个 trap）
+  ( ctx_toolbox_run "sleep 1" >/dev/null & pid=$!; sleep 0.5; kill -TERM $pid; wait $pid ) || true
   assert_contains "$(stub_calls | tail -1)" "delete pod contexture-toolbox"
 }
 
