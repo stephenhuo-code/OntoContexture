@@ -377,3 +377,16 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
 - 多轮运行中出现两个与 030 无关的**既有偶发失败**（随机重跑可通过，未修改，记入 acceptance 由负责人决定）：
   - 006 契约测试 `GET /bff/v1/assets/suggestions`：schemathesis 生成符合契约的关键词（推测为仅含空白字符），BFF 以 422 “关键词不能为空”拒绝，契约与实现不一致；
   - web 单元测试 `column-locate.test.tsx`“由列结果进入时滚动到该列并高亮”：负载较高时滚动函数未被调用（时序敏感）。
+- `cloud-seed` 71 秒；`cloud-mock-data` 473 秒（约 104 万行，3 个案例 15 步全部通过；修正模拟源冒烟测试未传云端上下文）；
+  新增 `cloud-dev-metadata`（006 开发态元数据，本地 `make dev-metadata` 的对应命令）35 秒，导入 50 项。
+- `cloud-e2e` 逐轮暴露并修正（均先补失败测试）：Langfuse 的 SeaweedFS 在 5Gi 卷上建不出卷（轨迹全部丢失，卷大小上限改 200MB）；
+  工具箱缺 `CONTEXTURE_BFF_CLIENT_SECRET`；工具箱缺读取证书、扩缩 Deployment 的授权；云端缺开发态元数据命令；
+  Airflow 调度器（768Mi）与 DAG 处理器（512Mi）反复 OOM，采集任务无法调度（独占节点后放宽到 2Gi / 1.5Gi）；
+  e2e 等待 OM 停止时把已完成的定时重建索引 Job Pod 也算在内（选择器排除 `batch.kubernetes.io/job-name`）。
+- 最后一轮（2026-11-11 13:12）：Python 集群测试 **16 项全部通过**；浏览器 **25 通过、1 失败、1 跳过、6 未运行**。
+  失败项为 005 的“US1：接入 MES 并首采”：本轮由页面创建的采集运行在 Airflow 中**已成功**，但“运行记录”表 4 分钟内未显示“成功”，
+  原因待查（OM 状态回写或页面读取）；诊断记录在开发机 `~/.cache/contexture/logs/t068-mes-diag.txt`。
+- 资源复核（负责人 2026-11-11 询问）：弹性池节点可分配内存 6.26Gi；Airflow 独占节点上 requests 合计 2176Mi，另有系统 DaemonSet 508Mi。
+  发现两个待改进项（下次继续）：工具箱 Pod（requests 3Gi）会调度到 Airflow 节点（反亲和只排除 `contexture` namespace）；
+  Airflow 采集任务 Pod 未设资源（BestEffort，节点紧张时最先被驱逐）。
+- demo.spec“第 1–2 步”的标题定位在部分轮次因页面有两个含“设备”的标题（004 页头与对象页正文）触发严格模式错误，属既有测试缺陷，未修改。
