@@ -109,6 +109,25 @@ ctx_cert_guard_stop() {
   if [[ -n ${CTX_CERT_GUARD_PID:-} ]]; then kill "$CTX_CERT_GUARD_PID" 2>/dev/null || true; fi
 }
 
+# 恢复停在 pending-* 的 Helm release（T042 实测：API 连接中断使 release 停在 pending-upgrade，此后每次部署都报
+# “another operation is in progress”）。回滚到最近一次成功的版本；没有成功版本的（pending-install）只报告，不删除。
+# 云端环境只有一个操作者，部署开始时不会有其他 Helm 操作在进行。
+ctx_recover_pending_releases() {
+  local ns name rev
+  while read -r ns name; do
+    [[ -z $name ]] && continue
+    rev=$(ctx_helm -n "$ns" history "$name" -o json |
+      jq -r '[.[] | select(.status == "deployed" or .status == "superseded")] | last | .revision // empty')
+    if [[ -n $rev ]]; then
+      echo "Helm release $ns/$name 停在未完成状态，回滚到版本 $rev 后继续"
+      ctx_helm -n "$ns" rollback "$name" "$rev"
+    else
+      echo "Helm release $ns/$name 停在首次安装未完成状态，没有可回滚的版本：请检查后执行 helm -n $ns uninstall $name 再部署"
+    fi
+  done < <(ctx_helm list -A --pending -o json | jq -r '.[] | "\(.namespace) \(.name)"')
+  return 0
+}
+
 # 部署前恢复停止中的工作负载（T052 实测：Envoy 代理等由控制器管理，Helm 不会恢复其副本）
 ctx_deploy_resume() { "$HERE/lifecycle.sh" resume; }
 
@@ -147,10 +166,12 @@ ctx_deploy_main() {
   ctx_log "生成 Secret（已存在的不覆盖）"
   ctx_ensure_secrets
   ctx_deploy_resume
+  ctx_recover_pending_releases
   ctx_log "helmfile sync（云端环境；不含模拟源系统）"
   export CTX_CLOUD_BFF_TAG=$bff_tag CTX_CLOUD_WEB_TAG=$web_tag
   ctx_cert_guard_start
-  if ! ctx_helmfile -l 'group!=mock-sources' sync; then
+  # 限制并发：DOKS 托管 API 在约 27 个 release 并行升级时出现过连接中断（T042 实测）
+  if ! ctx_helmfile -l 'group!=mock-sources' sync --concurrency 6; then
     ctx_cert_guard_stop
     ctx_report_unschedulable
     exit "$CTX_EXIT_FAILED"
