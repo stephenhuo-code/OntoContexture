@@ -15,6 +15,16 @@ affinity:
       - labelSelector:
           matchLabels: { component: scheduler, release: airflow }
         topologyKey: kubernetes.io/hostname
+  # 独占节点（T052 实测）：Airflow 常驻 Pod 与采集任务 Pod 须同节点，若与其他组件混放，调度器所在节点满载后其余 Pod 无法调度，
+  # 集群扩容也无济于事。必需反亲和是对称的：Airflow 不进有其他组件的节点，其他组件也不进 Airflow 所在节点。
+  # 本 namespace 中只有 Airflow 带 release 标签；OTel 采集代理是 DaemonSet，须排除。
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - { key: release, operator: NotIn, values: [airflow] }
+            - { key: component, operator: NotIn, values: [agent-collector] }
+        topologyKey: kubernetes.io/hostname
 dags:
   persistence:
     storageClassName: {{ .Values.storageClass }}
