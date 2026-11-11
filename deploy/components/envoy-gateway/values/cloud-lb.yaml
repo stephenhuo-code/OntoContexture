@@ -1,0 +1,4 @@
+# 云负载均衡器注解（DigitalOcean；换其他云时只替换本文件，research R19）
+service.beta.kubernetes.io/do-loadbalancer-name: contexture
+service.beta.kubernetes.io/do-loadbalancer-size-unit: "1"
+service.beta.kubernetes.io/do-loadbalancer-healthcheck-protocol: tcp

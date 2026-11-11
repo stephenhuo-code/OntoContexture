@@ -1,0 +1,9 @@
+# 云端（030）：Envoy Gateway 控制器只调度到弹性池；Gateway API CRD 由集群托管时 Helm 跳过已存在的 CRD（research R2）
+deployment:
+  pod:
+    nodeSelector:
+      {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+certgen:
+  job:
+    nodeSelector:
+      {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}

@@ -1,0 +1,12 @@
+# 云端入口（030 research R3、R4、R19）：LoadBalancer + HTTPS 监听器 + HTTP 重定向；负载均衡器注解在 values/cloud-lb.yaml 中按云厂商维护
+envoyService:
+  type: LoadBalancer
+loadBalancer:
+  annotations:
+{{- readFile "../values/cloud-lb.yaml" | fromYaml | toYaml | nindent 4 }}
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+https:
+  enabled: true
+  certificateSecret: contexture-tls
+  redirectHttp: true

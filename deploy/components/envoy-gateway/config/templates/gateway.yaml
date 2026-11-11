@@ -19,11 +19,18 @@ spec:
       customTags:
         ctx.tenant.id:
           type: Literal
-          literal: { value: local }
+          literal: { value: {{ .Values.tenantId | default "local" }} }
   provider:
     type: Kubernetes
     kubernetes:
       envoyService:
+{{- if eq (.Values.envoyService).type "LoadBalancer" }}
+        # 云端（030）：云负载均衡器；厂商注解来自各环境参数（research R3、R19）
+        type: LoadBalancer
+        {{- with (.Values.loadBalancer).annotations }}
+        annotations: {{- toYaml . | nindent 10 }}
+        {{- end }}
+{{- else }}
         type: NodePort
         # kind 的宿主机端口映射在控制面节点上，Envoy Pod 可能在其他节点
         externalTrafficPolicy: Cluster
@@ -35,7 +42,12 @@ spec:
                 - name: http-80
                   port: 80
                   nodePort: 30080
+{{- end }}
       envoyDeployment:
+        {{- with .Values.nodeSelector }}
+        pod:
+          nodeSelector: {{- toYaml . | nindent 12 }}
+        {{- end }}
         container:
           # 显式按标签引用（Envoy Gateway 默认以 digest 引用，离线导入的单架构镜像 digest 不同）
           image: docker.io/envoyproxy/envoy:distroless-v1.39.1
@@ -68,3 +80,36 @@ spec:
       port: 80
       allowedRoutes:
         namespaces: { from: Same }
+{{- with .Values.https }}
+{{- if .enabled }}
+    # 云端（030）：一张证书覆盖全部主机名（research R4）；业务路由只挂 https，http 只挂 ACME 校验与重定向
+    - name: https
+      protocol: HTTPS
+      port: 443
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: {{ .certificateSecret }}
+      allowedRoutes:
+        namespaces: { from: Same }
+{{- end }}
+{{- end }}
+{{- if (.Values.https).redirectHttp }}
+---
+# HTTP → HTTPS（FR-019）：路径更长的 ACME 校验路由优先匹配，不受影响
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: redirect-to-https
+  namespace: contexture
+spec:
+  parentRefs:
+    - name: contexture
+      sectionName: http
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+{{- end }}
