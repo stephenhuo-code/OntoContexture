@@ -22,7 +22,8 @@ status=0; ( cd "$ROOT" && make cloud-deploy < /dev/null ) > "$CTX_LOG_DIR/test-d
   fail "开发模式期间部署未要求确认（退出码 $status）"
 # SC-003：开发机内存（开发模式进程合计 RSS 与开发机容器已用）
 rss=$(ps -o rss= -s "$DEV" | awk '{s+=$1} END {print int(s/1024)}')
-used=$(( $(cat /sys/fs/cgroup/memory.current) / 1048576 ))   # 开发机容器的 cgroup 用量（/proc/meminfo 是整个节点）
+# 开发机容器的工作集（与 kubelet 判断内存压力相同：cgroup 用量减去可回收的非活跃文件缓存；/proc/meminfo 是整个节点）
+used=$(( ($(cat /sys/fs/cgroup/memory.current) - $(awk '$1 == "inactive_file" {print $2}' /sys/fs/cgroup/memory.stat)) / 1048576 ))
 (( used <= 2048 )) && pass "开发模式进程 ${rss} MiB，开发机已用内存 ${used} MiB（≤ 2 GiB）" || fail "开发机已用内存 ${used} MiB 超过 2 GiB"
 kill -TERM -- "-$DEV"; wait "$DEV" 2>/dev/null || true
 for i in $(seq 1 60); do curl -s -m 5 "$URL" | grep -q "$MARK" || break; sleep 5; done
