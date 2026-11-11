@@ -29,19 +29,19 @@
 
 ## Phase 1: Setup（阶段 A：开发机工具、配置与测试设施）
 
-- [ ] T001 编写 `tools/cloud/tests/run.sh`（纯 bash 测试运行器：发现 `test_*.sh` 文件，每个 `test_` 函数在子 shell 中运行，汇总结果并设置退出码；设置 `CTX_KCOV` 时，在 kcov 下运行并把结果合并输出到 `coverage/bash/cobertura.xml`）；在 `Makefile` 新增 `cloud-unit` 目标（R17a）
-- [ ] T002 [P] 在 `tools/tests/test_coverage_gate.py` 编写失败测试：`--cobertura <文件>` 能解析 kcov 输出的 cobertura XML，并按 `--base` 的差异统计新增和修改行的覆盖率，与 `--python`、`--lcov` 合并后一起参与 80% 门禁（宪法 I、R17a）
-- [ ] T003 在 `tools/coverage_gate.py` 实现 `--cobertura` 输入，使 T002 通过（R17a）
-- [ ] T004 [P] 编写失败测试 `tools/cloud/tests/test_tools_lock.sh`：`tools/cloud/tools.lock` 每行为“名称 版本 许可 URL SHA256”，至少包含 kubectl、helm、helmfile、doctl、devspace、buildctl、jq，且版本发布早于锁定日期 14 天（FR-031、R15）
-- [ ] T005 [P] 编写失败测试 `tools/cloud/tests/test_install_tools.sh`：用本地伪造的下载源验证安装到 `$HOME/.local/bin`；SHA256 不符时拒绝安装；已安装且版本一致时跳过；缺少 git / curl / openssl / tar 时以退出码 2 报错（FR-031、R18）
-- [ ] T006 创建 `tools/cloud/tools.lock` 与 `tools/cloud/install-tools.sh`，在 `Makefile` 新增 `cloud-tools` 目标，使 T004、T005 通过（FR-031）
-- [ ] T007 在开发机执行 `make cloud-tools`，把各工具的版本和运行时内存占用（开发机限额 2 GiB）记录到 `specs/030-doks-deploy/research.md` R15（FR-014、FR-031）
-- [ ] T008 [P] 编写失败测试 `tools/cloud/tests/test_config.sh`：覆盖 contracts/cloud-config.md 中每个键的校验规则（缺必填键、kubeconfig 权限不是 600、上下文不存在、域名为 `localhost` / `*.nip.io`、`CTX_CLOUD_ACME_SERVER` 不是 `staging|production`，都以退出码 2 退出；输出中不回显令牌值）（FR-004、FR-005）
-- [ ] T009 [P] 编写失败测试 `tools/cloud/tests/test_context_pinning.sh`：用 kubectl 桩函数断言 `ctx_kubectl` / `ctx_helm` / `ctx_helmfile` 始终带 `--kubeconfig`、`--context`、`--namespace`，并且从不调用 `kubectl config use-context`（FR-001a、FR-002）
-- [ ] T010 创建 `tools/cloud/common.sh`：读取并校验 `.env.cloud`；提供固定上下文的命令封装；确认函数（交互式输入 `yes`，或设置 `CONFIRM=yes`，否则退出码 3）；退出码常量；日志写到 `~/.cache/contexture/logs/`（R18）。使 T008、T009 通过
-- [ ] T011 [P] 创建 `.env.cloud.example`（列出全部键，只填占位值并加注释）；在 `.gitignore` 新增 `.devspace/` 与 `coverage/bash/`；确认 `.env.cloud` 已被 `.env.*` 规则忽略（FR-005、R18）
-- [ ] T012 [P] 在 `.github/workflows/ci.yml` 新增 `cloud-scripts` 任务：安装 kcov、jq，以及 `tools/cloud/tools.lock` 中锁定的 helm 和 helmfile；运行 `CTX_KCOV=1 make cloud-unit` 和 `tools/cloud/tests/render-compare.sh`；对 `.github/workflows/*.yml` 运行 actionlint；把 `coverage/bash/cobertura.xml` 传给 `coverage-check`（宪法 I、CI 门禁）
-- [ ] T013 [P] 在 `tools/license-allowlist.yaml` 的 `exceptions` 中登记 kcov（`license: GPL-2.0`，`component: ci-toolbox`，`scope: 仅 CI 工具箱与 CI 运行器中的 bash 覆盖率统计，不进入交付物`，`adr: docs/adr/0014-云端开发环境.md`）；同时起草 `docs/adr/0014-云端开发环境.md` 的框架（背景、决定、许可例外）（R17a）
+- [X] T001 编写 `tools/cloud/tests/run.sh`（纯 bash 测试运行器：发现 `test_*.sh` 文件，每个 `test_` 函数在子 shell 中运行，汇总结果并设置退出码；设置 `CTX_KCOV` 时，在 kcov 下运行并把结果合并输出到 `coverage/bash/cobertura.xml`）；在 `Makefile` 新增 `cloud-unit` 目标（R17a）
+- [X] T002 [P] 在 `tools/tests/test_coverage_gate.py` 编写失败测试：`--cobertura <文件>` 能解析 kcov 输出的 cobertura XML，并按 `--base` 的差异统计新增和修改行的覆盖率，与 `--python`、`--lcov` 合并后一起参与 80% 门禁（宪法 I、R17a）
+- [X] T003 在 `tools/coverage_gate.py` 实现 `--cobertura` 输入，使 T002 通过（R17a）
+- [X] T004 [P] 编写失败测试 `tools/cloud/tests/test_tools_lock.sh`：`tools/cloud/tools.lock` 每行为“名称 版本 许可 URL SHA256”，至少包含 kubectl、helm、helmfile、doctl、devspace、buildctl、jq，且版本发布早于锁定日期 14 天（FR-031、R15）
+- [X] T005 [P] 编写失败测试 `tools/cloud/tests/test_install_tools.sh`：用本地伪造的下载源验证安装到 `$HOME/.local/bin`；SHA256 不符时拒绝安装；已安装且版本一致时跳过；缺少 git / curl / openssl / tar 时以退出码 2 报错（FR-031、R18）
+- [X] T006 创建 `tools/cloud/tools.lock` 与 `tools/cloud/install-tools.sh`，在 `Makefile` 新增 `cloud-tools` 目标，使 T004、T005 通过（FR-031）
+- [X] T007 在开发机执行 `make cloud-tools`，把各工具的版本和运行时内存占用（开发机限额 2 GiB）记录到 `specs/030-doks-deploy/research.md` R15（FR-014、FR-031）
+- [X] T008 [P] 编写失败测试 `tools/cloud/tests/test_config.sh`：覆盖 contracts/cloud-config.md 中每个键的校验规则（缺必填键、kubeconfig 权限不是 600、上下文不存在、域名为 `localhost` / `*.nip.io`、`CTX_CLOUD_ACME_SERVER` 不是 `staging|production`，都以退出码 2 退出；输出中不回显令牌值）（FR-004、FR-005）
+- [X] T009 [P] 编写失败测试 `tools/cloud/tests/test_context_pinning.sh`：用 kubectl 桩函数断言 `ctx_kubectl` / `ctx_helm` / `ctx_helmfile` 始终带 `--kubeconfig`、`--context`、`--namespace`，并且从不调用 `kubectl config use-context`（FR-001a、FR-002）
+- [X] T010 创建 `tools/cloud/common.sh`：读取并校验 `.env.cloud`；提供固定上下文的命令封装；确认函数（交互式输入 `yes`，或设置 `CONFIRM=yes`，否则退出码 3）；退出码常量；日志写到 `~/.cache/contexture/logs/`（R18）。使 T008、T009 通过
+- [X] T011 [P] 创建 `.env.cloud.example`（列出全部键，只填占位值并加注释）；在 `.gitignore` 新增 `.devspace/` 与 `coverage/bash/`；确认 `.env.cloud` 已被 `.env.*` 规则忽略（FR-005、R18）
+- [X] T012 [P] 在 `.github/workflows/ci.yml` 新增 `cloud-scripts` 任务：安装 kcov、jq，以及 `tools/cloud/tools.lock` 中锁定的 helm 和 helmfile；运行 `CTX_KCOV=1 make cloud-unit` 和 `tools/cloud/tests/render-compare.sh`；对 `.github/workflows/*.yml` 运行 actionlint；把 `coverage/bash/cobertura.xml` 传给 `coverage-check`（宪法 I、CI 门禁）
+- [X] T013 [P] 在 `tools/license-allowlist.yaml` 的 `exceptions` 中登记 kcov（`license: GPL-2.0`，`component: ci-toolbox`，`scope: 仅 CI 工具箱与 CI 运行器中的 bash 覆盖率统计，不进入交付物`，`adr: docs/adr/0014-云端开发环境.md`）；同时起草 `docs/adr/0014-云端开发环境.md` 的框架（背景、决定、许可例外）（R17a）
 
 ---
 

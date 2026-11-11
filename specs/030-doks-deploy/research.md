@@ -211,3 +211,10 @@
 - 宪法“部署约束”只写了阿里云 ACK / ACR 测试环境，并要求测试环境由流水线基于已合并提交部署；本特性在 DOKS 上新增开发 / 测试 / 演示环境，镜像可由任意分支手动构建，
   开发模式运行未提交代码。理由与处置见 plan.md 的 Constitution Check 与 Complexity Tracking：提交宪法 MINOR 修订（新增“DOKS 云端开发环境”条款），**在首次云端部署前**取得负责人批准；
   新增 ADR-0014 记录云端开发环境的工具选型（R2、R10、R11、R12、R13）。
+
+## 实施记录：R15 开发机工具（T007，2026-11-11）
+
+`make cloud-tools` 在 devbox-0 上安装并校验通过：kubectl v1.37.2、helm **v3.22.1**（选 Helm 3 而非 4，与本地开发者常用大版本一致、风险更低）、helmfile v1.8.2、
+doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两周，SHA256 与上游校验值一致；buildkit 无独立校验文件，取 GitHub 发布资产摘要）。
+另装 uv 0.12.0（与 bff Dockerfile 一致）与 Python 3.12 到持久卷，仅用于在开发机上运行轻量的单元测试（`uv run pytest tools/tests` 约 2 秒，57 项）；
+重的测试（集成、e2e、类型检查）仍按 R12 在工具箱中运行。helmfile 渲染的内存占用见 T016 记录。
