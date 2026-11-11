@@ -66,3 +66,12 @@ test_reset_works_without_local_process() {
   assert_contains "$c" "devMode.active=false"
   assert_not_contains "$c" "devspace dev"
 }
+
+# T075 实测：devspace.yaml 的变量取自环境，缺少时连配置都无法加载（“couldn't find environment variable CTX_DEV_WEB_IMAGE”），
+# 单独执行 cloud-dev-reset（及开发模式异常退出后的恢复）全部失败。reset 须自行提供这些变量
+test_reset_provides_variables_needed_to_load_devspace_config() {
+  unset CTX_DEV_BFF_IMAGE CTX_DEV_WEB_IMAGE
+  ctx_dev_main reset >/dev/null
+  local line; line=$(stub_calls | grep "devspace reset pods" | head -1)
+  [[ $line != *"BFF= "* && $line != *"WEB=" ]] || fail "reset 未提供开发镜像变量：$line"
+}
