@@ -85,3 +85,10 @@ test_dind_sidecar_sees_workspace_at_same_path() {
   local m; m=$(ctx_toolbox_manifest)
   assert_eq "/workspace" "$(jq -r '.spec.containers[] | select(.name == "dind") | .volumeMounts[] | select(.name == "workspace") | .mountPath' <<< "$m")"
 }
+
+# T068 实测：测试夹具在临时目录（/tmp）生成文件再绑定挂载（如 Keycloak 登录主题），/tmp 也须与 dind 共享
+test_dind_sidecar_shares_tmp() {
+  local m; m=$(ctx_toolbox_manifest)
+  assert_eq "/tmp" "$(jq -r '.spec.containers[] | select(.name == "dind") | .volumeMounts[] | select(.name == "tmp") | .mountPath' <<< "$m")"
+  assert_eq "/tmp" "$(jq -r '.spec.containers[] | select(.name == "toolbox") | .volumeMounts[] | select(.name == "tmp") | .mountPath' <<< "$m")"
+}
