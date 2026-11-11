@@ -21,6 +21,8 @@ from urllib.parse import urlparse
 import asyncpg  # pyright: ignore[reportMissingTypeStubs]
 import pymysql
 
+from mockfactory.load import kube_context_args
+
 DATABASE = "viewlab"
 ACCOUNTS = ("mes_meta_ro", "qms_meta_ro", "viewlab_ro", "viewlab_noview")
 SECRET = "mock-readonly"  # noqa: S105 -- Kubernetes Secret 名称，不是密码；命名空间 mock-sources；键与 ACCOUNTS 相同（下划线换为连字符）
@@ -193,7 +195,7 @@ def provision_postgres(admin_dsn: str, passwords: dict[str, str]) -> None:
 # ---------- 本地集群 ----------
 
 
-def local_passwords(context: str = "kind-contexture") -> dict[str, str]:
+def local_passwords(context: str | None = None) -> dict[str, str]:
     """读取 mock-sources/mock-readonly（testdata/deploy/secrets.sh 生成）。"""
     out: dict[str, str] = {}
     for user in ACCOUNTS:
@@ -201,8 +203,7 @@ def local_passwords(context: str = "kind-contexture") -> dict[str, str]:
         raw = subprocess.run(  # noqa: S603
             [  # noqa: S607
                 "kubectl",
-                "--context",
-                context,
+                *(["--context", context] if context else kube_context_args()),
                 "-n",
                 "mock-sources",
                 "get",

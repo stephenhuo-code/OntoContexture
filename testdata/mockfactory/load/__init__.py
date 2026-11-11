@@ -5,6 +5,7 @@ local 目标：模拟 MES、QMS 在命名空间 mock-sources，数仓在 context
 """
 
 import contextlib
+import os
 import shutil
 import socket
 import subprocess
@@ -20,6 +21,14 @@ import pymysql
 from mockfactory.load import mysql, postgres
 
 KUBE_CONTEXT = "kind-contexture"
+
+
+def kube_context_args() -> list[str]:
+    """kubectl 上下文参数：未设置 CTX_KUBE_CONTEXT 时为本地 kind；设为空串时用集群内凭证（030）。"""
+    context = os.environ.get("CTX_KUBE_CONTEXT", KUBE_CONTEXT)
+    return ["--context", context] if context else []
+
+
 MOCK_NS = "mock-sources"
 PLATFORM_NS = "contexture"
 BYTES_PER_ROW = 150  # 估算磁盘占用（含索引）
@@ -72,7 +81,7 @@ def dsn_targets(
 
 def _kubectl(*args: str) -> str:
     return subprocess.run(  # noqa: S603
-        ["kubectl", "--context", KUBE_CONTEXT, *args],  # noqa: S607
+        ["kubectl", *kube_context_args(), *args],  # noqa: S607
         check=True,
         capture_output=True,
         text=True,
@@ -95,8 +104,7 @@ def _port_forward(ns: str, target: str, remote_port: int) -> Iterator[int]:
     proc = subprocess.Popen(  # noqa: S603
         [  # noqa: S607
             "kubectl",
-            "--context",
-            KUBE_CONTEXT,
+            *kube_context_args(),
             "-n",
             ns,
             "port-forward",
