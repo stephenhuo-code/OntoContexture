@@ -18,6 +18,10 @@ ctx_devspace() {
 }
 
 ctx_dev_reset() {  # 恢复稳定版本；不依赖本地进程（开发机重建后同样可用）
+  # devspace.yaml 的变量取自环境，缺少时连配置都无法加载；reset 不用镜像，按当前锁文件计算即可（T075 实测）
+  export CTX_DEV_BFF_IMAGE CTX_DEV_WEB_IMAGE CTX_CLOUD_DOMAIN
+  CTX_DEV_BFF_IMAGE=${CTX_DEV_BFF_IMAGE:-$(ctx_dev_image bff)}
+  CTX_DEV_WEB_IMAGE=${CTX_DEV_WEB_IMAGE:-$(ctx_dev_image web)}
   ctx_devspace reset pods >/dev/null 2>&1 || ctx_devspace reset pods
   ctx_state_set devMode.active=false
 }
