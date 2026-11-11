@@ -40,8 +40,8 @@ ctx_toolbox_cleanup() {
   ctx_kubectl -n "$CTX_TOOLBOX_NS" delete pod "$CTX_TOOLBOX_POD" --ignore-not-found --wait=false >/dev/null 2>&1 || true
 }
 
-ctx_toolbox_upload() {  # 只上传 git 跟踪与未忽略的文件，并再次排除 .env 类凭证文件
-  git -C "$CTX_REPO_ROOT" ls-files -z -co --exclude-standard |
+ctx_toolbox_upload() {  # 只上传 git 跟踪与未忽略的文件（另附 .git 供变更覆盖率计算），并再次排除 .env 类凭证文件
+  { git -C "$CTX_REPO_ROOT" ls-files -z -co --exclude-standard; printf '.git\0'; } |
     grep -zvE '(^|/)\.env(\.[A-Za-z0-9_-]+)?$' |
     tar -C "$CTX_REPO_ROOT" --null -T - -czf - |
     ctx_kubectl -n "$CTX_TOOLBOX_NS" exec -i "$CTX_TOOLBOX_POD" -c toolbox -- tar xzf - -C /workspace

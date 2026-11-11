@@ -9,7 +9,7 @@ source "$HERE/lib/tags.sh"
 source "$HERE/lib/state.sh"
 source "$HERE/lib/toolbox.sh"
 
-CTX_PREPARE="uv sync --all-packages --frozen >/dev/null && pnpm install --frozen-lockfile --reporter=silent"
+CTX_PREPARE="git config --global --add safe.directory /workspace && uv sync --all-packages --frozen >/dev/null && pnpm install --frozen-lockfile --reporter=silent"
 # 工具箱在集群内使用自身的 ServiceAccount：模拟数据工具不指定 kube 上下文；kubectl 默认 namespace 与本地一致
 CTX_IN_CLUSTER="export CTX_KUBE_CONTEXT=; "
 
