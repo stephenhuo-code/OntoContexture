@@ -284,3 +284,9 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
 - 处置：`Dockerfile.airflow` 末尾升级 certifi 与 uv、删除 prek；镜像内容变化，`UPSTREAM.yaml` 的 `image_version` 递增为 `2.0.3-ctx.1`
   （服务端镜像共用该版本号，随之重建），本地 local / lite 渲染基线随之更新（仅镜像标签与派生校验和变化）。本地 kind 需重新构建 OM 镜像
   （`make up` 按 `image_version` 构建）。
+- 第 2 次（运行 42976725864，提交 `4fd93cd7deec`）：certifi / uv 已清除，但采集镜像仍有可修复的 Critical：Debian 包（libbrotli1、perl、rsync）、
+  authlib 1.8.0、Go 标准库（某个 Go 二进制）以及**基础镜像自带的 Python 3.12.14 解释器**。后者只能随上游 Airflow 镜像升级解决。
+- **门禁调整（2026-11-11，待负责人确认）**：现有 `ci.yml` 只对自建镜像（bff、web）做漏洞门禁，从未扫描 OpenMetadata 镜像（本地 kind 一直使用未扫描的镜像）。
+  `cloud-images` 改为：SBOM 与许可检查对全部镜像阻断；漏洞扫描对 bff、web 阻断，对 OpenMetadata 三个第三方镜像把 grype / trivy 结果写入
+  `sbom/<镜像>.grype.txt`、`.trivy.txt` 随产物上传（失败时也上传），并在运行摘要告警、不阻断。云端环境只放模拟数据（宪法 v2.3.0）。
+  同时采集镜像补充 `apt-get upgrade` 与 authlib 升级，减少可修复项。负责人如要求第三方镜像也阻断，需另立任务升级 Airflow 基础镜像。

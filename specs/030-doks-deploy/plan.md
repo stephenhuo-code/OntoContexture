@@ -55,7 +55,7 @@
 | --- | --- | --- |
 | I 测试驱动 | PASS | 脚本逻辑先写 bash 单元测试，用 kcov 统计行覆盖率并纳入 80% 门禁；Chart 参数化先写渲染对比测试（local / lite 渲染前后一致，cloud 渲染断言）；集群行为写 `-m cluster` 验证测试；测试先于实现提交。集成测试在工具箱中用 DinD 运行，依赖仍为真实容器 |
 | II 微服务与契约优先 | PASS | 不新增服务、不改接口。命令行与配置文件的约定先写成 [contracts/](contracts/) |
-| III 开源优先与许可 | PASS | 新增 cert-manager、BuildKit、DevSpace，均为 Apache-2.0，见下方清单；cert-manager、BuildKit、CI 工具箱按 001 的组件目录登记 `component.yaml`，纳入 `make components-check` 与许可检查；`cloud-images` 流水线复用 `ci.yml` 的 SBOM、许可与漏洞扫描，不通过则不推送。kcov（GPL-2.0）只用于开发测试、不进入交付物，按许可白名单的例外登记（ADR-0014）。不引入 BUSL / AGPL 工具（不用 Terraform） |
+| III 开源优先与许可 | PASS | 新增 cert-manager、BuildKit、DevSpace，均为 Apache-2.0，见下方清单；cert-manager、BuildKit、CI 工具箱按 001 的组件目录登记 `component.yaml`，纳入 `make components-check` 与许可检查；`cloud-images` 流水线复用 `ci.yml` 的 SBOM、许可与漏洞扫描：许可不通过、或自建镜像（bff、web）有可修复的 Critical 漏洞则不推送；OpenMetadata 第三方镜像的漏洞结果留档告警、不阻断（与 `ci.yml` 只门禁自建镜像一致，2026-11-11，待负责人确认，见 research R9 实施记录）。kcov（GPL-2.0）只用于开发测试、不进入交付物，按许可白名单的例外登记（ADR-0014）。不引入 BUSL / AGPL 工具（不用 Terraform） |
 | IV 最小权限与审计 | PASS（附风险） | 凭证只放在 `.env.cloud` 与集群 Secret 中；DOCR 拉取用只读令牌；工具箱 ServiceAccount 只有 `contexture` namespace 内的受限权限。测试用户密码同用户名、组件界面对公网开放，是负责人知情决定，写入 acceptance 已知限制 |
 | V 可观测性 | PASS | 沿用现有 OTel Collector / Jaeger / Langfuse；入口追踪继续由 Envoy Gateway 提供 |
 | VI 以服务集成、定制分级 | PASS | 全部是配置：Helm values、helmfile 环境、Dockerfile 新增非末尾阶段。不打补丁，不修改上游源码 |
