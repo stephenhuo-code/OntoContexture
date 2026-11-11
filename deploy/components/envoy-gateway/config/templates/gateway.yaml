@@ -127,6 +127,16 @@ spec:
       sectionName: https
   hostnames: [{{ .host | quote }}]
   rules:
+    {{- range .blockPathPrefixes }}
+    # 不经入口暴露的路径：重定向到首页，请求不会到达后端
+    - matches:
+        - path: { type: PathPrefix, value: {{ . | quote }} }
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path: { type: ReplaceFullPath, replaceFullPath: / }
+            statusCode: 302
+    {{- end }}
     - backendRefs:
         - name: {{ .service }}
           port: {{ .port }}

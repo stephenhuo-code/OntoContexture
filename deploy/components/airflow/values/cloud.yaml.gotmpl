@@ -31,3 +31,17 @@ dags:
 triggerer:
   persistence:
     storageClassName: {{ .Values.storageClass }}
+# 界面经 Envoy 入口对外（FR-020）：api-server 的网络策略在 base 的两类来源之外放行入口代理（列表整体覆盖，须重复 base 的条目）；
+# 不认证的 /pluginsv2 由入口路由拦截（envoy-gateway config 的 blockPathPrefixes，T057 实测）
+apiServer:
+  networkPolicy:
+    ingress:
+      from:
+        - podSelector:
+            matchLabels: { tier: airflow, release: airflow }
+        - podSelector:
+            matchLabels: { app.kubernetes.io/name: openmetadata }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: envoy-gateway-system }
+          podSelector:
+            matchLabels: { app.kubernetes.io/component: proxy, gateway.envoyproxy.io/owning-gateway-name: contexture }
