@@ -45,3 +45,13 @@ apiServer:
             matchLabels: { kubernetes.io/metadata.name: envoy-gateway-system }
           podSelector:
             matchLabels: { app.kubernetes.io/component: proxy, gateway.envoyproxy.io/owning-gateway-name: contexture }
+# 资源（T068 实测）：沿用本地设置时调度器（上限 768Mi）与 DAG 处理器（512Mi）在采集与 e2e 期间反复 OOM，采集任务无法调度。
+# 云端 Airflow 已独占一个节点（见上方反亲和），放宽上限；本地 kind 不变
+scheduler:
+  resources:
+    requests: { cpu: 100m, memory: 768Mi }
+    limits: { memory: 2Gi }
+dagProcessor:
+  resources:
+    requests: { cpu: 50m, memory: 512Mi }
+    limits: { memory: 1536Mi }
