@@ -4,7 +4,7 @@
 #       不删除持久卷、Secret 与配置；随后等待弹性池节点被集群自动扩缩释放。
 # 启动：逆序恢复，等待就绪与证书，运行冒烟测试。两者均可重复执行，并能从中途失败收敛到目标状态。
 # 只处理织境的 namespace，永不触碰 dev（devbox-0）与 kube-*。
-# 用法：tools/cloud/lifecycle.sh <stop|start|status>
+# 用法：tools/cloud/lifecycle.sh <stop|start|status|resume>（resume：只恢复不等待，供 cloud-deploy 使用）
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$HERE/deploy.sh"
 
@@ -141,9 +141,8 @@ ctx_lc_wait_ready() {
   done
 }
 
-ctx_lc_start() {
-  ctx_load_config
-  ctx_state_set lifecycle.state=starting
+# 只恢复、不等待（cloud-start 与 cloud-deploy 共用；幂等，未停止时不改变副本数）
+ctx_lc_resume() {
   ctx_log "恢复控制器与数据库"
   ctx_lc_start_ns cnpg-system
   ctx_lc_start_ns cert-manager
@@ -156,6 +155,12 @@ ctx_lc_start() {
   ctx_lc_start_ns envoy-gateway-system '^envoy-gateway$'
   ctx_lc_start_ns envoy-gateway-system '' '^envoy-gateway$'
   ctx_lc_cronjobs false
+}
+
+ctx_lc_start() {
+  ctx_load_config
+  ctx_state_set lifecycle.state=starting
+  ctx_lc_resume
   ctx_log "等待就绪"
   ctx_lc_wait_ready || exit "$CTX_EXIT_FAILED"
   local i
@@ -213,7 +218,8 @@ if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
   case ${1:-} in
     stop) ctx_lc_stop ;;
     start) ctx_lc_start ;;
+    resume) ctx_load_config; ctx_lc_resume ;;   # cloud-deploy 部署前调用
     status) ctx_lc_status ;;
-    *) ctx_die "$CTX_EXIT_CONFIG" "用法：tools/cloud/lifecycle.sh <stop|start|status>" ;;
+    *) ctx_die "$CTX_EXIT_CONFIG" "用法：tools/cloud/lifecycle.sh <stop|start|status|resume>" ;;
   esac
 fi

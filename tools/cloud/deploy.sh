@@ -75,6 +75,9 @@ ctx_run_smoke_tests() {
   return $failed
 }
 
+# 部署前恢复停止中的工作负载（T052 实测：Envoy 代理等由控制器管理，Helm 不会恢复其副本）
+ctx_deploy_resume() { "$HERE/lifecycle.sh" resume; }
+
 ctx_print_access() {
   local ip
   ip=$(ctx_kubectl -n envoy-gateway-system get svc -l gateway.envoyproxy.io/owning-gateway-name=contexture \
@@ -109,6 +112,7 @@ ctx_deploy_main() {
 
   ctx_log "生成 Secret（已存在的不覆盖）"
   ctx_ensure_secrets
+  ctx_deploy_resume
   ctx_log "helmfile sync（云端环境；不含模拟源系统）"
   export CTX_CLOUD_BFF_TAG=$bff_tag CTX_CLOUD_WEB_TAG=$web_tag
   if ! ctx_helmfile -l 'group!=mock-sources' sync; then
