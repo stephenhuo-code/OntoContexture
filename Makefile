@@ -2,7 +2,13 @@
 .PHONY: test lint up down seed e2e e2e-mock-data coverage-check ports components-check patches-check offline-package mock-data dev-metadata dev-metadata-remove \
 	cloud-unit cloud-tools
 
+# 开发机没有 uv 时（如 DOKS 上的 devbox）提示改用集群内运行（030 FR-001a）
+define require_uv
+	@command -v uv >/dev/null 2>&1 || { echo "未找到 uv：本机无法运行 $(1)，请改用 make cloud-$(1)（在集群内对当前工作区运行）"; exit 2; }
+endef
+
 test:
+	$(call require_uv,test)
 	uv run pytest --cov --cov-report=term-missing --cov-report=json:coverage.json
 
 DIFF_BASE ?= HEAD
@@ -10,6 +16,7 @@ coverage-check:
 	uv run python -m tools.coverage_gate --base $(DIFF_BASE) --python coverage.json --lcov apps/web/coverage/lcov.info --lcov packages/ui/coverage/lcov.info$(if $(wildcard coverage/bash/cobertura.xml), --cobertura coverage/bash/cobertura.xml)
 
 lint:
+	$(call require_uv,lint)
 	uv run ruff check .
 	uv run ruff format --check .
 	uv run pyright
