@@ -16,6 +16,7 @@ ctx_kubectl() {
 }
 
 test_plan_contains_only_contexture_namespaces_and_crds() {
+  ctx_load_config
   local plan; plan=$(ctx_uninstall_plan)
   local ns
   for ns in contexture mock-sources contexture-build contexture-ci envoy-gateway-system cnpg-system doris-system cert-manager; do

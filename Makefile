@@ -1,6 +1,6 @@
 # 织境常用命令。标注 TODO 的目标由后续任务实现。
 .PHONY: test lint up down seed e2e e2e-mock-data coverage-check ports components-check patches-check offline-package mock-data dev-metadata dev-metadata-remove \
-	cloud-unit cloud-tools cloud-deploy cloud-info
+	cloud-unit cloud-tools cloud-deploy cloud-info cloud-uninstall
 
 # 开发机没有 uv 时（如 DOKS 上的 devbox）提示改用集群内运行（030 FR-001a）
 define require_uv
@@ -104,3 +104,7 @@ cloud-deploy:
 # 各组件云端地址、登录方式与凭证位置（不输出凭证值）
 cloud-info:
 	tools/cloud/info.sh
+
+# 卸载云端环境（删除织境的 namespace、持久卷与 CRD；须输入 yes 确认）
+cloud-uninstall:
+	tools/cloud/uninstall.sh
