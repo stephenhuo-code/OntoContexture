@@ -115,3 +115,18 @@ test_deploy_smoke_passes_cloud_env_and_domain() {
 test_deploy_smoke_allows_untrusted_staging_certificate() {
   assert_eq "env CTX_ENV=cloud BASE=https://ctx.example.com INSECURE=1" "$(deploy_smoke_env staging)"
 }
+
+# T068 实测：模拟源系统的冒烟测试以 KUBE_CONTEXT 选上下文（默认 kind-contexture），云端调用须传入云端上下文
+test_mock_source_smoke_uses_cloud_context() {
+  stub_log_init
+  local root p; root=$(tmpdir); p=$(fake_recording_path)
+  mkdir -p "$root/testdata/deploy/mes/tests"
+  printf '#!/usr/bin/env bash\necho "ctx=${KUBE_CONTEXT:-unset}" >> "$STUB_LOG"\n' > "$root/testdata/deploy/mes/tests/smoke.sh"
+  chmod +x "$root/testdata/deploy/mes/tests/smoke.sh"
+  (
+    source "$REPO_ROOT/tools/cloud/toolbox.sh"
+    CTX_REPO_ROOT=$root CTX_CLOUD_KUBECONFIG=/k CTX_CLOUD_CONTEXT=do-cloud CTX_CLOUD_NODE_LABEL=l CTX_CLOUD_NODE_POOL=p
+    PATH="$p:$PATH" ctx_mock_smoke
+  )
+  assert_contains "$(stub_calls)" "ctx=do-cloud"
+}
