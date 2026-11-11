@@ -30,6 +30,33 @@ render() {  # render <环境>：排除模拟源系统，遮掉 Secret 的值
 
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 
+# 云端渲染的结构断言（030 T040：FR-006～FR-009、FR-021、FR-024、FR-027、R7、R19）
+cloud_assertions() {
+  local file=$1 before=$failed
+  # 逐个文档检查：Pod 模板都带弹性池 nodeSelector；PVC 都用配置的存储类；自建镜像来自配置的仓库
+  awk -v label="$CTX_CLOUD_NODE_LABEL" -v pool="$CTX_CLOUD_NODE_POOL" -v sc="$CTX_CLOUD_STORAGE_CLASS" -v reg="$CTX_CLOUD_REGISTRY" '
+    function check() {
+      if (doc == "") return
+      if (doc ~ /\n(kind: (Deployment|StatefulSet|DaemonSet|Job|CronJob)|  kind: (Deployment|StatefulSet))\n/ && index(doc, label ": " pool) == 0 && index(doc, label ": \"" pool "\"") == 0)
+        printf "  ✘ 缺少弹性池 nodeSelector：%s\n", src
+      if (doc ~ /\nkind: PersistentVolumeClaim\n/ && index(doc, "storageClassName: " sc) == 0)
+        printf "  ✘ PVC 未使用存储类 %s：%s\n", sc, src
+      if (match(doc, /image: "?contexture\/[a-z-]+/))
+        printf "  ✘ 自建镜像未改为仓库 %s：%s\n", reg, src
+    }
+    /^---$/ { check(); doc = ""; src = ""; next }
+    /^# Source: / { src = substr($0, 11) }
+    { doc = doc "\n" $0 }
+    END { check() }' "$file" > "$tmp/struct.txt"
+  if [[ -s $tmp/struct.txt ]]; then failed=1; sort -u "$tmp/struct.txt" | head -40; fi
+  local expect
+  for expect in "hostname: https://sso.$CTX_CLOUD_DOMAIN" "https://$CTX_CLOUD_DOMAIN" "$CTX_CLOUD_REGISTRY/bff:" \
+    "$CTX_CLOUD_REGISTRY/web:" "docr-pull" "test-users.yaml" "realms/digital-workforce"; do
+    grep -qF -- "$expect" "$file" || report "cloud 渲染中缺少 $expect"
+  done
+  [[ $failed == "$before" ]] && printf '  ✔ cloud 渲染结构断言通过\n'
+}
+
 # 1. 本地渲染不变
 for env in local lite; do
   render "$env" > "$tmp/$env.yaml"
@@ -51,6 +78,7 @@ else
     if grep -q "$bad" "$tmp/cloud.yaml"; then report "cloud 渲染中出现 $bad"; grep -n "$bad" "$tmp/cloud.yaml" | head -5; fi
   done
   [[ $failed == 0 ]] && printf '  ✔ cloud 渲染无本地地址\n'
+  cloud_assertions "$tmp/cloud.yaml"
 fi
 cp "$tmp/cloud.yaml" "${CTX_RENDER_OUT:-$tmp}/cloud.rendered.yaml" 2>/dev/null || true
 
