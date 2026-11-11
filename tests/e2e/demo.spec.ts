@@ -1,6 +1,6 @@
 // 最终演示第 1–2 步（登录、看到“设备”定义与列表）与第 5 步（直接调 bff：无令牌 401、受众不符 403）
 import { expect, test } from "@playwright/test";
-import { login } from "./helpers/login";
+import { APP_ORIGIN, login } from "./helpers/login";
 
 test("第 1–2 步：登录后看到设备的定义与列表", async ({ page }) => {
   await login(page);
@@ -24,7 +24,7 @@ test("第 1–2 步：登录后看到设备的定义与列表", async ({ page })
   ).toBeVisible();
 
   // 浏览器只持有会话 Cookie，没有令牌
-  const cookies = await page.context().cookies("http://localhost:8080");
+  const cookies = await page.context().cookies(APP_ORIGIN);
   expect(cookies.map((c) => c.name)).toEqual(["ctx_session"]);
   expect(cookies[0]?.httpOnly).toBe(true);
 

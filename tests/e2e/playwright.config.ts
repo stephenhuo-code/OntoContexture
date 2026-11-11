@@ -9,7 +9,8 @@ export default defineConfig({
   timeout: 60_000,
   reporter: [["list"]],
   use: {
-    baseURL: "http://localhost:8080",
+    // 云端（030）：工具箱中由 CTX_E2E_BASE_URL 指向 https://<域名>
+    baseURL: process.env.CTX_E2E_BASE_URL ?? "http://localhost:8080",
     // 本机 Keycloak 经 Paperclip 的 Caddy，证书由其本地 CA 签发
     ignoreHTTPSErrors: true,
     locale: "zh-CN",

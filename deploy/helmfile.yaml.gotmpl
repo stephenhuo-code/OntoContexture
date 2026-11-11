@@ -347,11 +347,17 @@ releases:
     namespace: mock-sources
     chart: ../testdata/deploy/mes
     labels: { group: mock-sources }
+{{- if $cloud }}
+    values: [../testdata/deploy/values-cloud.yaml.gotmpl]
+{{- end }}
     installed: {{ not $offline }}
 
   - name: mock-qms
     namespace: mock-sources
     chart: ../testdata/deploy/qms
     labels: { group: mock-sources }
+{{- if $cloud }}
+    values: [../testdata/deploy/values-cloud.yaml.gotmpl]
+{{- end }}
     needs: [cnpg-system/cnpg]
     installed: {{ not $offline }}

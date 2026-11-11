@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test";
-export const APP_ORIGIN = "http://localhost:8080";
+export const APP_ORIGIN = process.env.CTX_E2E_BASE_URL ?? "http://localhost:8080";
 
 export async function keycloakLogin(
   page: Page,
