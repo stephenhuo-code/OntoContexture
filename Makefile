@@ -1,6 +1,6 @@
 # 织境常用命令。标注 TODO 的目标由后续任务实现。
 .PHONY: test lint up down seed e2e e2e-mock-data coverage-check ports components-check patches-check offline-package mock-data dev-metadata dev-metadata-remove \
-	cloud-unit cloud-tools
+	cloud-unit cloud-tools cloud-deploy
 
 # 开发机没有 uv 时（如 DOKS 上的 devbox）提示改用集群内运行（030 FR-001a）
 define require_uv
@@ -96,3 +96,7 @@ cloud-unit:
 # 开发机工具：按 tools/cloud/tools.lock 安装到 ~/.local/bin（持久卷）
 cloud-tools:
 	tools/cloud/install-tools.sh
+
+# 部署或更新整套云端环境；首次须指定 VERSION=git-<提交前 12 位>（cloud-images 流水线产出），之后省略即沿用稳定版本
+cloud-deploy:
+	tools/cloud/deploy.sh $(VERSION)
