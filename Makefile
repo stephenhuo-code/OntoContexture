@@ -1,5 +1,6 @@
 # 织境常用命令。标注 TODO 的目标由后续任务实现。
-.PHONY: test lint up down seed e2e e2e-mock-data coverage-check ports components-check patches-check offline-package mock-data dev-metadata dev-metadata-remove
+.PHONY: test lint up down seed e2e e2e-mock-data coverage-check ports components-check patches-check offline-package mock-data dev-metadata dev-metadata-remove \
+	cloud-unit cloud-tools
 
 test:
 	uv run pytest --cov --cov-report=term-missing --cov-report=json:coverage.json
@@ -79,3 +80,12 @@ patches-check:
 
 offline-package:
 	uv run python -m tools.offline_package
+
+# ---------- 云端（DOKS，030）：命令统一以 cloud- 开头，只作用于 .env.cloud 指定的集群，与本地 kind 命令互不越界 ----------
+# 云端脚本单元测试（纯 bash）；CTX_KCOV=1 时在 kcov 下统计覆盖率（工具箱 / CI）
+cloud-unit:
+	tools/cloud/tests/run.sh
+
+# 开发机工具：按 tools/cloud/tools.lock 安装到 ~/.local/bin（持久卷）
+cloud-tools:
+	tools/cloud/install-tools.sh
