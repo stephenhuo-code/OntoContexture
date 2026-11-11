@@ -215,7 +215,7 @@
   9. 输出访问地址、LB IP 和需要配置的 DNS 记录。
 
   使 T041 通过（FR-002～FR-006、FR-014、FR-021、FR-024、FR-028）
-- [ ] T052 [US1] 在集群上执行 `make cloud-deploy`：先用 staging 签发器，验证通过后切换到 production（实测修订：staging 只验证签发流程，完整部署直接用 production，见 research R4 实施记录）。使 T042 通过，并记录首次部署和重复部署的耗时（SC-001）
+- [X] T052 [US1] 在集群上执行 `make cloud-deploy`：先用 staging 签发器，验证通过后切换到 production（实测修订：staging 只验证签发流程，完整部署直接用 production，见 research R4 实施记录）。使 T042 通过，并记录首次部署和重复部署的耗时（SC-001）
 
 **Checkpoint**：云端环境可以部署、可以重复部署，冒烟测试全部通过（MVP）。
 
