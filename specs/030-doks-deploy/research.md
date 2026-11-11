@@ -369,3 +369,11 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
 - 复测**通过**（`tests/cloud/test_dev_mode.sh`）：web 改动 **1 秒**内生效；同步进程暂停 20 秒后恢复，改动补齐；开发模式期间部署要求确认
   （非交互未确认时不改动环境）；开发模式进程合计 **175 MiB**，开发机工作集 **1726 MiB**（≤ 2 GiB；其中大部分为开发机上的 Claude Code
   等常驻进程）；退出后恢复稳定版本，无残留开发 Deployment。开发镜像已存在时整轮 61 秒。
+- bash 覆盖率此前**从未实际采集**（合并结果为空）：`kcov <目录> bash run.sh` 执行的是 bash（ELF），不启用 bash 插桩；改为直接执行 run.sh 后，
+  又因工具箱容器的文件描述符上限为 1073741816，kcov 43 的 bash 引擎报 “Failed to exchange stderr for pipe” 无法启动，kcov 模式下把上限降到 1024。
+  修正后 `tools/cloud` 的 bash 行覆盖率 84.8%（576/679）。
+- `cloud-test DIFF_BASE=main`：Python 557 项、web 147 项、ui 24 项、bash 单元测试全部通过；**新增与修改代码行覆盖率 605/711（85.09%）**，门禁通过。
+  测试文件 `dev-server.test.ts` 按项目约定移入 `__tests__`（门禁不把同目录的测试文件误判为源码）。
+- 多轮运行中出现两个与 030 无关的**既有偶发失败**（随机重跑可通过，未修改，记入 acceptance 由负责人决定）：
+  - 006 契约测试 `GET /bff/v1/assets/suggestions`：schemathesis 生成符合契约的关键词（推测为仅含空白字符），BFF 以 422 “关键词不能为空”拒绝，契约与实现不一致；
+  - web 单元测试 `column-locate.test.tsx`“由列结果进入时滚动到该列并高亮”：负载较高时滚动函数未被调用（时序敏感）。
