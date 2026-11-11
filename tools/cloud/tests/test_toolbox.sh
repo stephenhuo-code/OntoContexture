@@ -15,6 +15,7 @@ ctx_kubectl() {
     *"exec -i"*"tar"*) cat > "$UPLOAD" ;;
     *"exec "*"-- bash -lc"*"sleep"*) sleep 3 ;;
     *"exec "*"-- bash -lc"*) echo "running: ${*: -1}"; return "${RUN_STATUS:-0}" ;;
+    *"get pod contexture-toolbox"*"owner"*) printf '%s' "${OWNER:-}" ;;
     *"exec "*"cat /workspace/coverage/bash/cobertura.xml"*) echo "<coverage/>" ;;
   esac
 }
@@ -91,4 +92,35 @@ test_dind_sidecar_shares_tmp() {
   local m; m=$(ctx_toolbox_manifest)
   assert_eq "/tmp" "$(jq -r '.spec.containers[] | select(.name == "dind") | .volumeMounts[] | select(.name == "tmp") | .mountPath' <<< "$m")"
   assert_eq "/tmp" "$(jq -r '.spec.containers[] | select(.name == "toolbox") | .volumeMounts[] | select(.name == "tmp") | .mountPath' <<< "$m")"
+}
+
+# T068 实测：部署中的 OM 本体配置启动工具箱时删除了正在运行 cloud-test 的工具箱 Pod（固定名称）。
+# 互斥应当是“拒绝”而不是“抢占”：Pod 注解记录发起进程（主机名/PID），该进程仍在运行时以退出码 2 拒绝；进程已不在才清理残留
+test_refuses_while_another_toolbox_command_is_running() {
+  sleep 30 & local other=$!
+  OWNER="$(hostname)/$other"
+  assert_status 2 ctx_toolbox_run "make test"
+  kill "$other"
+  assert_contains "$OUTPUT" "正在运行"
+  assert_not_contains "$(stub_calls)" "delete pod"
+  assert_not_contains "$(stub_calls)" "apply -f -"
+}
+
+test_refuses_toolbox_owned_by_another_machine() {
+  OWNER="another-devbox/1"
+  assert_status 2 ctx_toolbox_run "make test"
+  assert_not_contains "$(stub_calls)" "delete pod"
+}
+
+test_cleans_up_orphan_toolbox_whose_owner_has_exited() {
+  (exit 0) & local gone=$!; wait "$gone"
+  OWNER="$(hostname)/$gone"
+  ctx_toolbox_run "make test" >/dev/null
+  assert_contains "$(stub_calls)" "delete pod contexture-toolbox"
+  assert_contains "$(stub_calls)" "apply -f -"
+}
+
+test_manifest_records_owner_process() {
+  ctx_toolbox_run "true" >/dev/null
+  assert_contains "$(cat "$STUB_LOG.manifest")" "\"contexture.io/owner\":\"$(hostname)/$$\""
 }
