@@ -68,3 +68,24 @@ test_bff_secrets_get_generated_client_secret_and_database_url() {
   assert_contains "$calls" "patch secret bff-secrets"
   assert_contains "$calls" "postgresql+asyncpg://bff:pw@pg-rw:5432/bff"
 }
+
+test_provisioner_client_secret_is_generated_once() {
+  ctx_ensure_secrets
+  [[ -n $(created keycloak-provisioner) ]] || fail "未创建 keycloak-provisioner"
+  assert_contains "$(stub_calls)" "--from-literal=client-id=contexture-provisioner"
+  stub_log_init; EXISTING=" keycloak-provisioner "
+  ctx_ensure_secrets
+  [[ -z $(created keycloak-provisioner) ]] || fail "已存在的 keycloak-provisioner 被重建"
+}
+
+test_toolbox_env_carries_cloud_endpoints_and_provisioner_credentials() {
+  CTX_CLOUD_DOMAIN=ctx.example.com
+  ctx_ensure_secrets
+  local calls; calls=$(stub_calls)
+  assert_contains "$calls" "-n contexture-ci create secret generic toolbox-env"
+  assert_contains "$calls" "--from-literal=KEYCLOAK_URL=https://sso.ctx.example.com"
+  assert_contains "$calls" "--from-literal=KEYCLOAK_REALM=digital-workforce"
+  assert_contains "$calls" "--from-literal=KEYCLOAK_PROVISIONER_CLIENT_ID=contexture-provisioner"
+  assert_contains "$calls" "--from-literal=CTX_E2E_BASE_URL=https://ctx.example.com"
+  assert_contains "$calls" "--from-literal=CTX_CLOUD_NAMESPACE=contexture"
+}
