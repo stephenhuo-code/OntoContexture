@@ -27,7 +27,8 @@ ctx_secret_value() {  # ctx_secret_value <namespace> <名称> <键>
 
 ctx_ensure_secrets() {
   local ns=$CTX_CLOUD_NAMESPACE db registry_host
-  for n in "$ns" contexture-ci contexture-build; do
+  # mock-sources：ci-toolbox 在其中创建 cloud-mock-data 所需的授权，须先于 helmfile 同步存在（T052 实测）
+  for n in "$ns" contexture-ci contexture-build mock-sources; do
     ctx_kubectl get namespace "$n" >/dev/null 2>&1 || ctx_kubectl create namespace "$n" >/dev/null
   done
 
