@@ -51,4 +51,6 @@ after=$(runs)
 new=$(jq -c --argjson b "$before" '[.[] | select(.run_id as $r | ($b | map(.run_id) | index($r)) | not)
   | {run_id, run_type, logical_date, data_interval_start, data_interval_end, start_date}]' <<<"$after")
 echo "恢复后新建的运行：$new"
-echo "结论：停止区间 $stop_at ～ $resume_at；新建 scheduled 运行 $(jq '[.[]|select(.run_type=="scheduled")]|length' <<<"$new") 个"
+# Airflow 3 的 list-runs 输出中 run_type 为空，以 run_id 前缀与逻辑时间判断补跑
+catch=$(jq --arg s "$stop_at" --arg r "$resume_at" '[.[] | select((.run_id | startswith("scheduled__")) and .logical_date >= $s and .logical_date < $r)] | length' <<<"$new")
+echo "结论：停止区间 $stop_at ～ $resume_at；为停止期间的调度点补建运行 $catch 个"
