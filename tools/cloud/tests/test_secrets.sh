@@ -99,3 +99,10 @@ test_creates_all_target_namespaces_including_mock_sources() {
     assert_contains "$(stub_calls)" "kubectl create namespace $n" "$n"
   done
 }
+
+# T068 实测：e2e 以 bff 客户端换取令牌（与本地 .env.local 相同的键 CONTEXTURE_BFF_CLIENT_SECRET），工具箱环境须提供
+test_toolbox_env_provides_bff_client_secret_for_e2e() {
+  ctx_ensure_secrets >/dev/null
+  local line; line=$(stub_calls | grep "create secret generic toolbox-env")
+  assert_contains "$line" "--from-literal=CONTEXTURE_BFF_CLIENT_SECRET=pw"
+}
