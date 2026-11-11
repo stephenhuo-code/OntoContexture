@@ -80,3 +80,17 @@ test_test_defaults_coverage_base_to_head() {
   ctx_toolbox_main test >/dev/null
   assert_contains "$(stub_calls)" "make coverage-check DIFF_BASE=HEAD"
 }
+
+# T068 实测：006 的 e2e（资产搜索）以 make dev-metadata 导入的开发态元数据为前提，云端须有对应命令；
+# 与 seed 一样只增删带开发态标识的元数据，不需确认
+test_dev_metadata_imports_into_cluster_openmetadata_without_confirmation() {
+  ctx_toolbox_main dev-metadata < /dev/null >/dev/null
+  local c; c=$(stub_calls)
+  assert_contains "$c" "mockfactory om-import --target local --om-url http://openmetadata.contexture:8585"
+  assert_not_contains "$c" "--remove"
+}
+
+test_dev_metadata_remove_passes_remove_flag() {
+  ctx_toolbox_main dev-metadata-remove < /dev/null >/dev/null
+  assert_contains "$(stub_calls)" "mockfactory om-import --target local --om-url http://openmetadata.contexture:8585 --remove"
+}
