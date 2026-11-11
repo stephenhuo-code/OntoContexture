@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # T078 云端验证：停止后弹性池 20 分钟内降到 0、devbox 不受影响、访问立即失败；启动 30 分钟内恢复且数据一致；幂等（US6；SC-011、SC-012）
 source "$(dirname "$0")/lib.sh"
-snapshot() {  # 数据快照：数据源（OM 数据库服务）数量、OM 表数量、Langfuse 轨迹数量、Keycloak 用户
-  K exec deploy/openmetadata -- sh -c 'curl -s -H "Authorization: Bearer $(cat /dev/null)" http://localhost:8585/api/v1/services/databaseServices?limit=1 >/dev/null; echo ok' >/dev/null 2>&1
+snapshot() {  # 数据快照：OM 数据源与表数量、Langfuse 轨迹数量
   local pg; pg=$(K get pod -l cnpg.io/cluster=pg,cnpg.io/instanceRole=primary -o name | head -1)
   K exec "$pg" -- psql -U postgres -tAc "select (select count(*) from openmetadata.public.dbservice_entity),
     (select count(*) from openmetadata.public.table_entity)" 2>/dev/null | tr -d ' '

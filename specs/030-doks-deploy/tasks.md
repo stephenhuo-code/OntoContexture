@@ -324,7 +324,7 @@
 
 ## Phase 9: User Story 6 - 一条命令启停云端环境 (Priority: P2)（阶段 E）
 
-- [ ] T076 [P] [US6] 编写失败测试 `tools/cloud/tests/test_lifecycle.sh`：
+- [X] T076 [P] [US6] 编写失败测试 `tools/cloud/tests/test_lifecycle.sh`：
   - 停止顺序为：工作负载 → Doris operator → Doris StatefulSet → CNPG 休眠 → 控制器；启动顺序与之相反（R13）；
   - 读写 `contexture.io/stopped-replicas` 注解；
   - 只处理 data-model.md 第 3 节列出的 namespace，从不触碰 `dev` 和 `kube-*`；
@@ -333,7 +333,7 @@
   - 启动等待超时时，列出 Pending 的 Pod 及原因。
 
   （FR-032～FR-035）
-- [ ] T077 [P] [US6] 编写失败测试 `tools/cloud/tests/test_status.sh`：输出内容包括：
+- [X] T077 [P] [US6] 编写失败测试 `tools/cloud/tests/test_status.sh`：输出内容包括：
   - 运行状态；
   - 开发模式，包括“开发模式（无本地进程）”；
   - 稳定版本：来源、提交、是否含未提交改动；
@@ -348,9 +348,9 @@
   3. 执行 `cloud-start`：30 分钟内冒烟测试通过；第 1 步记录的数据一致；`user1` 可以登录。
 
   （US6 场景 1～3；SC-011、SC-012；FR-037）
-- [ ] T079 [US6] 实现 `tools/cloud/lifecycle.sh` 的停止部分，并在 `Makefile` 新增 `cloud-stop` 目标（`TIMEOUT` 默认 25 分钟；超时时列出仍在弹性池上的非 DaemonSet Pod，以退出码 4 退出）（FR-032、FR-033、FR-038）
-- [ ] T080 [US6] 实现启动部分，并在 `Makefile` 新增 `cloud-start` 目标：恢复到稳定版本；等待证书 Ready；运行冒烟测试；等待超时时列出 Pending 的 Pod。使 T076 通过（FR-034、FR-035）
-- [ ] T081 [US6] 实现状态部分，并在 `Makefile` 新增 `cloud-status` 目标，使 T077 通过（FR-036）
+- [X] T079 [US6] 实现 `tools/cloud/lifecycle.sh` 的停止部分，并在 `Makefile` 新增 `cloud-stop` 目标（`TIMEOUT` 默认 25 分钟；超时时列出仍在弹性池上的非 DaemonSet Pod，以退出码 4 退出）（FR-032、FR-033、FR-038）
+- [X] T080 [US6] 实现启动部分，并在 `Makefile` 新增 `cloud-start` 目标：恢复到稳定版本；等待证书 Ready；运行冒烟测试；等待超时时列出 Pending 的 Pod。使 T076 通过（FR-034、FR-035）
+- [X] T081 [US6] 实现状态部分，并在 `Makefile` 新增 `cloud-status` 目标，使 T077 通过（FR-036）
 - [ ] T082 [US6] 运行 T078，使其通过；连续执行两次 `cloud-stop` 和两次 `cloud-start`，验证幂等；在停止过程中中断命令，再执行一次后环境能收敛（US6 场景 5；FR-035）
 
 ---

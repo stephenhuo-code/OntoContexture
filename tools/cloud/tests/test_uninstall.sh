@@ -6,7 +6,7 @@ ctx_load_config() { CTX_CLOUD_NAMESPACE=contexture; }
 ctx_helmfile() { stub_record "helmfile $*"; }
 ctx_kubectl() {
   case "$*" in
-    *"get crd"*"-o jsonpath"*)
+    *"get crd -o name"*)
       printf '%s\n' "clusters.postgresql.cnpg.io " "dorisclusters.doris.selectdb.com " "envoyproxies.gateway.envoyproxy.io " \
         "certificates.cert-manager.io " "listenersets.gateway.networking.k8s.io " \
         "httproutes.gateway.networking.k8s.io true" "gateways.gateway.networking.k8s.io true" "ciliumnodes.cilium.io " ;;
@@ -24,7 +24,8 @@ test_plan_contains_only_contexture_namespaces_and_crds() {
   done
   assert_contains "$plan" "crd/clusters.postgresql.cnpg.io"
   assert_contains "$plan" "crd/certificates.cert-manager.io"
-  assert_contains "$plan" "crd/listenersets.gateway.networking.k8s.io"
+  # Gateway API CRD 可能由集群托管，一律不删除（厂商无关，R19）
+  assert_not_contains "$plan" "listenersets.gateway.networking.k8s.io"
   assert_not_contains "$plan" "namespace/dev"
   assert_not_contains "$plan" "namespace/kube-system"
   assert_not_contains "$plan" "namespace/default"
@@ -48,4 +49,9 @@ test_confirmed_uninstall_destroys_releases_then_namespaces_then_crds() {
   assert_not_contains "$calls" "delete crd httproutes.gateway.networking.k8s.io"
   [[ $(grep -n 'helmfile destroy' <<< "$calls" | cut -d: -f1) -lt $(grep -n 'delete namespace' <<< "$calls" | head -1 | cut -d: -f1) ]] ||
     fail "须先卸载 release 再删除 namespace"
+}
+
+test_plan_succeeds_under_errexit_when_last_crd_is_not_owned() {
+  ctx_load_config
+  ( set -e; ctx_uninstall_plan >/dev/null ) || fail "set -e 下 plan 不应失败"
 }
