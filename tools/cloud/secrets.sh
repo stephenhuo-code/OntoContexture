@@ -82,6 +82,7 @@ ctx_ensure_secrets() {
     --from-literal=KEYCLOAK_REALM=digital-workforce \
     --from-literal=KEYCLOAK_PROVISIONER_CLIENT_ID=contexture-provisioner \
     --from-literal=KEYCLOAK_PROVISIONER_CLIENT_SECRET="$(ctx_secret_value "$ns" keycloak-provisioner client-secret)" \
+    --from-literal=CONTEXTURE_BFF_CLIENT_SECRET="$(ctx_secret_value "$ns" bff-oidc client-secret)" \
     --from-literal=CTX_E2E_BASE_URL="https://${CTX_CLOUD_DOMAIN:-}" \
     --from-literal=CTX_CLOUD_NAMESPACE="$ns" \
     --from-literal=CTX_TENANT_ID=local

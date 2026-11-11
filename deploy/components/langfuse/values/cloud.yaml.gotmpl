@@ -15,3 +15,7 @@ s3:
       {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
     data:
       storageClass: {{ .Values.storageClass }}
+  # 卷大小上限（T068 实测）：默认 1000MB 时，5Gi 持久卷自动推算出的卷数约 4 个，而集合扩容一次要建 7 个卷，
+  # SeaweedFS 报 “Not enough data nodes found”，Langfuse 上传事件失败、轨迹全部丢失。本地 kind 的卷在节点大盘上，未触发
+  master:
+    volumeSizeLimitMB: 200
