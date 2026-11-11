@@ -290,3 +290,6 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
   `cloud-images` 改为：SBOM 与许可检查对全部镜像阻断；漏洞扫描对 bff、web 阻断，对 OpenMetadata 三个第三方镜像把 grype / trivy 结果写入
   `sbom/<镜像>.grype.txt`、`.trivy.txt` 随产物上传（失败时也上传），并在运行摘要告警、不阻断。云端环境只放模拟数据（宪法 v2.3.0）。
   同时采集镜像补充 `apt-get upgrade` 与 authlib 升级，减少可修复项。负责人如要求第三方镜像也阻断，需另立任务升级 Airflow 基础镜像。
+- 第 3 次（运行 42979739671，提交 `9240a494f28a`）：**通过**，全程约 30 分钟（OM 服务端 Maven 构建占大头；同版本 OM 镜像以后复用，只构建 bff / web）。
+  DOCR 中：`bff` / `web:git-9240a494f28a`、`openmetadata-server` / `openmetadata-ingestion-airflow:2.0.3-ctx.1`、`openmetadata-fuseki:6.2.0-ctx.0`；
+  采集镜像的告警按调整后的门禁留档（产物 `cloud-images-sbom`）。
