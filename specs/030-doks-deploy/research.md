@@ -357,3 +357,15 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
 
 - `make cloud-build TARGET=all`：bff、web 在集群内构建、推送并部署，全程 **85 秒**（BuildKit 缓存命中）；部署后网页 200、`/bff/v1/me` 未登录 401。
 - `make cloud-status` 显示“稳定版本：bff/web ws-1cefe96bda3a（来源：工作区构建；含未提交改动：false）”，并列出正在运行的工具箱 Pod（当时 cloud-test 在运行）。
+
+## 实施记录：开发模式（T075，2026-11-11，SC-002、SC-003）
+
+- 首轮暴露 4 个问题，均先补失败测试再修正：
+  1. web 的正式容器是 nginx（内存上限 64Mi），开发模式沿用该 Pod 规格运行 Vite，被 OOM 终止反复重启，同步因容器不存在而中断
+     （R11 实测用的是临时 namespace 中的测试 Deployment，未覆盖到）。devspace.yaml 为 web 替换资源设置（请求 256Mi、上限 1Gi）。
+  2. devspace 自行退出后，清理中 `kill` 已退出的进程失败，`set -e` 使脚本在恢复前退出，环境停留在开发模式。改为 kill 失败不中断。
+  3. `cloud-dev-reset` 未提供 devspace.yaml 所需的环境变量，配置无法加载，单独执行或异常退出后都无法恢复。reset 自行计算并提供。
+  4. 验证脚本：后台进程在非交互 shell 中忽略 SIGINT，改为 setsid 进程组发 TERM；等待条件改为 web 的 3 个同步目录全部完成。
+- 复测**通过**（`tests/cloud/test_dev_mode.sh`）：web 改动 **1 秒**内生效；同步进程暂停 20 秒后恢复，改动补齐；开发模式期间部署要求确认
+  （非交互未确认时不改动环境）；开发模式进程合计 **175 MiB**，开发机工作集 **1726 MiB**（≤ 2 GiB；其中大部分为开发机上的 Claude Code
+  等常驻进程）；退出后恢复稳定版本，无残留开发 Deployment。开发镜像已存在时整轮 61 秒。

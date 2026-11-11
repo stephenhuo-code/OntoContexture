@@ -320,7 +320,7 @@
 
   （FR-011；US2 场景 4）
 - [X] T074 [US2] 实现 `tools/cloud/dev.sh`，并在 `Makefile` 新增 `cloud-dev`、`cloud-dev-reset` 目标。流程：检查环境状态 → 开发镜像不存在时先执行 `cloud-build --dev` → 运行 `devspace dev` → 在 `trap` 中恢复并写状态。使 T069 通过（FR-011～FR-014）
-- [ ] T075 [US2] 执行 `make cloud-dev`，使 T070 通过；验证开发模式期间执行 `cloud-deploy` 会要求确认；测量开发机内存占用不超过 2 GiB（SC-002、SC-003；US2 场景 6）
+- [X] T075 [US2] 执行 `make cloud-dev`，使 T070 通过；验证开发模式期间执行 `cloud-deploy` 会要求确认；测量开发机内存占用不超过 2 GiB（SC-002、SC-003；US2 场景 6）
 
 ---
 
