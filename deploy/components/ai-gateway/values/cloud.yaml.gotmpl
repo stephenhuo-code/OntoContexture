@@ -6,3 +6,6 @@ nodeSelector:
 route:
   sectionName: https
   hostnames: [{{ .Values.domain | quote }}]
+adminAddr: 0.0.0.0:15000
+adminService:
+  enabled: true

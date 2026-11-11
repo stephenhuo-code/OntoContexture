@@ -10,3 +10,13 @@ https:
   enabled: true
   certificateSecret: contexture-tls
   redirectHttp: true
+# 组件界面（FR-020，research R3）：子域名 → Service
+routes:
+  - { name: keycloak, host: "sso.{{ .Values.domain }}", service: keycloak-keycloak, port: 8080 }
+  - { name: openmetadata, host: "om.{{ .Values.domain }}", service: openmetadata, port: 8585, timeout: 60s }
+  - { name: langfuse, host: "langfuse.{{ .Values.domain }}", service: langfuse-web, port: 3000 }
+  - { name: airflow, host: "airflow.{{ .Values.domain }}", service: airflow-api-server, port: 8080 }
+  - { name: jaeger, host: "jaeger.{{ .Values.domain }}", service: jaeger, port: 16686 }
+  - { name: prometheus, host: "prometheus.{{ .Values.domain }}", service: prometheus, port: 9090 }
+  - { name: dashboards, host: "dashboards.{{ .Values.domain }}", service: opensearch-dashboards, port: 5601 }
+  - { name: gateway-admin, host: "gateway-admin.{{ .Values.domain }}", service: ai-gateway-admin, port: 15000 }

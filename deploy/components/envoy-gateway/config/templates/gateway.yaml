@@ -113,3 +113,25 @@ spec:
             scheme: https
             statusCode: 301
 {{- end }}
+{{- range .Values.routes }}
+---
+# 组件界面按子域名经 HTTPS 访问（030 FR-020）
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ui-{{ .name }}
+  namespace: contexture
+spec:
+  parentRefs:
+    - name: contexture
+      sectionName: https
+  hostnames: [{{ .host | quote }}]
+  rules:
+    - backendRefs:
+        - name: {{ .service }}
+          port: {{ .port }}
+      {{- with .timeout }}
+      timeouts:
+        request: {{ . }}
+      {{- end }}
+{{- end }}

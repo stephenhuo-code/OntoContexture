@@ -9,3 +9,5 @@ https:
   enabled: false
   certificateSecret: contexture-tls
   redirectHttp: false
+# 组件界面的子域名路由：[{name, host, service, port}]（云端，030）
+routes: []
