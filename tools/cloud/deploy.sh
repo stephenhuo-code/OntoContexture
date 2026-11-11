@@ -57,12 +57,14 @@ ctx_deploy_om_config() {
 
 # 冒烟测试：沿用各组件 tests/smoke.sh；用只含云端上下文的临时 kubeconfig，临时 Pod 固定到弹性池
 ctx_run_smoke_tests() {
-  local kube failed=0 t name
+  local kube failed=0 t name insecure=
+  [[ ${CTX_CLOUD_ACME_SERVER:-production} == staging ]] && insecure=1   # staging 证书不受信任
   kube=$(mktemp); chmod 600 "$kube"
   kubectl --kubeconfig "$CTX_CLOUD_KUBECONFIG" --context "$CTX_CLOUD_CONTEXT" config view --minify --flatten --raw > "$kube"
   for t in "$CTX_REPO_ROOT"/deploy/components/*/tests/smoke.sh "$CTX_REPO_ROOT"/deploy/charts/*/tests/smoke.sh; do
     name=$(basename "$(dirname "$(dirname "$t")")")
-    if KUBECONFIG=$kube NS=$CTX_CLOUD_NAMESPACE CTX_NODE_SELECTOR="$CTX_CLOUD_NODE_LABEL=$CTX_CLOUD_NODE_POOL" \
+    if KUBECONFIG=$kube NS=$CTX_CLOUD_NAMESPACE CTX_NODE_SELECTOR="$CTX_CLOUD_NODE_LABEL=$CTX_CLOUD_NODE_POOL" CTX_ENV=cloud \
+      CTX_SMOKE_BASE_URL="https://$CTX_CLOUD_DOMAIN" CTX_SMOKE_INSECURE="$insecure" \
       "$t" > "$CTX_LOG_DIR/smoke-$name.log" 2>&1; then
       echo "  ✔ $name"
     else
