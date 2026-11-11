@@ -67,3 +67,16 @@ test_exit_status_of_toolbox_is_passed_through() {
 test_unknown_target_is_a_config_error() {
   assert_status 2 ctx_toolbox_main deploy
 }
+
+# 变更行覆盖率默认比较 HEAD（工作区未提交改动）；验收整个特性分支时传 DIFF_BASE=main（T068）
+test_test_passes_diff_base_to_coverage_gate() {
+  DIFF_BASE=main ctx_toolbox_main test >/dev/null
+  assert_contains "$(stub_calls)" "make coverage-check DIFF_BASE=main"
+}
+
+test_test_defaults_coverage_base_to_head() {
+  env -u DIFF_BASE bash -c 'true'
+  unset DIFF_BASE
+  ctx_toolbox_main test >/dev/null
+  assert_contains "$(stub_calls)" "make coverage-check DIFF_BASE=HEAD"
+}
