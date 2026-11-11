@@ -123,6 +123,7 @@ cloud-build:
 # 集群内工具箱：对开发机当前工作区（含未提交改动）运行，输出实时显示、退出码透传；cloud-mock-data 会清空重建模拟库，须确认
 cloud-lint:
 	tools/cloud/toolbox.sh lint
+# DIFF_BASE=main：变更行覆盖率比较整个特性分支（默认 HEAD，只看未提交改动）
 cloud-test:
 	tools/cloud/toolbox.sh test
 cloud-e2e:

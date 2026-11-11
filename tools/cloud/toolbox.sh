@@ -32,7 +32,7 @@ ctx_toolbox_main() {
     lint) ctx_toolbox_run "$CTX_PREPARE && make lint" ;;
     test)
       ctx_toolbox_run "$CTX_PREPARE && make test && pnpm --filter @contexture/web test:coverage && \
-        pnpm --filter @contexture/ui test:coverage && CTX_KCOV=1 make cloud-unit && make coverage-check" ;;
+        pnpm --filter @contexture/ui test:coverage && CTX_KCOV=1 make cloud-unit && make coverage-check DIFF_BASE=${DIFF_BASE:-HEAD}" ;;
     e2e)
       ctx_toolbox_run "$CTX_PREPARE && ${CTX_IN_CLUSTER}pnpm exec playwright install chromium >/dev/null && \
         uv run pytest -m cluster -o addopts='--import-mode=importlib' deploy/components tests/e2e tests/cloud && \
