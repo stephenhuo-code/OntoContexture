@@ -24,6 +24,7 @@ ctx_dev_reset() { stub_record "dev-reset"; }
 ctx_deploy_om_config() { stub_record "om-config"; }
 ctx_run_smoke_tests() { stub_record "smoke"; return "${SMOKE_STATUS:-0}"; }
 ctx_deploy_resume() { stub_record "resume"; }
+ctx_cert_guard() { stub_record "cert-guard"; }
 ctx_print_access() { :; }
 
 test_missing_config_exits_before_touching_cluster() {
@@ -98,4 +99,9 @@ test_deploy_resumes_stopped_workloads_before_sync() {
   local calls; calls=$(stub_calls)
   assert_contains "$calls" "resume"
   [[ $(grep -n '^resume' <<< "$calls" | cut -d: -f1) -lt $(grep -n '^helmfile' <<< "$calls" | cut -d: -f1) ]] || fail "须在同步前恢复"
+}
+
+test_certificate_guard_runs_during_sync() {
+  ctx_deploy_main git-0123456789ab >/dev/null
+  assert_contains "$(stub_calls)" "cert-guard"
 }
