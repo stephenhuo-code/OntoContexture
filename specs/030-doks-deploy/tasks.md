@@ -241,27 +241,27 @@
 
 ## Phase 5: User Story 7 - 云端环境可查看、可排障、可卸载 (Priority: P3)（阶段 B）
 
-- [ ] T058 [P] [US7] 编写失败测试 `tools/cloud/tests/test_uninstall.sh`：
+- [X] T058 [P] [US7] 编写失败测试 `tools/cloud/tests/test_uninstall.sh`：
   - 删除对象清单只包含 data-model.md 第 3 节列出的 namespace，以及织境创建的 CRD、GatewayClass、ClusterRole；
   - 清单中永远不包含 `dev`、`kube-*`，也不包含 `gateway.networking.k8s.io` 的 CRD；
   - 未确认时不调用任何删除命令。
 
   （FR-030）
-- [ ] T059 [US7] 实现 `tools/cloud/uninstall.sh`，并在 `Makefile` 新增 `cloud-uninstall` 目标，使 T058 通过（FR-030）
+- [X] T059 [US7] 实现 `tools/cloud/uninstall.sh`，并在 `Makefile` 新增 `cloud-uninstall` 目标，使 T058 通过（FR-030）
 - [ ] T060 [US7] 编写并执行云端验证测试 `tests/cloud/test_uninstall.sh`：卸载前后其他 namespace 中的资源数量一致，devbox-0 仍在运行。之后重新执行 `make cloud-deploy` 恢复环境（SC-009）
 
 ---
 
 ## Phase 6: User Story 5 - 镜像构建 (Priority: P2)（阶段 C）
 
-- [ ] T061 [P] [US5] 编写失败测试 `tools/cloud/tests/test_build.sh`：
+- [X] T061 [P] [US5] 编写失败测试 `tools/cloud/tests/test_build.sh`：
   - `TARGET=bff|web|all` 的参数解析；
   - 不构建 OpenMetadata 相关镜像；
   - 构建失败时不更新环境、不写状态记录；
   - 构建成功时写入 `stableVersion`（`source=workspace`、`commit`、`dirty`）。
 
   （FR-022；US5 场景 1、5）
-- [ ] T062 [US5] 实现 `tools/cloud/build.sh`，并在 `Makefile` 新增 `cloud-build` 目标；支持 `--dev` 和 `--toolbox`，这两种只构建、不部署。流程：调用 `lib/buildkit.sh` 构建 → `helmfile -e cloud -l component=bff|web sync` → 写状态记录。使 T061 通过（FR-022）
+- [X] T062 [US5] 实现 `tools/cloud/build.sh`，并在 `Makefile` 新增 `cloud-build` 目标；支持 `--dev` 和 `--toolbox`，这两种只构建、不部署。流程：调用 `lib/buildkit.sh` 构建 → `helmfile -e cloud -l component=bff|web sync` → 写状态记录。使 T061 通过（FR-022）
 - [ ] T063 [US5] 执行 `make cloud-build TARGET=all`，验证 10 分钟内完成，且状态命令显示来源以及是否含未提交改动（SC-004；US5 场景 1、4）
 
 ---

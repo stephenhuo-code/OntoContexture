@@ -1,4 +1,4 @@
-"""030：模拟数据工具的 kube 上下文可配置——本地默认 kind-contexture；集群内工具箱设为空串时不传 --context。"""
+"""030：模拟数据工具的 kube 上下文可配置（本地默认 kind-contexture；空串时不传 --context）。"""
 
 import pytest
 
