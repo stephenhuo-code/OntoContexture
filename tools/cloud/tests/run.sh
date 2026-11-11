@@ -29,6 +29,8 @@ files=("$@")
 status=0
 if [[ -n ${CTX_KCOV:-} ]]; then
   command -v kcov >/dev/null || { echo "CTX_KCOV 需要 kcov（在工具箱镜像或 CI 中运行）"; exit 2; }
+  # 容器中文件描述符上限可能极大（工具箱为 1073741816），kcov 43 的 bash 引擎会因此启动失败（T068 实测）
+  fd_limit=$(ulimit -n); [[ $fd_limit == unlimited || $fd_limit -gt 1024 ]] && ulimit -n 1024
   out="$ROOT/coverage/bash"; rm -rf "$out"; mkdir -p "$out"
   for file in "${files[@]}"; do
     kcov --include-path="$ROOT/tools/cloud" --exclude-path="$ROOT/tools/cloud/tests" \
