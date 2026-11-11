@@ -104,7 +104,10 @@ ctx_cert_guard() {
 
 # 后台启动 / 结束证书守护（单独成函数，便于测试同步替换）
 ctx_cert_guard_start() { ctx_cert_guard & CTX_CERT_GUARD_PID=$!; }
-ctx_cert_guard_stop() { [[ -n ${CTX_CERT_GUARD_PID:-} ]] && kill "$CTX_CERT_GUARD_PID" 2>/dev/null; return 0; }
+# 注意 set -e：&& 列表的最后一条失败会使脚本退出，守护已结束时 kill 必然失败，须用 if 包住
+ctx_cert_guard_stop() {
+  if [[ -n ${CTX_CERT_GUARD_PID:-} ]]; then kill "$CTX_CERT_GUARD_PID" 2>/dev/null || true; fi
+}
 
 # 部署前恢复停止中的工作负载（T052 实测：Envoy 代理等由控制器管理，Helm 不会恢复其副本）
 ctx_deploy_resume() { "$HERE/lifecycle.sh" resume; }
