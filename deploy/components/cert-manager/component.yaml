@@ -1,0 +1,17 @@
+# 030：云端 HTTPS 证书（Let's Encrypt，HTTP-01 经 Gateway API 求解，research R4）；只在 cloud 环境安装，不进入离线交付包
+name: cert-manager
+version: v1.21.3
+delivered: false
+image:
+  source: official
+  refs:
+    - quay.io/jetstack/cert-manager-controller:v1.21.3
+    - quay.io/jetstack/cert-manager-webhook:v1.21.3
+    - quay.io/jetstack/cert-manager-cainjector:v1.21.3
+    - quay.io/jetstack/cert-manager-acmesolver:v1.21.3
+    - quay.io/jetstack/cert-manager-startupapicheck:v1.21.3
+license: Apache-2.0
+customization: config
+upstream: https://github.com/cert-manager/cert-manager
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

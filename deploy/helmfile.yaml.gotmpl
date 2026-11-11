@@ -45,6 +45,11 @@ repositories:
     url: https://open-telemetry.github.io/opentelemetry-helm-charts
   - name: apache-airflow
     url: https://airflow.apache.org
+{{- if $cloud }}
+  # 云端（030）：证书
+  - name: jetstack
+    url: https://charts.jetstack.io
+{{- end }}
 
 {{- end }}
 
@@ -89,6 +94,23 @@ releases:
     needs: [envoy-gateway-system/envoy-gateway]
 {{- if $cloud }}
     values: [components/envoy-gateway/config/values-cloud.yaml.gotmpl]
+{{- end }}
+{{- if $cloud }}
+
+  # ---------- 云端（030）：HTTPS 证书 ----------
+  - name: cert-manager
+    namespace: cert-manager
+    chart: jetstack/cert-manager
+    version: v1.21.3
+    labels: { component: cert-manager, phase: operators }
+    values: [components/cert-manager/values/cloud.yaml.gotmpl]
+
+  - name: certificates
+    namespace: contexture
+    chart: components/cert-manager/config
+    labels: { component: cert-manager }
+    needs: [cert-manager/cert-manager, contexture/gateway]
+    values: [components/cert-manager/config/values-cloud.yaml.gotmpl]
 {{- end }}
 
   - name: postgresql
