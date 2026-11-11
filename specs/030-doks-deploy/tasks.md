@@ -168,7 +168,7 @@
   - 部署前检查发现 CNPG、Doris、Envoy Gateway、cert-manager 的 CRD 已存在且没有织境标记时，停止并报告（spec 边界情况）；
   - 等待超时时，列出处于 Pending 的 Pod 及其调度失败原因，以及处于 `ImagePullBackOff` / `ErrImagePull` 的 Pod（spec 边界情况）；
   - 部署成功后写入 `stableVersion`，`source=pipeline`（FR-024）。
-- [ ] T042 [P] [US1] 编写云端验证测试 `tests/cloud/test_deploy.sh`（在开发机运行）：部署后冒烟测试全部通过；第二次部署后，`pg-*`、`langfuse-*`、`om-secrets` 等 Secret 的值不变，Keycloak 中的 `user1` 仍然可以登录（US1 场景 1、2；FR-003；SC-006）
+- [X] T042 [P] [US1] 编写云端验证测试 `tests/cloud/test_deploy.sh`（在开发机运行）：部署后冒烟测试全部通过；第二次部署后，`pg-*`、`langfuse-*`、`om-secrets` 等 Secret 的值不变，Keycloak 中的 `user1` 仍然可以登录（US1 场景 1、2；FR-003；SC-006）
 
 ### Implementation for User Story 1
 
@@ -274,7 +274,7 @@
   - `cloud-seed` 和 `cloud-e2e` 不需要确认。
 
   （FR-015、FR-018、FR-026、FR-029）
-- [ ] T065 [P] [US3] 编写云端验证测试 `tests/cloud/test_toolbox_run.sh`：
+- [X] T065 [P] [US3] 编写云端验证测试 `tests/cloud/test_toolbox_run.sh`：
   - 在临时分支中加入一个必定失败的用例，执行 `make cloud-test` 后退出码不为 0，且不残留 Pod；
   - 按 Ctrl+C 中断后，Pod 被删除。
 
@@ -298,7 +298,7 @@
   - 没有本地进程时，`cloud-dev-reset` 也能恢复。
 
   （FR-011～FR-013、R18）
-- [ ] T070 [P] [US2] 编写云端验证测试 `tests/cloud/test_dev_mode.sh`：
+- [X] T070 [P] [US2] 编写云端验证测试 `tests/cloud/test_dev_mode.sh`：
   - 修改 bff 接口的返回文案和 web 页面上的一处文字，10 秒内都在 `https://<domain>` 上生效；
   - 中断同步连接再恢复后，改动被补齐；
   - 退出后 5 分钟内恢复为稳定版本。
@@ -342,7 +342,7 @@
   - 残留的工具箱 / 构建 Pod。
 
   （FR-036、R7、R18）
-- [ ] T078 [P] [US6] 编写云端验证测试 `tests/cloud/test_lifecycle.sh`：
+- [X] T078 [P] [US6] 编写云端验证测试 `tests/cloud/test_lifecycle.sh`：
   1. 记录数据源、OM 表数量、Langfuse 轨迹数量；
   2. 执行 `cloud-stop`：20 分钟内弹性池缩到 0；devbox-0 不受影响；访问域名返回 T019 实测到的响应；
   3. 执行 `cloud-start`：30 分钟内冒烟测试通过；第 1 步记录的数据一致；`user1` 可以登录。
@@ -363,7 +363,7 @@
   3. 重建后执行 `which kubectl helm helmfile doctl devspace buildctl jq`，全部指向 `~/.local/bin`。
 
   结果写入 research.md R18
-- [ ] T084 [P] 完成 `docs/adr/0014-云端开发环境.md`，记录 R2、R4、R10、R11、R12、R13、R17a、R19 的选型及被否决的替代方案，以及 kcov 的许可例外
+- [X] T084 [P] 完成 `docs/adr/0014-云端开发环境.md`，记录 R2、R4、R10、R11、R12、R13、R17a、R19 的选型及被否决的替代方案，以及 kcov 的许可例外
 - [ ] T085 [P] 在 `docs/Phase1-特性列表与开发计划.md` 中更新 030 的进度（实际工期、偏差，以及复估后对 007 及之后特性的影响）；在 `README.md` 的环境操作部分加入 `make cloud-*` 命令索引
 - [ ] T086 根据 T023 的结论二选一：在 `tools/cloud/lifecycle.sh` 中实现“启动时跳过补跑”并补充测试；或者修订 `specs/030-doks-deploy/spec.md` 的边界情况，写明接受一次补跑（R13）
 - [ ] T087 [P] 用仓库现有的密钥扫描，检查仓库、`cloud-images` 流水线日志和工具箱镜像中没有明文凭证（SC-010）

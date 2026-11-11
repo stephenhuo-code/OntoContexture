@@ -928,5 +928,7 @@ $speckit-specify 实现审批中心：经 BFF 读取并处理当前用户的 OM 
 1. 下一项为 **005 源系统元数据采集**：已确认交互原型（[prototype/index.html](../specs/005-source-metadata-ingestion/prototype/index.html)），帆软 SQL 解析暂缓，国产库适配及评估移出本期；接下来按 specify → clarify（按需）→ plan → tasks → implement 推进。验收需证明 003 模拟源系统的实际元数据采入 OM。
 2. 按 006 → 007 → 008 推进，分别编写 spec、完成自动化与手动验收；开发态元数据导入保留为 006 的独立测试设施。007 计划与工期定稿前完成真实身份、上下文与同会话实验，并据此复估。
 3. 012 开工前复核 Omnigent 的运行时与官方沙箱支持；终端在 012 验收通过后开放。
-4. 2026-11-10 追加 **030 DOKS 云端开发与部署环境**，插队立即开工：[spec](../specs/030-doks-deploy/spec.md) 已完成，下一步 plan；
-   plan 前需取得 DOKS 集群的 kubeconfig 以核实集群条件（弹性池缩到 0、特权容器、已装的 CRD 与控制器）。
+4. 2026-11-10 追加 **030 DOKS 云端开发与部署环境**，插队立即开工。2026-11-11 进展：spec、plan、tasks 完成并经 analyze 修正；
+   全部 `make cloud-*` 命令、组件云端参数、镜像流水线、开发模式与启停的代码和单元测试已完成（bash 单元测试与渲染对比测试全部通过，
+   本地 local / lite 渲染不变）；集群实测 R2、R3、R5、R6（源码）、R10、R11 已完成。待负责人提供域名、镜像仓库与令牌、GitHub Secret，
+   并批准宪法 v2.3.0 后，进行首次完整部署与各项云端验证，最后编写 acceptance.md 交付验收。
