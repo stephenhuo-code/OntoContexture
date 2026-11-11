@@ -2,7 +2,8 @@
 # T070 云端验证：开发模式改动 10 秒内生效、同步中断后补齐、退出 5 分钟内恢复稳定版本（US2 场景 2、5；SC-002；边界情况“网络短暂中断”）
 source "$(dirname "$0")/lib.sh"
 D=$CTX_CLOUD_DOMAIN MARK="ctx-dev-$(date +%s)"
-WEB_FILE="$ROOT/apps/web/src/dev-server.ts"; URL="https://$D/src/dev-server.ts"  # Vite 开发服务器直接提供源码模块; cp "$WEB_FILE" "$WEB_FILE.bak"
+# Vite 开发服务器直接提供源码模块，可用 curl 观察同步结果
+WEB_FILE="$ROOT/apps/web/src/dev-server.ts"; URL="https://$D/src/dev-server.ts"; cp "$WEB_FILE" "$WEB_FILE.bak"
 trap 'mv -f "$WEB_FILE.bak" "$WEB_FILE"; kill "$DEV" 2>/dev/null || true' EXIT
 ( cd "$ROOT" && make cloud-dev ) > "$CTX_LOG_DIR/test-dev-mode.log" 2>&1 & DEV=$!
 for i in $(seq 1 60); do grep -q 'Initial sync completed' "$CTX_LOG_DIR/test-dev-mode.log" 2>/dev/null && break; sleep 5; done
