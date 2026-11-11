@@ -102,6 +102,10 @@ ctx_cert_guard() {
   return 0
 }
 
+# 后台启动 / 结束证书守护（单独成函数，便于测试同步替换）
+ctx_cert_guard_start() { ctx_cert_guard & CTX_CERT_GUARD_PID=$!; }
+ctx_cert_guard_stop() { [[ -n ${CTX_CERT_GUARD_PID:-} ]] && kill "$CTX_CERT_GUARD_PID" 2>/dev/null; return 0; }
+
 # 部署前恢复停止中的工作负载（T052 实测：Envoy 代理等由控制器管理，Helm 不会恢复其副本）
 ctx_deploy_resume() { "$HERE/lifecycle.sh" resume; }
 
@@ -142,14 +146,13 @@ ctx_deploy_main() {
   ctx_deploy_resume
   ctx_log "helmfile sync（云端环境；不含模拟源系统）"
   export CTX_CLOUD_BFF_TAG=$bff_tag CTX_CLOUD_WEB_TAG=$web_tag
-  ctx_cert_guard &
-  local guard=$!
+  ctx_cert_guard_start
   if ! ctx_helmfile -l 'group!=mock-sources' sync; then
-    kill "$guard" 2>/dev/null || true
+    ctx_cert_guard_stop
     ctx_report_unschedulable
     exit "$CTX_EXIT_FAILED"
   fi
-  kill "$guard" 2>/dev/null || true
+  ctx_cert_guard_stop
   ctx_log "OpenMetadata：本体共用字段与关系类型"
   ctx_deploy_om_config || exit "$CTX_EXIT_FAILED"
 
