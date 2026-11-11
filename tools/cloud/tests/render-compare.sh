@@ -63,6 +63,9 @@ cloud_assertions() {
   awk '/^# Source: airflow\/templates\/scheduler\/scheduler-deployment/{f=1} /^---$/{f=0}
     f && /podAntiAffinity/{found=1} END{exit !found}' "$file" ||
     report "Airflow 调度器缺少独占节点的 podAntiAffinity"
+  # 独占节点后放宽调度器内存（T068 实测：768Mi 上限下反复 OOM，采集任务无法调度）
+  awk '/^# Source: airflow\/templates\/scheduler\/scheduler-deployment/{f=1} /^---$/{f=0}
+    f && /memory: 2Gi/{found=1} END{exit !found}' "$file" || report "Airflow 调度器内存上限未放宽到 2Gi"
   # Airflow 界面对外：入口须能访问 api-server，但不认证的 managed-apis（/pluginsv2，005 research R3）不得经入口暴露（T057 实测）
   awk '/^# Source: envoy-gateway-config\/templates\/gateway.yaml/{f=1} /^---$/{f=0; a=0} f && /name: ui-airflow/{a=1} a && /\/pluginsv2/{p=1}
     a && /RequestRedirect/{r=1} END{exit !(p && r)}' "$file" || report "Airflow 入口未拦截 /pluginsv2"
