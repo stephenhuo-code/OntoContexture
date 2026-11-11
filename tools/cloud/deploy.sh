@@ -75,6 +75,33 @@ ctx_run_smoke_tests() {
   return $failed
 }
 
+# 证书签发守护（T052 实测）：首次签发时 cert-manager 的集群内自检可能先于公网负载均衡器健康检查通过，Let's Encrypt 从公网取验证
+# 文件失败，证书进入约 1 小时的失败退避；而 AI 网关等依赖证书就绪，Helm 等待会先超时。部署期间在后台运行：发现签发失败
+# （status.lastFailureTime）即等待负载均衡器稳定后重建证书对象（去掉 status，绕过退避），最多 CTX_CERT_GUARD_ROUNDS 次。
+ctx_cert_guard() {
+  local ns=$CTX_CLOUD_NAMESPACE rounds=0 i json
+  local interval=${CTX_CERT_GUARD_INTERVAL:-20} settle=${CTX_CERT_GUARD_SETTLE:-60} max=${CTX_CERT_GUARD_ROUNDS:-3}
+  for ((i = 0; i < 120; i++)); do
+    [[ $(ctx_kubectl -n "$ns" get certificate contexture \
+      -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null) == True ]] && return 0
+    if [[ -n $(ctx_kubectl -n "$ns" get certificate contexture -o jsonpath='{.status.lastFailureTime}' 2>/dev/null) ]]; then
+      if ((rounds >= max)); then
+        echo "证书签发已重试 $max 次仍失败：kubectl -n $ns get challenge 查看原因（DNS 记录是否指向负载均衡器）"
+        return 0
+      fi
+      rounds=$((rounds + 1))
+      echo "证书签发失败，${settle} 秒后重建证书对象重试（第 $rounds 次）"
+      sleep "$settle"
+      json=$(ctx_kubectl -n "$ns" get certificate contexture -o json |
+        jq 'del(.status, .metadata.uid, .metadata.resourceVersion, .metadata.creationTimestamp, .metadata.generation, .metadata.managedFields)')
+      ctx_kubectl -n "$ns" delete certificate contexture >/dev/null
+      ctx_kubectl -n "$ns" create -f - <<< "$json" >/dev/null
+    fi
+    sleep "$interval"
+  done
+  return 0
+}
+
 # 部署前恢复停止中的工作负载（T052 实测：Envoy 代理等由控制器管理，Helm 不会恢复其副本）
 ctx_deploy_resume() { "$HERE/lifecycle.sh" resume; }
 
@@ -115,10 +142,14 @@ ctx_deploy_main() {
   ctx_deploy_resume
   ctx_log "helmfile sync（云端环境；不含模拟源系统）"
   export CTX_CLOUD_BFF_TAG=$bff_tag CTX_CLOUD_WEB_TAG=$web_tag
+  ctx_cert_guard &
+  local guard=$!
   if ! ctx_helmfile -l 'group!=mock-sources' sync; then
+    kill "$guard" 2>/dev/null || true
     ctx_report_unschedulable
     exit "$CTX_EXIT_FAILED"
   fi
+  kill "$guard" 2>/dev/null || true
   ctx_log "OpenMetadata：本体共用字段与关系类型"
   ctx_deploy_om_config || exit "$CTX_EXIT_FAILED"
 
