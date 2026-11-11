@@ -25,15 +25,15 @@ ctx_toolbox_manifest() {
         {name: "toolbox", image: $image, command: ["sleep", "infinity"],
          envFrom: [{secretRef: {name: "toolbox-env"}}],
          resources: {requests: {cpu: "1", memory: "2Gi"}, limits: {memory: "6Gi"}},
-         volumeMounts: [{name: "cache", mountPath: "/cache"}, {name: "workspace", mountPath: "/workspace"}]},
+         volumeMounts: [{name: "cache", mountPath: "/cache"}, {name: "workspace", mountPath: "/workspace"}, {name: "tmp", mountPath: "/tmp"}]},
         {name: "dind", image: $dind, securityContext: {privileged: true},
          env: [{name: "DOCKER_TLS_CERTDIR", value: ""}],
          args: ["--host=tcp://0.0.0.0:2375"],
          resources: {requests: {cpu: "500m", memory: "1Gi"}, limits: {memory: "4Gi"}},
-         # 工作区以相同路径挂入：Testcontainers 的绑定挂载由 dind 中的守护进程解析（T068 实测）
-         volumeMounts: [{name: "cache", mountPath: "/var/lib/docker", subPath: "docker"}, {name: "workspace", mountPath: "/workspace"}]}
+         # 工作区与 /tmp 以相同路径挂入：Testcontainers 的绑定挂载由 dind 中的守护进程解析（T068 实测）
+         volumeMounts: [{name: "cache", mountPath: "/var/lib/docker", subPath: "docker"}, {name: "workspace", mountPath: "/workspace"}, {name: "tmp", mountPath: "/tmp"}]}
       ],
-      volumes: [{name: "cache", persistentVolumeClaim: {claimName: "toolbox-cache"}}, {name: "workspace", emptyDir: {}}]
+      volumes: [{name: "cache", persistentVolumeClaim: {claimName: "toolbox-cache"}}, {name: "workspace", emptyDir: {}}, {name: "tmp", emptyDir: {}}]
     }}'
 }
 

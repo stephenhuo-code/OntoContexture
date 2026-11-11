@@ -59,6 +59,11 @@ def audiences(claims: dict[str, Any]) -> list[str]:
     return [str(aud)]
 
 
+# 管理接口超时：httpx 默认 5 秒；集群内工具箱的 Docker-in-Docker 中 Keycloak 较慢，
+# 建 realm 曾超时（030 T068 实测）
+ADMIN_TIMEOUT = 60.0
+
+
 class Admin:
     def __init__(self, base_url: str) -> None:
         token = httpx.post(
@@ -69,9 +74,12 @@ class Admin:
                 "username": "admin",
                 "password": "admin",
             },
+            timeout=ADMIN_TIMEOUT,
         ).json()["access_token"]
         self.http = httpx.Client(
-            base_url=f"{base_url}/admin/realms", headers={"Authorization": f"Bearer {token}"}
+            base_url=f"{base_url}/admin/realms",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=ADMIN_TIMEOUT,
         )
 
     def create_realm(self) -> None:
