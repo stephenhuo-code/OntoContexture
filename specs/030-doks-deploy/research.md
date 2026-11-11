@@ -130,7 +130,7 @@
   - 边车 `docker:dind`（特权）提供 Testcontainers 所需的 Docker API（`DOCKER_HOST=tcp://localhost:2375`），集成测试代码与本地完全相同（宪法原则 I：真实依赖）；
   - 源码上传：`git ls-files -z -co --exclude-standard` 列出的文件（含未提交改动、不含忽略文件与凭证文件）经 `kubectl exec -i … tar x` 传入；
   - 输出：`kubectl exec` 直接把命令输出流回终端并透传退出码；`trap` 在结束或中断时删除 Pod（FR-016）；
-  - 缓存：`toolbox-cache` PVC（uv / pnpm / Playwright / DinD 镜像缓存），同一时间只允许一个工具箱运行（以固定 Pod 名互斥）；
+  - 缓存：`toolbox-cache` PVC（uv / pnpm / Playwright / DinD 镜像缓存），同一时间只允许一个工具箱运行（以固定 Pod 名互斥；Pod 注解记录发起进程，该进程仍在运行时后来者以退出码 2 拒绝，进程已退出的残留 Pod 才清理——T068 实测修订）；
   - e2e：工具箱使用 `contexture` namespace 内受限 RBAC 的 ServiceAccount 运行 `-m cluster` 测试；Playwright `baseURL` 改为读取环境变量（默认仍为 `http://localhost:8080`），云端指向 `https://<基础域名>`。
 - **Alternatives considered**：集成测试改连云端环境中的真实组件（需改写测试夹具，本地与云端行为分叉，且测试数据会污染演示环境）；在开发机运行（资源不足，spec 已排除）。
 
@@ -343,3 +343,12 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
 - 仓库工作区（git 跟踪且未忽略的文件，排除 `.env*`，与工具箱上传范围一致）：**无发现**。
 - 工具箱镜像 `toolbox:toolbox-84e54cb3bd29`：**无发现**。
 - `cloud-images` 三次运行的日志（约 2.9 万行）：不含两个镜像仓库令牌的原值，也无 `dop_v1_` 形式的令牌；全部 git 历史中无该形式的令牌。
+
+## 实施记录：集群内测试（T068，2026-11-11）
+
+- `cloud-lint`：首次运行发现本特性文件的 pyright 错误（常量重复赋值）与 9 个文件的 prettier 格式问题（开发机无 node，此前无法运行），
+  修正后通过，用时 **57 秒**。格式化在工具箱中执行，以 `git diff` 带回开发机应用；渲染基线为生成文件，加入 `.prettierignore`。
+- `cloud-test` 暴露 Docker-in-Docker 的两个差异：Testcontainers 的绑定挂载由 dind 中的守护进程解析，工作区与 `/tmp` 须以相同路径挂入
+  dind（否则 keycloak-config-cli 报 `No files matching '/config/*.yaml'`、登录主题为空）；dind 中 Keycloak 较慢，测试辅助代码的
+  管理接口超时由 httpx 默认 5 秒放宽到 60 秒。
+- 并行执行部署与 `cloud-test` 时，部署中的 OM 本体配置启动工具箱，删除了正在运行测试的同名 Pod（退出码 137）。互斥改为拒绝而非抢占（见 R12）。

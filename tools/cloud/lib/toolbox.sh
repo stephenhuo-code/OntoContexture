@@ -13,10 +13,11 @@ ctx_toolbox_image() {  # 优先用 cloud-build --toolbox 记录的镜像，否�
 }
 
 ctx_toolbox_manifest() {
-  jq -cn --arg name "$CTX_TOOLBOX_POD" --arg image "$(ctx_toolbox_image)" --arg dind "$CTX_DIND_IMAGE" \
+  jq -cn --arg owner "$(hostname)/$$" --arg name "$CTX_TOOLBOX_POD" --arg image "$(ctx_toolbox_image)" --arg dind "$CTX_DIND_IMAGE" \
     --arg nodekey "$CTX_CLOUD_NODE_LABEL" --arg pool "$CTX_CLOUD_NODE_POOL" '{
     apiVersion: "v1", kind: "Pod",
-    metadata: {name: $name, labels: {"app.kubernetes.io/name": "contexture-toolbox"}},
+    metadata: {name: $name, labels: {"app.kubernetes.io/name": "contexture-toolbox"},
+      annotations: {"contexture.io/owner": $owner}},
     spec: {
       serviceAccountName: "toolbox", restartPolicy: "Never",
       nodeSelector: {($nodekey): $pool},
@@ -51,6 +52,13 @@ ctx_toolbox_upload() {  # 只上传 git 跟踪与未忽略的文件（另附 .gi
 # ctx_toolbox_run <命令>：在工具箱中于 /workspace 执行；CTX_KCOV=1 时取回 bash 覆盖率到 CTX_KCOV_OUT
 ctx_toolbox_run() {
   local cmd=$1 status=0
+  # 互斥（T068 实测）：发起进程仍在运行（或来自另一台开发机）时拒绝；发起进程已退出的残留 Pod 才清理
+  local owner
+  owner=$(ctx_kubectl -n "$CTX_TOOLBOX_NS" get pod "$CTX_TOOLBOX_POD" --ignore-not-found \
+    -o jsonpath='{.metadata.annotations.contexture\.io/owner}' 2>/dev/null) || owner=
+  if [[ -n $owner ]] && { [[ ${owner%/*} != "$(hostname)" ]] || kill -0 "${owner##*/}" 2>/dev/null; }; then
+    ctx_die "$CTX_EXIT_CONFIG" "另一个工具箱命令正在运行（$owner），请等它结束后再执行"
+  fi
   ctx_kubectl -n "$CTX_TOOLBOX_NS" delete pod "$CTX_TOOLBOX_POD" --ignore-not-found --wait=true >/dev/null 2>&1 || true
   trap 'ctx_toolbox_cleanup; exit 130' INT TERM
   ctx_toolbox_manifest | ctx_kubectl -n "$CTX_TOOLBOX_NS" apply -f - >/dev/null
