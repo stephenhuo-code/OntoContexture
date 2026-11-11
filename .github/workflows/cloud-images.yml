@@ -5,15 +5,15 @@
 name: cloud-images
 
 on:
-  workflow_dispatch:      # GitHub 界面手动运行（要求本文件已在默认分支上）
+  workflow_dispatch: # GitHub 界面手动运行（要求本文件已在默认分支上）
     inputs:
       ref:
         description: 要构建的分支或提交
         required: true
         default: main
-  push:                   # make cloud-images 推送的专用标签（特性合并到默认分支前使用）；不含分支，普通推送与合并不触发
+  push: # make cloud-images 推送的专用标签（特性合并到默认分支前使用）；不含分支，普通推送与合并不触发
     tags:
-      - 'cloud-images/*'
+      - "cloud-images/*"
 
 permissions:
   contents: read

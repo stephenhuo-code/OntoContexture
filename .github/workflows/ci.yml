@@ -59,7 +59,6 @@ jobs:
             apps/web/coverage/
             packages/ui/coverage/
 
-
   # 云端脚本（030）：bash 单元测试在 kcov 下统计覆盖率；helmfile 渲染对比（本地 local / lite 不变）；流水线语法检查
   cloud-scripts:
     runs-on: ubuntu-latest

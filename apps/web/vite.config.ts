@@ -5,7 +5,8 @@ import { devServer } from "./src/dev-server";
 
 // 配置文件在 Node 中执行；tsconfig 未引入 node 类型，按最小形状读取环境变量
 const nodeEnv =
-  (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
+  (globalThis as { process?: { env: Record<string, string | undefined> } })
+    .process?.env ?? {};
 
 // 本地开发：/bff 代理到集群入口（make up 后的 http://localhost:8080），与生产同源；云端开发模式见 src/dev-server.ts（030）
 export default defineConfig({

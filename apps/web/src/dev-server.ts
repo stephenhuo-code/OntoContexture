@@ -7,12 +7,23 @@ export interface DevServerOptions {
   hmr?: { clientPort: number; protocol: "wss" };
 }
 
-export function devServer(env: Record<string, string | undefined>): DevServerOptions {
-  const server: DevServerOptions = { port: 5173, proxy: { "/bff": "http://localhost:8080" } };
+export function devServer(
+  env: Record<string, string | undefined>,
+): DevServerOptions {
+  const server: DevServerOptions = {
+    port: 5173,
+    proxy: { "/bff": "http://localhost:8080" },
+  };
   const hosts = env.CTX_VITE_ALLOWED_HOSTS;
   if (hosts) {
-    server.allowedHosts = hosts.split(",").map((h) => h.trim()).filter(Boolean);
-    server.hmr = { clientPort: Number(env.CTX_VITE_HMR_CLIENT_PORT ?? 443), protocol: "wss" };
+    server.allowedHosts = hosts
+      .split(",")
+      .map((h) => h.trim())
+      .filter(Boolean);
+    server.hmr = {
+      clientPort: Number(env.CTX_VITE_HMR_CLIENT_PORT ?? 443),
+      protocol: "wss",
+    };
   }
   return server;
 }

@@ -65,7 +65,7 @@ test_existing_remote_tag_is_not_pushed_again() {
 test_workflow_triggers_only_on_manual_run_or_dedicated_tag() {
   local wf; wf=$(sed -n '/^on:/,/^permissions:/p' "$REPO_ROOT/.github/workflows/cloud-images.yml")
   assert_contains "$wf" "workflow_dispatch:"
-  assert_contains "$wf" "- 'cloud-images/*'"
+  assert_contains "$wf" '- "cloud-images/*"'
   assert_not_contains "$wf" "branches"
   assert_not_contains "$wf" "pull_request"
   assert_contains "$(cat "$REPO_ROOT/.github/workflows/cloud-images.yml")" 'ref: ${{ inputs.ref || github.ref }}'
