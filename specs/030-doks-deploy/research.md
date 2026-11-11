@@ -259,3 +259,10 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
   因此 `cloud-dev` 必须在 `trap` 中先结束 devspace 进程，再执行 `devspace reset pods`；`reset pods` 实测能把原 Deployment 恢复为记录的副本数并删除 `-devspace` Deployment。
 - **与 Helm 的相互作用（重要）**：替换期间执行 `helm upgrade`，Helm 会把原 Deployment 的副本数改回 Chart 中的值，原 Pod 与开发 Pod **同时运行**，Service 流量被两者分摊。
   因此 `cloud-deploy`、`cloud-build`（会更新 bff / web）在开发模式运行时，必须先确认（FR-013），确认后**先结束开发模式（reset pods）再部署**。
+
+## 实施记录：R10 集群内构建与 R12 工具箱镜像（T030–T033，2026-11-11 实测）
+
+- `buildkitd`（moby/buildkit v0.34.1，特权模式，20Gi 缓存卷）平时 0 副本；开发机 `buildctl --addr kube-pod://…` 直连成功。
+- 不推送的试构建：bff 镜像 **17 秒**、web 镜像 **43 秒**、工具箱镜像 **93 秒**；构建上下文按 `.dockerignore` 上传，均不到 1 MB。满足 SC-004（≤ 10 分钟）。
+- 推送凭证由开发机 buildctl 的一次性 `DOCKER_CONFIG` 提供（BuildKit 由客户端提供仓库认证），集群中的 `docr-push` 不再需要，仍保留以备后用。
+- 推送到 DOCR、工具箱实际运行测试，待负责人提供镜像仓库后完成（T033、T038）。

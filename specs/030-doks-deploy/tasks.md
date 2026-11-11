@@ -86,38 +86,38 @@
 
 ### 公共基础
 
-- [ ] T025 [P] 编写失败测试 `tools/cloud/tests/test_secrets.sh`：用 kubectl 桩函数断言：
+- [X] T025 [P] 编写失败测试 `tools/cloud/tests/test_secrets.sh`：用 kubectl 桩函数断言：
   - 只创建不存在的 Secret，已存在的不覆盖；覆盖 contracts/cloud-config.md 列出的全部 Secret 名称和键，含 `keycloak-admin`、`pg-keycloak`、`docr-pull`；
   - `docr-pull` 每次按配置更新；
   - 不创建 `ctx-trusted-ca`；
   - Fernet 密钥是 32 字节的 urlsafe base64。
 
   （FR-003、FR-010、R14）
-- [ ] T026 实现 `tools/cloud/secrets.sh`（bash + openssl），使 T025 通过（FR-003、FR-010、R14）
-- [ ] T027 [P] 编写失败测试 `tools/cloud/tests/test_image_tags.sh`：覆盖 data-model.md 第 4 节的标签规则：
+- [X] T026 实现 `tools/cloud/secrets.sh`（bash + openssl），使 T025 通过（FR-003、FR-010、R14）
+- [X] T027 [P] 编写失败测试 `tools/cloud/tests/test_image_tags.sh`：覆盖 data-model.md 第 4 节的标签规则：
   - 流水线构建为 `git-<12位>`；
   - 工作区干净时为 `ws-<12位>`；
   - 有未提交改动时为 `ws-<12位>-<8位>`，同样的工作区得到同样的标签；
   - `dev-` 和 `toolbox-` 标签只随锁文件变化。
 
   （FR-022、FR-023）
-- [ ] T028 [P] 编写失败测试 `tools/cloud/tests/test_state.sh`：覆盖 `contexture-cloud-state` 中 `stableVersion.*`、`devMode.*`、`lifecycle.*` 的读写，以及“`lifecycle.state` 与实际副本数共同判定 运行中 / 已停止 / 部分运行”的规则（data-model.md 第 2 节，FR-036）
-- [ ] T029 实现 `tools/cloud/lib/tags.sh` 与 `tools/cloud/lib/state.sh`，使 T027、T028 通过
-- [ ] T030 [P] 新建组件 `deploy/components/buildkit/`：
+- [X] T028 [P] 编写失败测试 `tools/cloud/tests/test_state.sh`：覆盖 `contexture-cloud-state` 中 `stableVersion.*`、`devMode.*`、`lifecycle.*` 的读写，以及“`lifecycle.state` 与实际副本数共同判定 运行中 / 已停止 / 部分运行”的规则（data-model.md 第 2 节，FR-036）
+- [X] T029 实现 `tools/cloud/lib/tags.sh` 与 `tools/cloud/lib/state.sh`，使 T027、T028 通过
+- [X] T030 [P] 新建组件 `deploy/components/buildkit/`：
   - `component.yaml`：v0.34.x、Apache-2.0、镜像清单；
   - `chart/`：`contexture-build` namespace；特权模式的 `buildkitd` Deployment，默认 0 副本，带 `nodeSelector`；20Gi 缓存 PVC，使用 `storageClass`；推送凭证 `docr-push`；
   - `tests/smoke.sh`。
 
   在 helmfile 中只为 `cloud` 环境安装；`make components-check` 通过（FR-022、R10、R17a）
-- [ ] T031 实现 `tools/cloud/lib/buildkit.sh`：启动前先清理残留副本 → 扩为 1 副本并等待就绪 → 用 `buildctl --addr kube-pod://…` 按指定的 Dockerfile、目标阶段和标签构建并推送 → 缩回 0（R10、R18）
-- [ ] T032 [P] 新建组件 `deploy/components/ci-toolbox/`：
+- [X] T031 实现 `tools/cloud/lib/buildkit.sh`：启动前先清理残留副本 → 扩为 1 副本并等待就绪 → 用 `buildctl --addr kube-pod://…` 按指定的 Dockerfile、目标阶段和标签构建并推送 → 缩回 0（R10、R18）
+- [X] T032 [P] 新建组件 `deploy/components/ci-toolbox/`：
   - `component.yaml`：工具箱镜像、`docker:dind`、kcov 例外；
   - `Dockerfile`：Python 3.12 + uv、Node 22 + pnpm、Playwright 浏览器依赖、kubectl、helm、kcov，版本与仓库的锁定版本一致；
   - `chart/`：`contexture-ci` namespace；`toolbox-cache` PVC；只能读写 `contexture` 和 `mock-sources` 的 ServiceAccount 与 Role；Secret `toolbox-env`，以环境变量形式提供 seed、e2e、mockfactory 需要的凭证（Keycloak 管理员、模型服务、测试用户），由 `secrets.sh` 生成。
 
   （FR-015、FR-017、R12、R17a）
 - [ ] T033 用 `lib/buildkit.sh` 构建工具箱镜像（标签 `toolbox-<摘要>`），推送到 DOCR，记录构建耗时（R12）
-- [ ] T034 [P] 编写失败测试 `tools/cloud/tests/test_toolbox.sh`：用 kubectl 桩函数断言：
+- [X] T034 [P] 编写失败测试 `tools/cloud/tests/test_toolbox.sh`：用 kubectl 桩函数断言：
   - 上传的文件清单等于 `git ls-files -co --exclude-standard`，且不包含 `.env.*`；
   - 凭证只通过 Secret `toolbox-env` 的环境变量注入；
   - 命令的退出码被透传；
@@ -126,9 +126,9 @@
   - 设置 `CTX_KCOV` 时在 kcov 下运行 `cloud-unit`，并把 cobertura 结果取回本地。
 
   （FR-015、FR-016、R12、R18）
-- [ ] T035 实现 `tools/cloud/lib/toolbox.sh`：创建主容器加 `docker:dind` 边车的 Pod，上传工作区，用 `kubectl exec` 执行命令并透传退出码，通过 `trap` 清理。使 T034 通过（FR-015～FR-017）
-- [ ] T036 在 `Makefile` 的 `lint`、`test` 目标前加入检查：找不到 `uv` 时，提示改用 `make cloud-lint` / `make cloud-test` 并以退出码 2 结束；有 `uv` 时行为不变（FR-001a）
-- [ ] T037 新建 `.github/workflows/cloud-images.yml`：
+- [X] T035 实现 `tools/cloud/lib/toolbox.sh`：创建主容器加 `docker:dind` 边车的 Pod，上传工作区，用 `kubectl exec` 执行命令并透传退出码，通过 `trap` 清理。使 T034 通过（FR-015～FR-017）
+- [X] T036 在 `Makefile` 的 `lint`、`test` 目标前加入检查：找不到 `uv` 时，提示改用 `make cloud-lint` / `make cloud-test` 并以退出码 2 结束；有 `uv` 时行为不变（FR-001a）
+- [X] T037 新建 `.github/workflows/cloud-images.yml`：
   - 只能通过 `workflow_dispatch` 手动触发，输入为分支或提交；
   - 检出时包含 `third_party/openmetadata/src` 子仓库；
   - 用 `DIGITALOCEAN_REGISTRY_TOKEN` 登录 DOCR；
