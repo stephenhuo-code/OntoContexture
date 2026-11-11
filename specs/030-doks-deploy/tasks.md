@@ -268,7 +268,7 @@
 
 ## Phase 7: User Story 3 - 开发者在集群内运行检查与测试 (Priority: P1)（阶段 D）
 
-- [ ] T064 [P] [US3] 编写失败测试 `tools/cloud/tests/test_toolbox_targets.sh`：
+- [X] T064 [P] [US3] 编写失败测试 `tools/cloud/tests/test_toolbox_targets.sh`：
   - 每个 `cloud-*` 命令都映射到工具箱里正确的命令；
   - `cloud-mock-data` 先列出将被重建的库（`mes`、`qms`、`mock_dw`）并要求确认；未确认时以退出码 3 退出，且不创建 Pod；
   - `cloud-seed` 和 `cloud-e2e` 不需要确认。
@@ -279,8 +279,8 @@
   - 按 Ctrl+C 中断后，Pod 被删除。
 
   （US3 场景 1、2、4；FR-016）
-- [ ] T066 [US3] 实现 `tools/cloud/toolbox.sh`，并在 `Makefile` 新增 `cloud-lint`、`cloud-test`、`cloud-e2e`、`cloud-seed`、`cloud-mock-data` 目标。`cloud-test` 中带上 `CTX_KCOV=1 make cloud-unit`，并输出 bash 覆盖率。`cloud-mock-data` 先执行 `helmfile -e cloud -l group=mock-sources sync`，再在工具箱中运行 mockfactory。使 T064 通过（FR-015～FR-018、FR-026、FR-029）
-- [ ] T067 [US3] 修改以下文件，默认值保持不变：
+- [X] T066 [US3] 实现 `tools/cloud/toolbox.sh`，并在 `Makefile` 新增 `cloud-lint`、`cloud-test`、`cloud-e2e`、`cloud-seed`、`cloud-mock-data` 目标。`cloud-test` 中带上 `CTX_KCOV=1 make cloud-unit`，并输出 bash 覆盖率。`cloud-mock-data` 先执行 `helmfile -e cloud -l group=mock-sources sync`，再在工具箱中运行 mockfactory。使 T064 通过（FR-015～FR-018、FR-026、FR-029）
+- [X] T067 [US3] 修改以下文件，默认值保持不变：
   - `tests/e2e/playwright.config.ts`、`tests/e2e/playwright.ui.config.ts`：`baseURL` 改为读取 `CTX_E2E_BASE_URL`；
   - `testdata/deploy/{mes,qms}`、`testdata/deploy/secrets.sh`：参数化 kube 上下文和 nodeSelector。
 

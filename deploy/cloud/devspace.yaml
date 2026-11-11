@@ -1,0 +1,59 @@
+# 云端开发模式（030 US2、research R11）：由 tools/cloud/dev.sh（make cloud-dev）调用，不直接运行。
+# 选中 helmfile 部署的 bff / web，替换为开发镜像（热重载），同步开发机工作区的源码；退出时由 dev.sh 执行 reset pods 恢复稳定版本。
+version: v2beta1
+name: contexture
+
+vars:
+  CTX_DEV_BFF_IMAGE:
+    source: env
+  CTX_DEV_WEB_IMAGE:
+    source: env
+  CTX_CLOUD_DOMAIN:
+    source: env
+
+dev:
+  bff:
+    labelSelector:
+      app.kubernetes.io/name: bff
+    container: bff
+    devImage: ${CTX_DEV_BFF_IMAGE}
+    # 开发镜像以 root 运行并需写入同步的源码：去掉稳定版本的只读根文件系统等限制
+    patches:
+      - op: replace
+        path: spec.containers.name=bff.securityContext
+        value: {}
+    sync:
+      - path: ../../services/bff/src:/app/services/bff/src
+        startContainer: false
+      - path: ../../packages/py-core/src:/app/packages/py-core/src
+        startContainer: false
+    logs:
+      enabled: true
+  web:
+    labelSelector:
+      app.kubernetes.io/name: web
+    container: web
+    devImage: ${CTX_DEV_WEB_IMAGE}
+    patches:
+      - op: replace
+        path: spec.containers.name=web.securityContext
+        value: {}
+    env:
+      - name: CTX_VITE_ALLOWED_HOSTS
+        value: ${CTX_CLOUD_DOMAIN}
+    sync:
+      - path: ../../apps/web/src:/src/apps/web/src
+      - path: ../../packages/ui/src:/src/packages/ui/src
+      - path: ../../packages/ts-api/src:/src/packages/ts-api/src
+    logs:
+      enabled: true
+
+profiles:
+  - name: bff-only
+    patches:
+      - op: remove
+        path: dev.web
+  - name: web-only
+    patches:
+      - op: remove
+        path: dev.bff
