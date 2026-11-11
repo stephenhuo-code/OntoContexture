@@ -22,8 +22,8 @@
 
 ## 集群 Secret（由 `tools/cloud/secrets.sh` 生成，已存在则不覆盖，FR-003）
 
-沿用 `tools/up.sh` 中的全部 Secret 名称与键，并新增：`keycloak-admin`（username、password）、`pg-keycloak`、`docr-pull`（dockerconfigjson，由 `cloud-deploy` 根据配置更新），
-以及 `contexture-build` namespace 中的 `docr-push`。`ctx-trusted-ca` 在云端不创建。
+沿用 `tools/up.sh` 中的全部 Secret 名称与键，并新增：`pg-keycloak`、`docr-pull`（dockerconfigjson，由 `cloud-deploy` 根据配置更新），
+以及 `contexture-build` namespace 中的 `docr-push`。`ctx-trusted-ca` 在云端不创建。自带 Keycloak 的管理员账号由 Keycloak Chart 自行生成并保留（Secret `keycloak-keycloak-admin`，`helm.sh/resource-policy: keep`，FR-010）；本地 `.env.local` 中的 `CONTEXTURE_BFF_CLIENT_SECRET`、`CONTEXTURE_OM_CLIENT_SECRET` 在云端由 `secrets.sh` 生成（`bff-oidc`、`om-oidc`）。
 
 ## helmfile `cloud` 环境的值
 
