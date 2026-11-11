@@ -72,7 +72,7 @@
 
   新建 `deploy/components/envoy-gateway/values/cloud.yaml`（LoadBalancer，加 DO 注解参数块）。T014 的本地部分必须仍然通过（FR-019、R3、R19）
 - [X] T019 实测 R3：部署一个临时 echo 后端，确认 LB 拿到公网 IP；把 Envoy 缩为 0 后访问 LB，记录响应码和耗时，写入 research.md R3，并把实测到的响应（如 503）回写到 `specs/030-doks-deploy/spec.md` 的 FR-037（FR-037）
-- [ ] T020 [P] 新建组件 `deploy/components/cert-manager/`：
+- [X] T020 [P] 新建组件 `deploy/components/cert-manager/`：
   - `component.yaml`：版本 v1.21.x、Apache-2.0、镜像清单、冒烟测试；
   - `values/cloud.yaml`：开启 Gateway API 支持，加 `nodeSelector`；
   - `config/`：staging 和 production 两个 `ClusterIssuer`；一张 `Certificate`，包含 `<domain>` 和 R3 列出的全部子域名；
@@ -80,9 +80,9 @@
 
   在 helmfile 中只为 `cloud` 环境安装；`make components-check` 通过（FR-019、R4、R17a）
 - [ ] T021 实测 R4、R5：用 staging 签发器完成 HTTP-01 签发；在集群内临时 Pod 中 `curl https://<domain>`，验证经 LB IP 的集群内访问可达。结论写入 research.md R4、R5（FR-019、FR-021）
-- [ ] T022 实测 R6：以 `cloud` 环境安装 Airflow（Pod 亲和加 `nodeSelector`），触发一次 KubernetesExecutor 任务，确认任务 Pod 与调度器在同一节点，且 DAG 卷可以挂载。结论写入 research.md R6；如果全局 `affinity` 对任务 Pod 不生效，就在 `deploy/components/airflow/values/cloud.yaml.gotmpl` 的 `podTemplate` 里补上（FR-025、R6）
+- [X] T022 实测 R6：以 `cloud` 环境安装 Airflow（Pod 亲和加 `nodeSelector`），触发一次 KubernetesExecutor 任务，确认任务 Pod 与调度器在同一节点，且 DAG 卷可以挂载。结论写入 research.md R6；如果全局 `affinity` 对任务 Pod 不生效，就在 `deploy/components/airflow/values/cloud.yaml.gotmpl` 的 `podTemplate` 里补上（FR-025、R6）
 - [ ] T023 实测 R13 的补跑问题：准备一个每 10 分钟调度一次、`catchup=False` 的测试 DAG，把调度器缩为 0，跨过两个调度点后再恢复，记录 Airflow 是否为最近一个区间创建了运行。结论写入 research.md R13，并**请负责人确认**：接受补跑（同步修订 spec 的边界情况），还是启动时跳过（见 T086）
-- [ ] T024 实测 R11：在临时 namespace 中，用 DevSpace v6.3 的 replace-pods 替换一个由 helm 部署的 Deployment。测量文件同步延迟（目标 ≤ 10 秒）；验证 `devspace reset pods` 能恢复原 Deployment；验证替换期间执行 `helm upgrade` 会有什么影响；验证同步连接中断再恢复后，改动会被补齐。结论写入 research.md R11（FR-011、FR-012）
+- [X] T024 实测 R11：在临时 namespace 中，用 DevSpace v6.3 的 replace-pods 替换一个由 helm 部署的 Deployment。测量文件同步延迟（目标 ≤ 10 秒）；验证 `devspace reset pods` 能恢复原 Deployment；验证替换期间执行 `helm upgrade` 会有什么影响；验证同步连接中断再恢复后，改动会被补齐。结论写入 research.md R11（FR-011、FR-012）
 
 ### 公共基础
 

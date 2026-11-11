@@ -245,3 +245,17 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
 - **方案**：全局 `podAffinity`（required，`topologyKey: kubernetes.io/hostname`）指向 `component=scheduler, release=airflow`。
   调度器自身匹配该选择器，按 Kubernetes 规则作为第一个 Pod 可直接调度；其余 Pod 随后落到同一节点，共享 RWO 的 dags 卷。
 - 集群上的端到端验证（任务 Pod 与调度器同节点、能挂载 dags 卷）在 T052 首次完整部署后，以一次元数据采集运行确认，结论补记于此。
+
+## 实施记录：R11 DevSpace 开发模式（T024，2026-11-11 实测，临时 namespace `ctx-probe`，已删除）
+
+用一个由 Helm 部署的最小 Deployment 验证 DevSpace v6.3.21 的“替换 Pod + 同步 + 恢复”：
+- **替换**：`labelSelector` 选中原 Pod（注意 `imageSelector` 与 `labelSelector` 不能同时使用），DevSpace 把原 Deployment 缩为 0，
+  新建 `<名称>-devspace` Deployment 使用开发镜像，并在原 Deployment 上记录注解 `devspace.sh/replicas`。
+- **同步延迟**：初始同步完成后，每次保存文件到容器内可见约 **0.9–1.3 秒**（含测量用 `kubectl exec` 的开销），满足 ≤ 10 秒（SC-002）。
+  两次写入大小相同、间隔不足 1 秒时出现过一次约 47 秒的延迟（按修改时间与大小判断变化）；正常编辑间隔下未复现，记入 acceptance 已知限制。
+- **中断后补齐**：暂停 devspace 进程 25 秒期间修改文件，恢复后 1.4 秒内补齐（spec 边界情况“网络短暂中断”）。
+- **开发机内存**：devspace 进程常驻约 120 MB，开发机 2 GB 限额内可用（SC-003）。
+- **退出不会自动恢复**：后台运行时 SIGINT / SIGTERM 不能结束 devspace（需 SIGKILL），且退出后原 Deployment 仍为 0 副本。
+  因此 `cloud-dev` 必须在 `trap` 中先结束 devspace 进程，再执行 `devspace reset pods`；`reset pods` 实测能把原 Deployment 恢复为记录的副本数并删除 `-devspace` Deployment。
+- **与 Helm 的相互作用（重要）**：替换期间执行 `helm upgrade`，Helm 会把原 Deployment 的副本数改回 Chart 中的值，原 Pod 与开发 Pod **同时运行**，Service 流量被两者分摊。
+  因此 `cloud-deploy`、`cloud-build`（会更新 bff / web）在开发模式运行时，必须先确认（FR-013），确认后**先结束开发模式（reset pods）再部署**。
