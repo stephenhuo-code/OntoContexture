@@ -70,3 +70,20 @@ test_workflow_triggers_only_on_manual_run_or_dedicated_tag() {
   assert_not_contains "$wf" "pull_request"
   assert_contains "$(cat "$REPO_ROOT/.github/workflows/cloud-images.yml")" 'ref: ${{ inputs.ref || github.ref }}'
 }
+
+# 2026-11-11：自建镜像（bff、web）漏洞扫描阻断推送；OpenMetadata 第三方镜像扫描结果留档并告警、不阻断（与 ci.yml 只门禁自建镜像一致）
+scan_step() { sed -n '/name: SBOM、许可与漏洞扫描/,/name: 统一推送/p' "$REPO_ROOT/.github/workflows/cloud-images.yml"; }
+
+test_scan_blocks_own_images_and_reports_third_party() {
+  local s; s=$(scan_step)
+  assert_contains "$s" "--fail-on critical"
+  assert_contains "$s" 'openmetadata-*)'
+  assert_contains "$s" "::warning::"
+  assert_contains "$s" "sbom/\$name.grype.txt"
+}
+
+test_scan_reports_are_uploaded_even_when_scan_fails() {
+  local wf; wf=$(sed -n '/uses: actions\/upload-artifact/,$p' "$REPO_ROOT/.github/workflows/cloud-images.yml")
+  assert_contains "$(grep -B1 'uses: actions/upload-artifact' "$REPO_ROOT/.github/workflows/cloud-images.yml")" "if: always()"
+  assert_contains "$wf" "sbom/"
+}
