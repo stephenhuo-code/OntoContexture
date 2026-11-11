@@ -218,3 +218,21 @@
 doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两周，SHA256 与上游校验值一致；buildkit 无独立校验文件，取 GitHub 发布资产摘要）。
 另装 uv 0.12.0（与 bff Dockerfile 一致）与 Python 3.12 到持久卷，仅用于在开发机上运行轻量的单元测试（`uv run pytest tools/tests` 约 2 秒，57 项）；
 重的测试（集成、e2e、类型检查）仍按 R12 在工具箱中运行。helmfile 渲染的内存占用见 T016 记录。
+
+## 实施记录：R2 Envoy Gateway 与 Gateway API（T017，2026-11-11 实测）
+
+- **结论：兼容，无需回退。** Envoy Gateway v1.9.2 的 CRD 子 Chart 自带的 Gateway API 正是 **v1.6.1**（与 DOKS 预装版本相同）。
+  `helmfile -e cloud -l name=envoy-gateway sync` 安装成功（约 3 分 47 秒，含弹性池从 0 扩到 1 个节点约 2 分钟）。
+- DOKS 托管的 7 个 CRD 保持不变（`doks.digitalocean.com/managed=true` 仍在），未触发 `doks-gateway-api-crd-protection`；
+  新增了 DOKS 未装的 6 个 CRD（listenersets、tcproutes、udproutes 及 3 个 `x-k8s.io` 实验 CRD），以及 Gateway API 的 `safe-upgrades.gateway.networking.k8s.io` 准入策略（由 Helm 管理，卸载时一并删除）。
+- 控制器与 certgen 任务都调度在弹性池节点上（nodeSelector 生效）。certgen 第一次运行失败后重试成功，属上游已知的启动时序问题，不影响结果。
+- 弹性池节点标签：DOKS 节点同时带 `doks.digitalocean.com/node-pool`（池名，弹性池为 `elastic-pool`）与 `node-pool-id`（UUID）；配置用池名或 ID 均可，本环境使用池名，配置项不变（R19）。
+
+## 实施记录：R3 负载均衡器与停止时的响应（T019，2026-11-11 实测）
+
+- Envoy 的 LoadBalancer Service 在约 1 分钟内获得公网 IP；HTTP 请求按重定向路由返回 `301 → https://…`。
+- **集群内访问 LB IP**（开发机所在路径）由 Cilium 直接转发到 Envoy，往返约 9 ms（同时印证 R5：集群内访问公网域名不出集群）。
+- **Envoy 缩为 0 时**：从集群内访问 LB IP 立即被拒绝连接（`curl` 返回码 000，耗时 < 1 ms），不会挂起；
+  从公网经 DO 负载均衡器访问时，DO LB 在无健康后端时直接响应错误，该路径无法从开发机实测，列入 acceptance 由负责人在浏览器中验证。
+- **重要发现**：Envoy Gateway 控制器重启后**不会**把 Envoy 代理 Deployment 的副本数从 0 拉回，必须由启动命令按停止前记录的副本数恢复（R13 的设计已覆盖，T080 实现时注意顺序：先恢复控制器，再恢复代理副本）。
+- FR-037 据此改为“立即拒绝连接或返回错误响应，不长时间无响应”。

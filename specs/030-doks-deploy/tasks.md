@@ -51,19 +51,19 @@
 
 ### 渲染基线（必须在修改任何共享文件之前完成）
 
-- [ ] T014 编写 `tools/cloud/tests/render-compare.sh`：
+- [X] T014 编写 `tools/cloud/tests/render-compare.sh`：
   - 对 `local`、`lite` 执行 `helmfile -f deploy/helmfile.yaml.gotmpl -e <env> template`（排除 `group=mock-sources`），与 `tools/cloud/tests/baseline/{local,lite}.yaml` 逐字节比较；
   - 对 `cloud` 环境断言渲染结果中不含 `localhost`、`127.0.0.1.nip.io`、`ctx-trusted-ca`、`NodePort`；
   - 对 `tools/cloud/`、`deploy/cloud/` 以及各组件的 `values/base.yaml` 断言不含 `digitalocean`、`do-block-storage`、`doks.`（`values/cloud.yaml` 与 `.env.cloud.example` 除外）。
 
   （SC-007、FR-021、R19）
-- [ ] T015 从 `main@104c55f` 的渲染结果生成基线 `tools/cloud/tests/baseline/local.yaml`、`lite.yaml` 并提交。此时本地部分通过，云端部分因为还没有 `cloud` 环境而失败（红）（SC-007）
+- [X] T015 从 `main@104c55f` 的渲染结果生成基线 `tools/cloud/tests/baseline/local.yaml`、`lite.yaml` 并提交。此时本地部分通过，云端部分因为还没有 `cloud` 环境而失败（红）（SC-007）
 
 ### 集群实测（结论回写 research.md）
 
-- [ ] T016 在 `deploy/helmfile.yaml.gotmpl` 新增 `cloud` 环境骨架：值 `domain`、`nodeLabel`、`nodePool`、`storageClass`、`registry`、`acmeServer`、`acmeEmail` 来自 `.env.cloud`；暂时只启用 `envoy-gateway` 与 `gateway` 两个 release。T014 的本地部分必须仍然通过（FR-001、R7、R19）
-- [ ] T017 实测 R2：在集群中按 `cloud` 环境安装 Envoy Gateway v1.9.2，确认 Helm 跳过了已存在的 Gateway API CRD，没有触发 `doks-gateway-api-crd-protection`，且 Gateway `contexture` 状态为 `Programmed`。不兼容时按 R2 的回退方案处理；结论写入 `specs/030-doks-deploy/research.md` R2
-- [ ] T018 把 `deploy/components/envoy-gateway/config/`（`values.yaml`、`templates/gateway.yaml`）参数化：
+- [X] T016 在 `deploy/helmfile.yaml.gotmpl` 新增 `cloud` 环境骨架：值 `domain`、`nodeLabel`、`nodePool`、`storageClass`、`registry`、`acmeServer`、`acmeEmail` 来自 `.env.cloud`；暂时只启用 `envoy-gateway` 与 `gateway` 两个 release。T014 的本地部分必须仍然通过（FR-001、R7、R19）
+- [X] T017 实测 R2：在集群中按 `cloud` 环境安装 Envoy Gateway v1.9.2，确认 Helm 跳过了已存在的 Gateway API CRD，没有触发 `doks-gateway-api-crd-protection`，且 Gateway `contexture` 状态为 `Programmed`。不兼容时按 R2 的回退方案处理；结论写入 `specs/030-doks-deploy/research.md` R2
+- [X] T018 把 `deploy/components/envoy-gateway/config/`（`values.yaml`、`templates/gateway.yaml`）参数化：
   - `envoyService.type`（默认 `NodePort`、`nodePort: 30080`）
   - `loadBalancer.annotations`
   - `https` 监听器及证书引用
@@ -71,7 +71,7 @@
   - `nodeSelector`、`tenantId`
 
   新建 `deploy/components/envoy-gateway/values/cloud.yaml`（LoadBalancer，加 DO 注解参数块）。T014 的本地部分必须仍然通过（FR-019、R3、R19）
-- [ ] T019 实测 R3：部署一个临时 echo 后端，确认 LB 拿到公网 IP；把 Envoy 缩为 0 后访问 LB，记录响应码和耗时，写入 research.md R3，并把实测到的响应（如 503）回写到 `specs/030-doks-deploy/spec.md` 的 FR-037（FR-037）
+- [X] T019 实测 R3：部署一个临时 echo 后端，确认 LB 拿到公网 IP；把 Envoy 缩为 0 后访问 LB，记录响应码和耗时，写入 research.md R3，并把实测到的响应（如 503）回写到 `specs/030-doks-deploy/spec.md` 的 FR-037（FR-037）
 - [ ] T020 [P] 新建组件 `deploy/components/cert-manager/`：
   - `component.yaml`：版本 v1.21.x、Apache-2.0、镜像清单、冒烟测试；
   - `values/cloud.yaml`：开启 Gateway API 支持，加 `nodeSelector`；
