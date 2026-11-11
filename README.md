@@ -59,7 +59,8 @@ pnpm --filter @contexture/web dev   # 前端开发服务器（/bff 代理到 loc
 ```bash
 make cloud-tools                  # 安装 kubectl、helm、helmfile、doctl、devspace、buildctl、jq 到 ~/.local/bin
 cp .env.cloud.example .env.cloud  # 填写集群、域名、镜像仓库（不进仓库）
-make cloud-deploy VERSION=git-<提交前 12 位>   # 部署或更新整套环境（镜像由 GitHub Actions 的 cloud-images 流水线构建）
+make cloud-images                 # 触发 GitHub 镜像流水线：为当前提交推送标签 cloud-images/<提交前 12 位>（须确认）
+make cloud-deploy VERSION=git-<提交前 12 位>   # 部署或更新整套环境（镜像由 make cloud-images 触发的流水线构建）
 make cloud-info                   # 各组件地址与凭证位置
 make cloud-dev                    # 开发模式：bff / web 换成工作区代码，保存后几秒生效；Ctrl+C 恢复稳定版本
 make cloud-lint / cloud-test / cloud-e2e   # 在集群内对当前工作区运行检查与测试

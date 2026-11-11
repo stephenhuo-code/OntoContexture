@@ -19,7 +19,11 @@ cp .env.cloud.example .env.cloud       # 用 VS Code 打开填写：code .env.cl
 
 ## 2. 构建镜像（GitHub Actions）
 
-在 GitHub → Actions → `cloud-images` → Run workflow，选择分支。
+```bash
+make cloud-images      # 为当前提交推送标签 cloud-images/<提交前 12 位>，触发流水线（工作区须已提交）
+```
+
+特性合并到 main 之后，也可以在 GitHub → Actions → `cloud-images` → Run workflow 选择分支运行。
 预期：运行成功，摘要中列出 5 个镜像，bff / web 的标签为 `git-<sha>`。
 
 ## 3. 首次部署

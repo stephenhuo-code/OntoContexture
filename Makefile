@@ -1,6 +1,6 @@
 # 织境常用命令。标注 TODO 的目标由后续任务实现。
 .PHONY: test lint up down seed e2e e2e-mock-data coverage-check ports components-check patches-check offline-package mock-data dev-metadata dev-metadata-remove \
-	cloud-unit cloud-tools cloud-deploy cloud-info cloud-uninstall cloud-build \
+	cloud-unit cloud-tools cloud-deploy cloud-info cloud-uninstall cloud-build cloud-images \
 	cloud-lint cloud-test cloud-e2e cloud-seed cloud-mock-data cloud-dev cloud-dev-reset \
 	cloud-stop cloud-start cloud-status
 
@@ -110,6 +110,10 @@ cloud-info:
 # 卸载云端环境（删除织境的 namespace、持久卷与 CRD；须输入 yes 确认）
 cloud-uninstall:
 	tools/cloud/uninstall.sh
+
+# 触发 cloud-images 流水线：为当前提交推送专用标签 cloud-images/<提交前 12 位>（工作区须已提交；须确认）
+cloud-images:
+	tools/cloud/images.sh
 
 # 集群内构建：TARGET=bff|web|all（默认 all，构建后部署并成为稳定版本）；TARGET=--dev / --toolbox 只构建开发 / 工具箱镜像
 TARGET ?= all

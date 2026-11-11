@@ -138,8 +138,8 @@
   - 全部成功后统一推送。
 
   （FR-023、R9、宪法 III）
-- [ ] T037a [P] 编写 `tools/cloud/tests/test_images.sh`（先失败）：`make cloud-images` 在工作区有未提交改动或处于游离 HEAD 时以退出码 2 拒绝；未确认时退出码 3 且不推送；确认后推送当前分支与标签 `cloud-images/<提交前 12 位>`；远端已有该标签时提示已触发过、不重复推送；流水线文件含 `cloud-images/*` 标签触发且不含分支推送触发（FR-023，2026-11-11 澄清）
-- [ ] T037b 实现 `tools/cloud/images.sh` 与 `make cloud-images`，并给 `cloud-images.yml` 增加推送 `cloud-images/*` 标签的触发（检出 `inputs.ref`，为空时取标签指向的提交），使 T037a 通过；同步 contract、quickstart、research R9（FR-023）
+- [X] T037a [P] 编写 `tools/cloud/tests/test_images.sh`（先失败）：`make cloud-images` 在工作区有未提交改动或处于游离 HEAD 时以退出码 2 拒绝；未确认时退出码 3 且不推送；确认后推送当前分支与标签 `cloud-images/<提交前 12 位>`；远端已有该标签时提示已触发过、不重复推送；流水线文件含 `cloud-images/*` 标签触发且不含分支推送触发（FR-023，2026-11-11 澄清）
+- [X] T037b 实现 `tools/cloud/images.sh` 与 `make cloud-images`，并给 `cloud-images.yml` 增加推送 `cloud-images/*` 标签的触发（检出 `inputs.ref`，为空时取标签指向的提交），使 T037a 通过；同步 contract、quickstart、research R9（FR-023）
 - [ ] T038 手动触发一次 `cloud-images` 流水线，确认 5 个镜像推送到 DOCR、SBOM 已上传，记录耗时（SC-008）
 - [X] T039 提交宪法 MINOR 修订：在 `.specify/memory/constitution.md` 的“部署约束”中新增“自有云端开发环境（DOKS）”条款，内容包括：只放模拟数据、不承载客户数据；允许手动构建任意分支、允许运行开发模式；演示和验收前要用流水线构建的版本重新部署。同时升级版本号并写明修订原因。**必须在 T052 首次云端部署之前取得负责人批准**（plan Complexity Tracking、R17） ——**2026-11-11 负责人 @stephenhuo-code 批准 v2.3.0**
 

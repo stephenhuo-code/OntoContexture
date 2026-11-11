@@ -94,6 +94,10 @@
   （仓库 Secret `DIGITALOCEAN_REGISTRY_TOKEN`）→ 构建并推送 bff、web（`git-<sha>`）→ 对 OM 三个镜像先查询仓库，已有同版本标签则跳过，否则以 `CTX_REGISTRY=<DOCR>` 调用
   `third_party/openmetadata/build/build.sh` 构建并推送 → 全部成功后输出镜像清单；任一失败则不推送 bff / web 的 `git-<sha>` 标签之外的部分（构建与推送分步，最后统一推送）。
 - 现有 `ci.yml` 不变（宪法 CI 门禁照旧）。
+- **2026-11-11 补充（负责人决定：未完成的特性不合并到 main）**：GitHub 规定 `workflow_dispatch` 只有在流水线文件已位于默认分支时才能触发，
+  特性分支上的新流水线无法手动运行。因此增加推送专用标签 `cloud-images/*` 的触发：GitHub 对标签推送读取该标签所指提交中的流水线文件，
+  无需改动 main。由 `make cloud-images` 打标签并推送（须确认，工作区须已提交），检出 `inputs.ref || github.ref`；`on.push` 只列标签、不列分支，
+  普通分支推送与合并仍不触发（FR-023）。标签保留在仓库中，用于追溯镜像来源。
 
 ## R10 集群内构建 bff / web
 

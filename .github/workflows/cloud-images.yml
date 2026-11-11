@@ -1,16 +1,19 @@
-# 云端镜像流水线（030 FR-023、research R9）：只能手动触发；构建织境 5 个自建镜像并推送到云端镜像仓库（DOCR）。
+# 云端镜像流水线（030 FR-023、research R9）：只能手动触发（GitHub 界面运行，或 make cloud-images 推送专用标签 cloud-images/<提交前 12 位>）；构建织境 5 个自建镜像并推送到云端镜像仓库（DOCR）。
 # - bff / web 以 git-<提交前 12 位> 为标签；OpenMetadata 相关 3 个镜像沿用上游版本标签，仓库中已有同版本时跳过构建。
 # - 全部新构建的镜像先做 SBOM、许可与漏洞扫描（与 ci.yml 相同的工具与门槛），全部通过后才统一推送（宪法 III）。
 # 需要：仓库 Secret DIGITALOCEAN_REGISTRY_TOKEN（读写令牌）；仓库变量 CTX_CLOUD_REGISTRY（如 registry.digitalocean.com/<名称>）。
 name: cloud-images
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:      # GitHub 界面手动运行（要求本文件已在默认分支上）
     inputs:
       ref:
         description: 要构建的分支或提交
         required: true
         default: main
+  push:                   # make cloud-images 推送的专用标签（特性合并到默认分支前使用）；不含分支，普通推送与合并不触发
+    tags:
+      - 'cloud-images/*'
 
 permissions:
   contents: read
@@ -28,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.ref || github.ref }}
       - name: 检出 OpenMetadata 子仓库（发布分支）
         run: git submodule update --init --depth 1 third_party/openmetadata/src
       - uses: astral-sh/setup-uv@v5
