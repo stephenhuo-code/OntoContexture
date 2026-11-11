@@ -122,7 +122,7 @@
 ## R12 集群内检查与测试
 
 - **Decision**：每次 `cloud-lint` / `cloud-test` / `cloud-e2e` / `cloud-seed` / `cloud-mock-data` 在 `contexture-ci` namespace 创建一个一次性**工具箱 Pod**：
-  - 主容器 `contexture/toolbox` 镜像（Python 3.12 + uv、Node 22 + pnpm、Playwright 浏览器依赖、kubectl / helm），由 `cloud-build --toolbox` 在集群内构建，Dockerfile 位于 `deploy/cloud/toolbox/`；
+  - 主容器 `contexture/toolbox` 镜像（Python 3.12 + uv、Node 22 + pnpm、Playwright 浏览器依赖、kubectl / helm），由 `cloud-build --toolbox` 在集群内构建，Dockerfile 位于 `deploy/components/ci-toolbox/`；
   - 边车 `docker:dind`（特权）提供 Testcontainers 所需的 Docker API（`DOCKER_HOST=tcp://localhost:2375`），集成测试代码与本地完全相同（宪法原则 I：真实依赖）；
   - 源码上传：`git ls-files -z -co --exclude-standard` 列出的文件（含未提交改动、不含忽略文件与凭证文件）经 `kubectl exec -i … tar x` 传入；
   - 输出：`kubectl exec` 直接把命令输出流回终端并透传退出码；`trap` 在结束或中断时删除 Pod（FR-016）；
@@ -198,8 +198,16 @@
   合计峰值 requests 约 19 GiB，弹性池 6 × 4 核 8 GB 扣除系统预留后约 33 GiB，余量充足；limits 合计约 30 GiB，允许超售。
   单个 Pod 最大 limits 为 Doris BE 4 GiB，可放入单节点。
 
+## R17a bash 行覆盖率与组件登记（来自 2026-11-11 analyze，负责人选定 kcov）
+
+- **Decision**：bash 脚本的行覆盖率用 kcov 统计（宪法 I 要求新增与修改代码 ≥ 80%）。kcov 输出 cobertura XML，`tools/coverage_gate.py` 新增 `--cobertura` 输入，与 Python、前端覆盖率一起参与门禁。
+  kcov 只安装在工具箱镜像与 CI 中（开发机不装）；它是 GPL-2.0，只作开发测试工具、不进入交付物，在 `tools/license-allowlist.yaml` 的 `exceptions` 中登记（范围：仅 CI 工具箱与 CI 运行器，ADR-0014）。
+- **Decision**：cert-manager、BuildKit、CI 工具箱按 001 的组件目录规范放在 `deploy/components/<组件>/`，带 `component.yaml`（版本、许可、镜像、冒烟测试），纳入 `make components-check` 与许可检查。
+- **Decision**：`cloud-images` 流水线复用 `ci.yml` 中 syft / grype / trivy 的 SBOM、许可与漏洞扫描步骤，扫描不通过就不推送。
+- **Alternatives considered**：bashcov（Ruby，需另装运行时）；把脚本逻辑改写为 Python（开发机没有 Python，需要在工具箱中执行，开发机侧仍要保留 bash 入口）。
+
 ## R17 宪法偏离与治理
 
 - 宪法“部署约束”只写了阿里云 ACK / ACR 测试环境，并要求测试环境由流水线基于已合并提交部署；本特性在 DOKS 上新增开发 / 测试 / 演示环境，镜像可由任意分支手动构建，
-  开发模式运行未提交代码。理由与处置见 plan.md 的 Constitution Check 与 Complexity Tracking：建议同步提交宪法 MINOR 修订（新增“DOKS 云端开发环境”条款），经负责人批准后合并；
+  开发模式运行未提交代码。理由与处置见 plan.md 的 Constitution Check 与 Complexity Tracking：提交宪法 MINOR 修订（新增“DOKS 云端开发环境”条款），**在首次云端部署前**取得负责人批准；
   新增 ADR-0014 记录云端开发环境的工具选型（R2、R10、R11、R12、R13）。
