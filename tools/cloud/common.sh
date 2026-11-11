@@ -5,6 +5,9 @@
 
 CTX_REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 CTX_LOG_DIR="$HOME/.cache/contexture/logs"   # 持久卷，开发机重建后仍在（R18）
+# 优先使用 cloud-tools 按 tools.lock 安装的工具（持久卷 ~/.local/bin），不依赖用户 shell 的 PATH 顺序（T083 实测：曾用到系统 jq 1.6）
+case ":$PATH:" in ":$HOME/.local/bin:"*) ;; *) PATH="$HOME/.local/bin:$PATH" ;; esac
+export PATH
 
 # 退出码（contracts/cloud-commands.md）
 # 可重复加载（脚本之间互相 source）：对只读变量再次 readonly 在非交互 bash 中是致命错误
