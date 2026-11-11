@@ -1,6 +1,6 @@
 # 织境常用命令。标注 TODO 的目标由后续任务实现。
 .PHONY: test lint up down seed e2e e2e-mock-data coverage-check ports components-check patches-check offline-package mock-data dev-metadata dev-metadata-remove \
-	cloud-unit cloud-tools cloud-deploy cloud-info cloud-uninstall cloud-build cloud-images \
+	cloud-unit cloud-tools cloud-deploy cloud-info cloud-uninstall cloud-build cloud-images cloud-dev-metadata cloud-dev-metadata-remove \
 	cloud-lint cloud-test cloud-e2e cloud-seed cloud-mock-data cloud-dev cloud-dev-reset \
 	cloud-stop cloud-start cloud-status
 
@@ -128,6 +128,11 @@ cloud-test:
 	tools/cloud/toolbox.sh test
 cloud-e2e:
 	tools/cloud/toolbox.sh e2e
+# 006 开发态元数据（对应本地 make dev-metadata / dev-metadata-remove；cloud-e2e 的资产搜索场景以此为前提）
+cloud-dev-metadata:
+	tools/cloud/toolbox.sh dev-metadata
+cloud-dev-metadata-remove:
+	tools/cloud/toolbox.sh dev-metadata-remove
 cloud-seed:
 	tools/cloud/toolbox.sh seed
 cloud-mock-data:

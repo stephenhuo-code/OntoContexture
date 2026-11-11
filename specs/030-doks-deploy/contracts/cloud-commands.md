@@ -26,6 +26,7 @@
 | `cloud-test` | 透传 `PYTEST_ARGS` | 在工具箱中运行 `make test`（含集成测试，使用 DinD）与前端单元测试和覆盖率 | 否 | FR-015～FR-017 |
 | `cloud-e2e` | — | 在工具箱中针对云端环境运行 `make e2e` 等价内容 | 否 | FR-018 |
 | `cloud-seed` | — | 在工具箱中运行 `tools.seed` | 否 | FR-029 |
+| `cloud-dev-metadata` / `cloud-dev-metadata-remove` | — | 在工具箱中导入 / 删除 006 的开发态元数据（对应本地 `make dev-metadata`；`cloud-e2e` 的资产搜索场景以此为前提） | 否 | FR-018 |
 | `cloud-mock-data` | `MONTHS`、`SEED` | 部署模拟源系统，并重建模拟数据 | **需要**：先列出将被清空或重建的库 | FR-026 |
 | `cloud-uninstall` | — | 删除织境管理的 namespace（含 PVC）和织境创建的集群级资源（Envoy Gateway / CNPG / Doris / cert-manager 的 CRD、GatewayClass `contexture`、ClusterRole）。不触碰 DOKS 托管的 Gateway API CRD、`dev` 以及系统 namespace | **需要** | FR-030 |
 

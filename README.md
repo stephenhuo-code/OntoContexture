@@ -66,6 +66,7 @@ make cloud-dev                    # 开发模式：bff / web 换成工作区代�
 make cloud-lint / cloud-test / cloud-e2e   # 在集群内对当前工作区运行检查与测试
 make cloud-build TARGET=bff|web|all        # 在集群内构建并部署（成为稳定版本）
 make cloud-seed / cloud-mock-data           # 数据初始化 / 重建模拟数据（后者须确认）
+make cloud-dev-metadata                     # 006 开发态元数据（cloud-e2e 的资产搜索场景需要）
 make cloud-stop / cloud-start / cloud-status   # 停止并释放弹性池 / 恢复 / 查看状态
 make cloud-uninstall              # 卸载（须确认，删除全部数据）
 ```

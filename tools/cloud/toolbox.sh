@@ -40,6 +40,9 @@ ctx_toolbox_main() {
         CTX_WRONG_AUDIENCE_TOKEN=\$(PYTHONPATH=tests uv run python tests/e2e/wrong_audience_token.py) pnpm e2e:browser && \
         pnpm e2e:ui" ;;
     seed) ctx_toolbox_run "$CTX_PREPARE && ${CTX_IN_CLUSTER}uv run python -m tools.seed" ;;
+    # 006 的开发态元数据（对应本地 make dev-metadata）：只增删带开发态标识的服务、术语表、分类与业务域，不需确认
+    dev-metadata | dev-metadata-remove)
+      ctx_toolbox_run "$CTX_PREPARE && ${CTX_IN_CLUSTER}uv run python -m mockfactory om-import --target local --om-url http://openmetadata.$CTX_CLOUD_NAMESPACE:8585$([[ $target == *-remove ]] && echo ' --remove')" ;;
     mock-data)
       ctx_confirm "将清空并重建模拟数据：MES（MySQL 库 mes）、QMS（PostgreSQL 库 qms）、数仓（Doris 库 mock_dw），并重置 005 的只读账号与 viewlab。"
       ctx_mock_secrets
@@ -48,7 +51,7 @@ ctx_toolbox_main() {
       ctx_toolbox_run "$CTX_PREPARE && ${CTX_IN_CLUSTER}\
         uv run python -m mockfactory load --target local --months ${MONTHS:-12} --seed ${SEED:-20261001} && \
         uv run python -m mockfactory verify-cases --target local && uv run python -m mockfactory provision-005" ;;
-    *) ctx_die "$CTX_EXIT_CONFIG" "用法：tools/cloud/toolbox.sh <lint|test|e2e|seed|mock-data>" ;;
+    *) ctx_die "$CTX_EXIT_CONFIG" "用法：tools/cloud/toolbox.sh <lint|test|e2e|seed|mock-data|dev-metadata|dev-metadata-remove>" ;;
   esac
 }
 
