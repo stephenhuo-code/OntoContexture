@@ -1,0 +1,14 @@
+# 030：CI 工具箱（research R12）——集群内运行 lint / 测试 / e2e；docker:dind 边车为 Testcontainers 提供 Docker API。
+# 只在 cloud 环境安装，不进入离线交付包；kcov 为 GPL-2.0，按许可白名单例外登记（ADR-0014）
+name: ci-toolbox
+version: "1"
+delivered: false
+image:
+  source: self-built
+  refs:
+    - docker:29.9.1-dind
+license: GPL-2.0
+customization: config
+upstream: https://github.com/SimonKagstrom/kcov
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

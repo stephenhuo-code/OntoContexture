@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: toolbox-cache
+  annotations: { helm.sh/resource-policy: keep }
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources: { requests: { storage: {{ .Values.cacheSize }} } }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: toolbox
+{{- range .Values.targetNamespaces }}
+---
+# 工具箱只在织境的 namespace 内工作（e2e 的 kubectl 操作、port-forward、seed）
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: contexture-toolbox
+  namespace: {{ . }}
+rules:
+  - apiGroups: ["", apps, batch]
+    resources: [pods, pods/log, pods/exec, pods/portforward, services, secrets, configmaps, deployments, statefulsets, jobs]
+    verbs: [get, list, watch, create, delete, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: contexture-toolbox
+  namespace: {{ . }}
+subjects:
+  - { kind: ServiceAccount, name: toolbox, namespace: {{ $.Release.Namespace }} }
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: Role, name: contexture-toolbox }
+{{- end }}

@@ -118,6 +118,12 @@ releases:
     chart: components/buildkit/chart
     labels: { component: buildkit }
     values: [components/buildkit/chart/values-cloud.yaml.gotmpl]
+
+  - name: ci-toolbox
+    namespace: contexture-ci
+    chart: components/ci-toolbox/chart
+    labels: { component: ci-toolbox }
+    values: [components/ci-toolbox/chart/values-cloud.yaml.gotmpl]
 {{- end }}
 
   - name: postgresql

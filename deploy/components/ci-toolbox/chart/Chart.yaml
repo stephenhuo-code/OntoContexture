@@ -1,0 +1,4 @@
+apiVersion: v2
+name: ci-toolbox
+description: 集群内 CI 工具箱的 namespace 资源（缓存卷、受限账号；工具箱 Pod 由 tools/cloud/lib/toolbox.sh 按次创建，030）
+version: 0.1.0
