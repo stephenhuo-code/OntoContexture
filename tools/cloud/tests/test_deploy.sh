@@ -23,6 +23,7 @@ ctx_kubectl() {
 ctx_dev_reset() { stub_record "dev-reset"; }
 ctx_deploy_om_config() { stub_record "om-config"; }
 ctx_run_smoke_tests() { stub_record "smoke"; return "${SMOKE_STATUS:-0}"; }
+ctx_deploy_resume() { stub_record "resume"; }
 ctx_print_access() { :; }
 
 test_missing_config_exits_before_touching_cluster() {
@@ -88,4 +89,13 @@ test_failed_smoke_tests_fail_the_command_but_keep_order() {
 test_mock_sources_are_excluded_from_deploy() {
   ctx_deploy_main git-0123456789ab >/dev/null
   assert_contains "$(stub_calls)" "group!=mock-sources"
+}
+
+# T052 实测：停止后的环境（或手工缩容的控制器）直接部署时，Envoy 代理等由控制器管理的工作负载不会被 Helm 恢复，入口无后端、证书无法签发。
+# 部署须先恢复所有带停止注解的工作负载（幂等，未停止时无操作）
+test_deploy_resumes_stopped_workloads_before_sync() {
+  ctx_deploy_main git-0123456789ab >/dev/null
+  local calls; calls=$(stub_calls)
+  assert_contains "$calls" "resume"
+  [[ $(grep -n '^resume' <<< "$calls" | cut -d: -f1) -lt $(grep -n '^helmfile' <<< "$calls" | cut -d: -f1) ]] || fail "须在同步前恢复"
 }

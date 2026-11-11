@@ -117,3 +117,19 @@ test_status_reports_state_dev_mode_version_nodes_and_residue() {
   assert_contains "$out" "弹性池节点：2"
   assert_contains "$out" "contexture-toolbox"
 }
+
+# resume：只恢复（解除休眠、按注解恢复副本、恢复定时任务），不等待、不跑冒烟测试；cloud-deploy 部署前调用
+test_resume_restores_annotated_workloads_without_waiting_or_smoke() {
+  printf 'Deployment/envoy-gateway 1 \nDeployment/envoy-contexture-contexture-1 0 1\n' > "$FAKE/envoy-gateway-system"
+  ctx_lc_resume >/dev/null
+  local calls; calls=$(stub_calls)
+  assert_contains "$calls" "scale -n envoy-gateway-system deployment/envoy-contexture-contexture-1 --replicas=1"
+  assert_contains "$calls" "annotate -n envoy-gateway-system deployment/envoy-contexture-contexture-1 contexture.io/stopped-replicas-"
+  assert_not_contains "$calls" "smoke"
+  assert_not_contains "$calls" "wait-ready"
+}
+
+test_resume_is_a_no_op_when_nothing_is_stopped() {
+  ctx_lc_resume >/dev/null
+  assert_not_contains "$(stub_calls)" "scale "
+}
