@@ -293,3 +293,15 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
 - 第 3 次（运行 42979739671，提交 `9240a494f28a`）：**通过**，全程约 30 分钟（OM 服务端 Maven 构建占大头；同版本 OM 镜像以后复用，只构建 bff / web）。
   DOCR 中：`bff` / `web:git-9240a494f28a`、`openmetadata-server` / `openmetadata-ingestion-airflow:2.0.3-ctx.1`、`openmetadata-fuseki:6.2.0-ctx.0`；
   采集镜像的告警按调整后的门禁留档（产物 `cloud-images-sbom`）。
+
+## 实施记录：首次完整部署（T052，2026-11-11）
+
+- 第 1 次：`ci-toolbox` 在 `mock-sources` 中创建授权，而该 namespace 只在 `cloud-mock-data` 时才创建，安装失败。
+  修正：部署前与其他 namespace 一同创建（`secrets.sh`，测试先行）。
+- 第 2 次：Airflow 调度器落在已满载的节点（OpenSearch、Doris FE、ClickHouse 等，内存请求 99%），其余 Airflow Pod 因须与调度器同节点
+  （RWO 的 dags 卷，R6）无法调度；扩容新节点也不满足亲和，集群自动扩缩无效，Helm 等待 30 分钟超时。
+  修正：Airflow 全部 Pod 增加必需的 Pod 反亲和（排除本 namespace 中非 Airflow 的 Pod，DaemonSet 除外）。必需反亲和是对称的，Airflow 独占
+  一个弹性池节点，其他组件也不会调度进来；渲染断言测试先行。
+  已运行的环境迁移时还需一次性处置：调度器的滚动更新中新 Pod 须与旧调度器同节点（亲和）又不能进该节点（反亲和），形成死锁；
+  临时把调度器改为 Recreate 后迁移完成（新部署与后续更新不受影响：新安装时调度器按自身亲和落到空节点，此后更新都在同一节点内）。
+- 节点用量：Airflow 独占 1 个节点后，弹性池共 4 个节点（上限 6）。
