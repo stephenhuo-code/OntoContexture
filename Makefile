@@ -1,7 +1,8 @@
 # 织境常用命令。标注 TODO 的目标由后续任务实现。
 .PHONY: test lint up down seed e2e e2e-mock-data coverage-check ports components-check patches-check offline-package mock-data dev-metadata dev-metadata-remove \
 	cloud-unit cloud-tools cloud-deploy cloud-info cloud-uninstall cloud-build \
-	cloud-lint cloud-test cloud-e2e cloud-seed cloud-mock-data cloud-dev cloud-dev-reset
+	cloud-lint cloud-test cloud-e2e cloud-seed cloud-mock-data cloud-dev cloud-dev-reset \
+	cloud-stop cloud-start cloud-status
 
 # 开发机没有 uv 时（如 DOKS 上的 devbox）提示改用集群内运行（030 FR-001a）
 define require_uv
@@ -133,3 +134,11 @@ cloud-dev:
 # 开发模式异常退出（如开发机重建）后恢复稳定版本
 cloud-dev-reset:
 	tools/cloud/dev.sh reset
+
+# 启停：停止后释放弹性池节点（数据保留），启动后恢复到停止前的状态；状态查看
+cloud-stop:
+	tools/cloud/lifecycle.sh stop
+cloud-start:
+	tools/cloud/lifecycle.sh start
+cloud-status:
+	tools/cloud/lifecycle.sh status

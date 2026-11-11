@@ -27,6 +27,7 @@ ctx_dev_cleanup() {
   CTX_DEV_CLEANED=1
   [[ -n ${CTX_DEV_PID:-} ]] && kill -KILL "$CTX_DEV_PID" 2>/dev/null
   [[ -n ${CTX_DEV_WATCHER:-} ]] && kill "$CTX_DEV_WATCHER" 2>/dev/null
+  rm -f "$CTX_LOG_DIR/dev.pid"
   ctx_log "恢复稳定版本"
   ctx_dev_reset
 }
@@ -70,6 +71,7 @@ ctx_dev_main() {
   CTX_DEV_WATCHER=$!
   ctx_log "开发模式：https://$CTX_CLOUD_DOMAIN（保存文件后几秒内生效；Ctrl+C 结束并恢复稳定版本）"
   ctx_devspace dev "${profile[@]}" & CTX_DEV_PID=$!
+  echo "$CTX_DEV_PID" > "$CTX_LOG_DIR/dev.pid"   # cloud-status 据此判断开发模式是否有本地进程（R18）
   local status=0
   wait "$CTX_DEV_PID" || status=$?
   ctx_dev_cleanup

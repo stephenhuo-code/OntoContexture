@@ -13,19 +13,19 @@ printf 'Deployment/cert-manager 1 \nDeployment/cert-manager-webhook 1 \n' > "$FA
 printf 'Deployment/cnpg-cloudnative-pg 1 \n' > "$FAKE/cnpg-system"
 printf 'Deployment/doris-operator 1 \n' > "$FAKE/doris-system"
 NODES=0 BLOCKERS="" STATE_DEV=false TOOLBOX_RUNNING="" LIFECYCLE=running
-ctx_load_config() { CTX_CLOUD_NAMESPACE=contexture CTX_CLOUD_NODE_LABEL=example.com/pool CTX_CLOUD_NODE_POOL=elastic; }
+ctx_load_config() { CTX_CLOUD_NAMESPACE=contexture CTX_CLOUD_NODE_LABEL=example.com/pool CTX_CLOUD_NODE_POOL=elastic CTX_LOG_DIR=$(mktemp -d); }
 ctx_state_get() { case $1 in devMode.active) echo "$STATE_DEV" ;; lifecycle.state) echo "$LIFECYCLE" ;; stableVersion.source) echo pipeline ;; stableVersion.bffTag) echo git-abc ;; stableVersion.dirty) echo false ;; esac; }
 ctx_state_set() { stub_record "state $*"; }
 ctx_dev_reset() { stub_record "dev-reset"; }
 ctx_run_smoke_tests() { stub_record "smoke"; }
 ctx_lc_wait_ready() { stub_record "wait-ready $*"; }
 ctx_kubectl() {
-  local ns=contexture args=("$@") i
+  local ns=contexture args=("$@") i s="$*"
   for ((i = 0; i < ${#args[@]}; i++)); do [[ ${args[i]} == -n ]] && ns=${args[i + 1]}; done
   case "$*" in
     *"get deploy,statefulset"*) cat "$FAKE/$ns" 2>/dev/null ;;
-    *"annotate "*) stub_record "annotate -n $ns ${*##*annotate }" ;;
-    *"scale "*) stub_record "scale -n $ns ${*##*scale }" ;;
+    *"annotate "*) stub_record "annotate -n $ns ${s##*annotate }" ;;
+    *"scale "*) stub_record "scale -n $ns ${s##*scale }" ;;
     *"get nodes"*) for ((i = 0; i < NODES; i++)); do echo "node/n$i"; done ;;
     *"get pods"*"--field-selector=spec.nodeName"*) printf '%s' "$BLOCKERS" ;;
     *"get pod contexture-toolbox"*) printf '%s' "$TOOLBOX_RUNNING" ;;
