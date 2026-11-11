@@ -89,3 +89,13 @@ test_toolbox_env_carries_cloud_endpoints_and_provisioner_credentials() {
   assert_contains "$calls" "--from-literal=CTX_E2E_BASE_URL=https://ctx.example.com"
   assert_contains "$calls" "--from-literal=CTX_CLOUD_NAMESPACE=contexture"
 }
+
+# 首次部署：ci-toolbox 在 mock-sources 中创建授权（供 cloud-mock-data 使用），该 namespace 须先于 helmfile 同步存在（T052 实测）
+test_creates_all_target_namespaces_including_mock_sources() {
+  ctx_kubectl() { stub_record "kubectl $*"; case "$*" in *"get namespace"*) return 1 ;; *"get secret "*) return 1 ;; *) return 0 ;; esac; }
+  ctx_ensure_secrets >/dev/null
+  local n
+  for n in contexture contexture-ci contexture-build mock-sources; do
+    assert_contains "$(stub_calls)" "kubectl create namespace $n" "$n"
+  done
+}
