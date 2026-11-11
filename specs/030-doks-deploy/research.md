@@ -390,3 +390,9 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
   发现两个待改进项（下次继续）：工具箱 Pod（requests 3Gi）会调度到 Airflow 节点（反亲和只排除 `contexture` namespace）；
   Airflow 采集任务 Pod 未设资源（BestEffort，节点紧张时最先被驱逐）。
 - demo.spec“第 1–2 步”的标题定位在部分轮次因页面有两个含“设备”的标题（004 页头与对象页正文）触发严格模式错误，属既有测试缺陷，未修改。
+
+## 实施记录：停止（T082 部分，2026-11-11）
+
+- `make cloud-stop`：按序停止控制器、织境工作负载，PostgreSQL 休眠，等待弹性池释放，全程 **949 秒**（SC-011 ≤ 20 分钟），4 个弹性节点全部回收（弹性池 0）；
+  `cloud-status` 显示“已停止”，稳定版本记录保留；devbox-0 不受影响。停止期间访问立即失败、不挂起。
+- 尚未验证（下次继续）：`cloud-start` 恢复用时与数据一致性、重复启停幂等、停止中途中断后收敛（`tests/cloud/test_lifecycle.sh`）。
