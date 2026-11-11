@@ -25,6 +25,7 @@ ctx_deploy_om_config() { stub_record "om-config"; }
 ctx_run_smoke_tests() { stub_record "smoke"; return "${SMOKE_STATUS:-0}"; }
 ctx_deploy_resume() { stub_record "resume"; }
 ctx_cert_guard_start() { stub_record "cert-guard"; CTX_CERT_GUARD_PID=; }
+ctx_recover_pending_releases() { stub_record "recover-pending"; }
 ctx_print_access() { :; }
 
 test_missing_config_exits_before_touching_cluster() {
@@ -104,4 +105,11 @@ test_deploy_resumes_stopped_workloads_before_sync() {
 test_certificate_guard_runs_during_sync() {
   ctx_deploy_main git-0123456789ab >/dev/null
   assert_contains "$(stub_calls)" "cert-guard"
+}
+
+test_pending_releases_are_recovered_before_sync() {
+  ctx_deploy_main git-0123456789ab >/dev/null
+  local calls; calls=$(stub_calls)
+  assert_contains "$calls" "recover-pending"
+  [[ $(grep -n '^recover-pending' <<< "$calls" | cut -d: -f1) -lt $(grep -n '^helmfile' <<< "$calls" | cut -d: -f1) ]] || fail "须在同步前恢复"
 }
