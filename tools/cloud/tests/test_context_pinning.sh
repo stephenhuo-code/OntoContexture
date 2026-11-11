@@ -28,3 +28,11 @@ test_helmfile_uses_cloud_environment_and_context() {
 test_common_never_switches_current_context() {
   assert_not_contains "$(cat "$REPO_ROOT/tools/cloud/common.sh")" "use-context"
 }
+
+# T083 实测：开发机 shell 的 PATH 中 ~/.local/bin 排在 /usr/bin 之后，脚本调用的是系统自带的 jq 1.6 而非锁定的 1.8.2。
+# 云端脚本须优先使用 cloud-tools 按锁文件安装的工具，不依赖用户 shell 的配置
+test_locked_tools_directory_comes_first_in_path() {
+  local first
+  first=$(PATH="/usr/bin:/bin:$HOME/.local/bin" bash -c 'source "$1/tools/cloud/common.sh"; echo "${PATH%%:*}"' _ "$REPO_ROOT")
+  assert_eq "$HOME/.local/bin" "$first"
+}
