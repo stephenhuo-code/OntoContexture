@@ -1,2 +1,23 @@
-# 云端参数（030）：在 US1（T043–T047）中补全
-{}
+# 云端（030 research R6）：块存储只支持 RWO，Airflow 全部 Pod（含 KubernetesExecutor 任务 Pod，Chart 1.22.0 的
+# pod-template-file 取全局 affinity / nodeSelector）以 Pod 亲和固定到调度器所在节点，共享 dags 卷；只调度到弹性池
+images:
+  airflow:
+    repository: {{ .Values.registry }}/openmetadata-ingestion-airflow
+  pod_template:
+    repository: {{ .Values.registry }}/openmetadata-ingestion-airflow
+registry:
+  secretName: docr-pull
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+affinity:
+  podAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels: { component: scheduler, release: airflow }
+        topologyKey: kubernetes.io/hostname
+dags:
+  persistence:
+    storageClassName: {{ .Values.storageClass }}
+triggerer:
+  persistence:
+    storageClassName: {{ .Values.storageClass }}

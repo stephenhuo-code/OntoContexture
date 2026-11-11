@@ -236,3 +236,12 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
   从公网经 DO 负载均衡器访问时，DO LB 在无健康后端时直接响应错误，该路径无法从开发机实测，列入 acceptance 由负责人在浏览器中验证。
 - **重要发现**：Envoy Gateway 控制器重启后**不会**把 Envoy 代理 Deployment 的副本数从 0 拉回，必须由启动命令按停止前记录的副本数恢复（R13 的设计已覆盖，T080 实现时注意顺序：先恢复控制器，再恢复代理副本）。
 - FR-037 据此改为“立即拒绝连接或返回错误响应，不长时间无响应”。
+
+## 实施记录：R6 Airflow 共享卷与 Pod 亲和（T022，2026-11-11）
+
+- **源码核实**（Airflow Chart 1.22.0，`files/pod-template-file.kubernetes-helm-yaml` 第 20–21 行）：KubernetesExecutor 任务 Pod 的
+  `nodeSelector` / `affinity` 依次取 `workers.kubernetes.*`、`workers.*`、全局值；scheduler、api-server、dag-processor、triggerer、
+  migrate / create-user 任务的模板均为 `or .Values.<组件>.affinity .Values.affinity`。因此只需设置**全局** `affinity` 与 `nodeSelector`，无需改 `podTemplate`。
+- **方案**：全局 `podAffinity`（required，`topologyKey: kubernetes.io/hostname`）指向 `component=scheduler, release=airflow`。
+  调度器自身匹配该选择器，按 Kubernetes 规则作为第一个 Pod 可直接调度；其余 Pod 随后落到同一节点，共享 RWO 的 dags 卷。
+- 集群上的端到端验证（任务 Pod 与调度器同节点、能挂载 dags 卷）在 T052 首次完整部署后，以一次元数据采集运行确认，结论补记于此。
