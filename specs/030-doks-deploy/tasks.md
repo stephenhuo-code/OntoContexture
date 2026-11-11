@@ -153,7 +153,7 @@
 
 ### Tests for User Story 1 ⚠️
 
-- [ ] T040 [P] [US1] 扩充 `tools/cloud/tests/render-compare.sh` 的云端断言（红）：
+- [X] T040 [P] [US1] 扩充 `tools/cloud/tests/render-compare.sh` 的云端断言（红）：
   - 每个 release 都带 `nodeSelector: {<nodeLabel>: <nodePool>}`；
   - 每个 PVC 都使用 `storageClass`；
   - 自建镜像都来自 `registry`，并带 `imagePullSecrets: docr-pull`；
@@ -161,7 +161,7 @@
   - bff 的 `publicUrl` 为 `https://<domain>`。
 
   （FR-006～FR-009、FR-021、FR-024、FR-027、R7、R19）
-- [ ] T041 [P] [US1] 编写失败测试 `tools/cloud/tests/test_deploy.sh`：
+- [X] T041 [P] [US1] 编写失败测试 `tools/cloud/tests/test_deploy.sh`：
   - 缺少配置时，在执行任何修改集群的命令之前就退出（FR-004）；
   - 处于开发模式时要求确认（FR-013）；
   - 首次部署没有给 `VERSION` 时以退出码 2 退出；
@@ -172,8 +172,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T043 [P] [US1] 新建 `deploy/components/postgresql/values/cloud.yaml`：`databases` 增加 `keycloak`，设置 `storageClass` 和 `nodeSelector`。在 `deploy/components/postgresql/config` 中加可选的 storageClass 和 nodeSelector 参数，默认为空（FR-007、FR-025）
-- [ ] T044 [P] [US1] 新建 `deploy/components/keycloak/values/cloud.yaml.gotmpl`：
+- [X] T043 [P] [US1] 新建 `deploy/components/postgresql/values/cloud.yaml`：`databases` 增加 `keycloak`，设置 `storageClass` 和 `nodeSelector`。在 `deploy/components/postgresql/config` 中加可选的 storageClass 和 nodeSelector 参数，默认为空（FR-007、FR-025）
+- [X] T044 [P] [US1] 新建 `deploy/components/keycloak/values/cloud.yaml.gotmpl`：
   - 自带模式，设置 `hostname`；
   - `import.url` 指向集群内服务；
   - 使用 `keycloak-admin`；
@@ -183,7 +183,7 @@
   - `nodeSelector`。
 
   如果 Chart 没有 nodeSelector 参数，就新增一个，默认为空（FR-007～FR-010、R5）
-- [ ] T045 [P] [US1] 新建 `deploy/components/openmetadata/values/cloud.yaml.gotmpl`：
+- [X] T045 [P] [US1] 新建 `deploy/components/openmetadata/values/cloud.yaml.gotmpl`：
   - OIDC 地址改为 `https://sso.<domain>/realms/digital-workforce`；
   - 清空 truststore 相关的 `extraInitContainers`、`extraVolumes`、`extraVolumeMounts`；
   - `OPENMETADATA_OPTS` 中去掉 truststore 参数；
@@ -191,17 +191,17 @@
   - `nodeSelector`。
 
   （FR-008、FR-021、R5）
-- [ ] T046 [P] [US1] 完善 `deploy/components/airflow/values/cloud.yaml.gotmpl`：亲和方案沿用 T022 的结论；织境 Airflow 镜像改为 DOCR；设置 `storageClass` 和 `nodeSelector`（FR-025、R6）
-- [ ] T047 [P] [US1] 为以下组件新建 `values/cloud.yaml(.gotmpl)`：opensearch、opensearch-dashboards、fuseki、doris、langfuse、mcp-toolbox、ai-gateway、jaeger、prometheus、otel-collector（均在 `deploy/components/` 下）。内容：
+- [X] T046 [P] [US1] 完善 `deploy/components/airflow/values/cloud.yaml.gotmpl`：亲和方案沿用 T022 的结论；织境 Airflow 镜像改为 DOCR；设置 `storageClass` 和 `nodeSelector`（FR-025、R6）
+- [X] T047 [P] [US1] 为以下组件新建 `values/cloud.yaml(.gotmpl)`：opensearch、opensearch-dashboards、fuseki、doris、langfuse、mcp-toolbox、ai-gateway、jaeger、prometheus、otel-collector（均在 `deploy/components/` 下）。内容：
   - 资源以 `local` 为基线（R16）；
   - `storageClass`、`nodeSelector`；
   - AI 网关：`keycloakIssuer` 改为云端地址，`trustedCaSecret: ""`。
 
   另外给 Doris operator 和 CNPG operator 的 values 加 `nodeSelector`（FR-021、FR-025、FR-027）
-- [ ] T048 [P] [US1] 为 `deploy/charts/bff` 和 `deploy/charts/web` 新增可选参数 `nodeSelector`、`imagePullSecrets`、`route.hostnames`，默认值与现状一致；并新建 `deploy/charts/{bff,web}/values-cloud.yaml.gotmpl`，设置 `publicUrl`、`keycloakUrl`、`trustedCaSecret: ""`，镜像来自 `registry` 的 `bffTag` / `webTag`（FR-008、FR-021、FR-024）
-- [ ] T049 [US1] 修改 `deploy/components/smoke-lib.sh`：设置了 `CTX_NODE_SELECTOR` 时，临时 Pod 附加 `--overrides`（FR-027、R7）
-- [ ] T050 [US1] 在 `deploy/helmfile.yaml.gotmpl` 中为全部平台 release 启用 `cloud` 环境；cert-manager、buildkit、ci-toolbox 只在 `cloud` 环境安装。使 T040 通过，T014 本地部分仍然通过（FR-006）
-- [ ] T051 [US1] 实现 `tools/cloud/deploy.sh`，并在 `Makefile` 新增 `cloud-deploy` 目标，流程依次为：
+- [X] T048 [P] [US1] 为 `deploy/charts/bff` 和 `deploy/charts/web` 新增可选参数 `nodeSelector`、`imagePullSecrets`、`route.hostnames`，默认值与现状一致；并新建 `deploy/charts/{bff,web}/values-cloud.yaml.gotmpl`，设置 `publicUrl`、`keycloakUrl`、`trustedCaSecret: ""`，镜像来自 `registry` 的 `bffTag` / `webTag`（FR-008、FR-021、FR-024）
+- [X] T049 [US1] 修改 `deploy/components/smoke-lib.sh`：设置了 `CTX_NODE_SELECTOR` 时，临时 Pod 附加 `--overrides`（FR-027、R7）
+- [X] T050 [US1] 在 `deploy/helmfile.yaml.gotmpl` 中为全部平台 release 启用 `cloud` 环境；cert-manager、buildkit、ci-toolbox 只在 `cloud` 环境安装。使 T040 通过，T014 本地部分仍然通过（FR-006）
+- [X] T051 [US1] 实现 `tools/cloud/deploy.sh`，并在 `Makefile` 新增 `cloud-deploy` 目标，流程依次为：
   1. 校验配置；
   2. 如处于开发模式，要求确认；
   3. CRD 部署前检查；
@@ -225,16 +225,16 @@
 
 **Independent Test**：浏览器打开 `https://<domain>`，用 `user1` 登录；访问 HTTP 时跳转到 HTTPS；各子域名都能打开。
 
-- [ ] T053 [P] [US4] 编写云端验证测试 `tests/cloud/test_access.sh`：
+- [X] T053 [P] [US4] 编写云端验证测试 `tests/cloud/test_access.sh`：
   - 对 `<domain>` 和全部子域名执行 `curl` 校验证书链，不加 `-k`；
   - `http://` 返回 301 或 308，跳转到 `https://`；
   - 未登录访问时跳转到 `sso.<domain>`；
   - 模拟源系统的数据库端口不对外开放。
 
   （US4 场景 1、3、4；FR-019、FR-020）
-- [ ] T054 [P] [US4] 编写 `tests/cloud/test_cloud_env.py`（`-m cluster`，在工具箱中运行）：Certificate 为 Ready 且包含全部主机名；续期设置为提前 30 天（US4 场景 5）
-- [ ] T055 [US4] 为 OpenMetadata、Langfuse、Airflow、Jaeger、Prometheus、OpenSearch Dashboards、AI 网关管理界面和 Keycloak 在各自的 `values/cloud.yaml(.gotmpl)` 中新增按子域名的 `HTTPRoute`，主机名按 R3。AI 网关管理界面目前只监听 Pod 内地址，需要在 `deploy/components/ai-gateway/chart` 中增加一个可选的 Service，默认关闭（FR-020）
-- [ ] T056 [US4] 实现 `tools/cloud/info.sh`，并在 `Makefile` 新增 `cloud-info` 目标：按 `tools/ports.sh` 中的组件列表，输出各组件的云端地址、登录方式，以及凭证所在的 Secret 名和键；不输出凭证值（FR-029；US7 场景 1）
+- [X] T054 [P] [US4] 编写 `tests/cloud/test_cloud_env.py`（`-m cluster`，在工具箱中运行）：Certificate 为 Ready 且包含全部主机名；续期设置为提前 30 天（US4 场景 5）
+- [X] T055 [US4] 为 OpenMetadata、Langfuse、Airflow、Jaeger、Prometheus、OpenSearch Dashboards、AI 网关管理界面和 Keycloak 在各自的 `values/cloud.yaml(.gotmpl)` 中新增按子域名的 `HTTPRoute`，主机名按 R3。AI 网关管理界面目前只监听 Pod 内地址，需要在 `deploy/components/ai-gateway/chart` 中增加一个可选的 Service，默认关闭（FR-020）
+- [X] T056 [US4] 实现 `tools/cloud/info.sh`，并在 `Makefile` 新增 `cloud-info` 目标：按 `tools/ports.sh` 中的组件列表，输出各组件的云端地址、登录方式，以及凭证所在的 Secret 名和键；不输出凭证值（FR-029；US7 场景 1）
 - [ ] T057 [US4] 运行 T053、T054，使其通过；在浏览器中以 `user1` 登录，并记录登录耗时（SC-005）
 
 ---
