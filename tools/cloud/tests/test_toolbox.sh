@@ -73,3 +73,8 @@ test_kcov_report_is_fetched_when_requested() {
   CTX_KCOV=1 CTX_KCOV_OUT=$d/cobertura.xml ctx_toolbox_run "make cloud-unit" >/dev/null
   assert_eq "<coverage/>" "$(cat "$d/cobertura.xml")"
 }
+
+test_git_metadata_is_uploaded_for_coverage_diff() {
+  ctx_toolbox_run "true" >/dev/null
+  assert_contains "$(tar tzf "$UPLOAD")" ".git/HEAD"
+}
