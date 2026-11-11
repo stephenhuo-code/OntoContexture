@@ -32,7 +32,7 @@ if [[ -n ${CTX_KCOV:-} ]]; then
   out="$ROOT/coverage/bash"; rm -rf "$out"; mkdir -p "$out"
   for file in "${files[@]}"; do
     kcov --include-path="$ROOT/tools/cloud" --exclude-path="$ROOT/tools/cloud/tests" \
-      "$out/$(basename "$file" .sh)" bash "$HERE/run.sh" --single "$file" || status=1
+      "$out/$(basename "$file" .sh)" "$HERE/run.sh" --single "$file" || status=1   # 直接执行脚本：kcov 据 shebang 启用 bash 覆盖率
   done
   kcov --merge "$out/merged" "$out"/test_* >/dev/null
   # 源路径改为仓库相对路径：CI 中不同任务的检出目录不同也能对上
