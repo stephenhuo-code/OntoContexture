@@ -55,7 +55,7 @@ cloud_assertions() {
   local expect
   for expect in "https://sso.$CTX_CLOUD_DOMAIN" "https://$CTX_CLOUD_DOMAIN" "$CTX_CLOUD_REGISTRY/bff:" \
     "$CTX_CLOUD_REGISTRY/web:" "docr-pull" "test-users.yaml" "realms/digital-workforce" \
-    "00-realm.yaml"; do  # 自带 Keycloak 时启用 realm（T052 实测：新建的 realm 默认未启用，令牌端点返回 Realm not enabled）
+    "00-realm.yaml" "volumeSizeLimitMB=200"; do  # 自带 Keycloak 启用 realm（T052）；SeaweedFS 卷上限适配 5Gi 卷（T068）
     grep -qF -- "$expect" "$file" || report "cloud 渲染中缺少 $expect"
   done
   # Airflow 共用 RWO 卷须同节点：以必需反亲和独占一个节点，避免与其他组件争内存（T052 实测：调度器落在满载节点，其余 Pod 无法调度）
