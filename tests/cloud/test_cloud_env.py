@@ -9,8 +9,16 @@ import pytest
 
 pytestmark = pytest.mark.cluster
 NS = os.environ.get("CTX_CLOUD_NAMESPACE", "contexture")
-SUBDOMAINS = ("sso", "om", "langfuse", "airflow", "jaeger", "prometheus", "dashboards")
-SUBDOMAINS += ("gateway-admin",)
+SUBDOMAINS = (
+    "sso",
+    "om",
+    "langfuse",
+    "airflow",
+    "jaeger",
+    "prometheus",
+    "dashboards",
+    "gateway-admin",
+)
 cloud_only = pytest.mark.skipif("CTX_E2E_BASE_URL" not in os.environ, reason="仅在云端工具箱中运行")
 
 
