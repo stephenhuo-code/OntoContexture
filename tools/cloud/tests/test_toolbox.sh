@@ -78,3 +78,10 @@ test_git_metadata_is_uploaded_for_coverage_diff() {
   ctx_toolbox_run "true" >/dev/null
   assert_contains "$(tar tzf "$UPLOAD")" ".git/HEAD"
 }
+
+# T068 实测：Testcontainers 把工作区内的路径绑定挂载进容器（如 keycloak-config-cli 的 /config），而 Docker 守护进程在 dind 边车中，
+# 看不到工具箱容器的文件系统，挂载结果为空目录。工作区须以相同路径挂入 dind
+test_dind_sidecar_sees_workspace_at_same_path() {
+  local m; m=$(ctx_toolbox_manifest)
+  assert_eq "/workspace" "$(jq -r '.spec.containers[] | select(.name == "dind") | .volumeMounts[] | select(.name == "workspace") | .mountPath' <<< "$m")"
+}
