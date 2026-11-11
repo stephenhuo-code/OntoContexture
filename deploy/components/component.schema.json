@@ -50,6 +50,10 @@
       "type": "string",
       "minLength": 1,
       "description": "冒烟测试路径，相对组件目录"
+    },
+    "delivered": {
+      "type": "boolean",
+      "description": "是否进入客户交付物（离线安装包），默认 true；只用于云端开发环境的组件（030）设为 false"
     }
   }
 }
