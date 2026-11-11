@@ -34,6 +34,8 @@ make cloud-deploy VERSION=git-<sha>
 
 预期：输出 LB 公网 IP 与两条 DNS 记录（`<域名>`、`*.<域名>` → IP），各组件冒烟测试显示 ✔，最后输出访问地址。首次部署时证书要等 DNS 生效后才能签发，
 命令会等待并提示；等待超时时，配置好 DNS 后再执行一次即可。
+证书默认用 Let's Encrypt 正式签发器。`CTX_CLOUD_ACME_SERVER=staging` 只用于排查签发问题：staging 证书不受集群内组件信任，
+AI 网关等会因无法校验 `https://sso.<域名>` 而启动失败。
 
 ## 4. 访问（US4）
 

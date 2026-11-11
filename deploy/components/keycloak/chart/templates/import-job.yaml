@@ -5,6 +5,13 @@ kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-import
 data:
+  {{- if .Values.keycloak.enabled }}
+  # 自带 Keycloak 时 realm 由织境创建，须显式启用（新建 realm 默认未启用，令牌端点返回 Realm not enabled；030 T052 实测）。
+  # 使用既有 Keycloak 时不改 realm 级设置（见 contexture.yaml 说明）
+  00-realm.yaml: |
+    realm: {{ .Values.import.realm }}
+    enabled: true
+  {{- end }}
   contexture.yaml: {{ required "import.files.contexture 未注入" .Values.import.files.contexture | quote }}
   {{- if .Values.import.withTestUsers }}
   test-users.yaml: {{ required "import.files.testUsers 未注入" .Values.import.files.testUsers | quote }}
@@ -34,7 +41,10 @@ data:
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Release.Name }}-import-{{ .Values.import.files | toJson | sha256sum | trunc 8 }}
+  {{- /* 自带 Keycloak 时导入内容多了 00-realm.yaml，计入名称使已部署环境重新导入；使用既有 Keycloak 时名称不变 */}}
+  {{- $hash := .Values.import.files }}
+  {{- if .Values.keycloak.enabled }}{{ $hash = list .Values.import.files "realm-enabled" }}{{ end }}
+  name: {{ .Release.Name }}-import-{{ $hash | toJson | sha256sum | trunc 8 }}
   labels: { app.kubernetes.io/name: keycloak-import, app.kubernetes.io/part-of: contexture }
 spec:
   backoffLimit: 6

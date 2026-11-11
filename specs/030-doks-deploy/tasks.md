@@ -79,7 +79,7 @@
   - `tests/smoke.sh`：Certificate 为 Ready。
 
   在 helmfile 中只为 `cloud` 环境安装；`make components-check` 通过（FR-019、R4、R17a）
-- [ ] T021 实测 R4、R5：用 staging 签发器完成 HTTP-01 签发；在集群内临时 Pod 中 `curl https://<domain>`，验证经 LB IP 的集群内访问可达。结论写入 research.md R4、R5（FR-019、FR-021）
+- [X] T021 实测 R4、R5：用 staging 签发器完成 HTTP-01 签发；在集群内临时 Pod 中 `curl https://<domain>`，验证经 LB IP 的集群内访问可达。结论写入 research.md R4、R5（FR-019、FR-021）
 - [X] T022 实测 R6：以 `cloud` 环境安装 Airflow（Pod 亲和加 `nodeSelector`），触发一次 KubernetesExecutor 任务，确认任务 Pod 与调度器在同一节点，且 DAG 卷可以挂载。结论写入 research.md R6；如果全局 `affinity` 对任务 Pod 不生效，就在 `deploy/components/airflow/values/cloud.yaml.gotmpl` 的 `podTemplate` 里补上（FR-025、R6）
 - [ ] T023 实测 R13 的补跑问题：准备一个每 10 分钟调度一次、`catchup=False` 的测试 DAG，把调度器缩为 0，跨过两个调度点后再恢复，记录 Airflow 是否为最近一个区间创建了运行。结论写入 research.md R13，并**请负责人确认**：接受补跑（同步修订 spec 的边界情况），还是启动时跳过（见 T086）
 - [X] T024 实测 R11：在临时 namespace 中，用 DevSpace v6.3 的 replace-pods 替换一个由 helm 部署的 Deployment。测量文件同步延迟（目标 ≤ 10 秒）；验证 `devspace reset pods` 能恢复原 Deployment；验证替换期间执行 `helm upgrade` 会有什么影响；验证同步连接中断再恢复后，改动会被补齐。结论写入 research.md R11（FR-011、FR-012）
@@ -215,7 +215,7 @@
   9. 输出访问地址、LB IP 和需要配置的 DNS 记录。
 
   使 T041 通过（FR-002～FR-006、FR-014、FR-021、FR-024、FR-028）
-- [ ] T052 [US1] 在集群上执行 `make cloud-deploy`：先用 staging 签发器，验证通过后切换到 production。使 T042 通过，并记录首次部署和重复部署的耗时（SC-001）
+- [ ] T052 [US1] 在集群上执行 `make cloud-deploy`：先用 staging 签发器，验证通过后切换到 production（实测修订：staging 只验证签发流程，完整部署直接用 production，见 research R4 实施记录）。使 T042 通过，并记录首次部署和重复部署的耗时（SC-001）
 
 **Checkpoint**：云端环境可以部署、可以重复部署，冒烟测试全部通过（MVP）。
 
