@@ -1,2 +1,8 @@
-# 云端参数（030）：在 US1（T043–T047）中补全
-{}
+# 云端（030）：同本地单实例；增加自带 Keycloak 的数据库；块存储与弹性池
+instances: 1
+storage: 5Gi
+memory: 512Mi
+databases: [openmetadata, langfuse, airflow, bff, keycloak]
+storageClass: {{ .Values.storageClass }}
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}

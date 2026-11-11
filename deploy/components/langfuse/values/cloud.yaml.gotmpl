@@ -1,2 +1,17 @@
-# 云端参数（030）：在 US1（T043–T047）中补全
-{}
+# 云端（030）：Langfuse 与其 Valkey、SeaweedFS 只调度到弹性池；SeaweedFS 的建桶钩子 Job 上游未提供 nodeSelector（短时任务，已知例外）
+langfuse:
+  nextauth:
+    url: https://langfuse.{{ .Values.domain }}
+  nodeSelector:
+    {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+redis:
+  nodeSelector:
+    {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+  dataStorage:
+    className: {{ .Values.storageClass }}
+s3:
+  allInOne:
+    nodeSelector: |
+      {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+    data:
+      storageClass: {{ .Values.storageClass }}

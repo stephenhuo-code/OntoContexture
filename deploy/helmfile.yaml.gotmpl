@@ -77,14 +77,22 @@ releases:
     chart: {{ if $offline }}{{ $offline }}/cloudnative-pg{{ else }}cnpg/cloudnative-pg{{ end }}
     version: 0.29.1
     labels: { component: postgresql, phase: operators }
-    values: [components/postgresql/values/base.yaml]
+    values:
+      - components/postgresql/values/base.yaml
+{{- if $cloud }}
+      - components/postgresql/values/operator-cloud.yaml.gotmpl
+{{- end }}
 
   - name: doris-operator
     namespace: doris-system
     chart: {{ if $offline }}{{ $offline }}/doris-operator{{ else }}doris/doris-operator{{ end }}
     version: 25.8.0
     labels: { component: doris, phase: operators }
-    values: [components/doris/values/operator.yaml]
+    values:
+      - components/doris/values/operator.yaml
+{{- if $cloud }}
+      - components/doris/values/operator-cloud.yaml.gotmpl
+{{- end }}
 
   # ---------- 平台组件 ----------
   - name: gateway
@@ -192,6 +200,9 @@ releases:
     labels: { component: doris }
     needs: [contexture/doris]
     wait: false
+{{- if $cloud }}
+    values: [components/doris/config/values-cloud.yaml.gotmpl]
+{{- end }}
 
   - name: mcp-toolbox
     namespace: contexture
@@ -209,6 +220,9 @@ releases:
     namespace: contexture
     chart: components/langfuse/clickhouse
     labels: { component: langfuse }
+{{- if $cloud }}
+    values: [components/langfuse/clickhouse/values-cloud.yaml.gotmpl]
+{{- end }}
 
   - name: langfuse
     namespace: contexture
@@ -287,7 +301,11 @@ releases:
     version: 0.176.0
     labels: { component: otel-collector }
     needs: [contexture/opensearch]
-    values: [components/otel-collector/values/agent.yaml]
+    values:
+      - components/otel-collector/values/agent.yaml
+{{- if $cloud }}
+      - components/otel-collector/values/agent-cloud.yaml.gotmpl
+{{- end }}
 
   - name: opensearch-dashboards
     namespace: contexture
@@ -309,12 +327,18 @@ releases:
       - config:
           otelEndpoint: http://otel-collector:4318
           aiGatewayMcpUrl: http://ai-gateway:8080/mcp
+{{- if $cloud }}
+      - charts/bff/values-cloud.yaml.gotmpl
+{{- end }}
 
   - name: web
     namespace: contexture
     chart: charts/web
     labels: { component: web }
     needs: [contexture/gateway]
+{{- if $cloud }}
+    values: [charts/web/values-cloud.yaml.gotmpl]
+{{- end }}
 
   # ---------- 模拟源系统（003）：开发测试设施，不进入交付物；离线模式不安装 ----------
   # 不随 make up 部署（tools/up.sh 以 -l 'group!=mock-sources' 排除）；由 make mock-data 以 -l group=mock-sources 按需同步，

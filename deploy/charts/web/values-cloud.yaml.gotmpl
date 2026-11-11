@@ -1,0 +1,10 @@
+image:
+  repository: {{ .Values.registry }}/web
+  tag: {{ .Values.webTag | quote }}
+imagePullSecrets:
+  - name: docr-pull
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+route:
+  sectionName: https
+  hostnames: [{{ .Values.domain | quote }}]

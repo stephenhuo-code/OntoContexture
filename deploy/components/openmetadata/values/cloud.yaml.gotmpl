@@ -1,2 +1,24 @@
-# 云端参数（030）：在 US1（T043–T047）中补全
-{}
+# 云端（030 R5）：OIDC 指向集群内 Keycloak 的公网地址；公共 CA，去掉本地 truststore 初始化；镜像来自 DOCR
+image:
+  repository: {{ .Values.registry }}/openmetadata-server
+imagePullSecrets:
+  - name: docr-pull
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+openmetadata:
+  config:
+    authentication:
+      authority: https://sso.{{ .Values.domain }}/realms/digital-workforce
+      publicKeys:
+        - http://openmetadata:8585/api/v1/system/config/jwks
+        - https://sso.{{ .Values.domain }}/realms/digital-workforce/protocol/openid-connect/certs
+      callbackUrl: https://om.{{ .Values.domain }}/callback
+      oidcConfiguration:
+        discoveryUri: https://sso.{{ .Values.domain }}/realms/digital-workforce/.well-known/openid-configuration
+        callbackUrl: https://om.{{ .Values.domain }}/callback
+        serverUrl: https://om.{{ .Values.domain }}
+extraInitContainers: []
+extraVolumes: []
+extraVolumeMounts: []
+extraEnvs:
+  - { name: OPENMETADATA_HEAP_OPTS, value: "-Xmx1G -Xms1G" }

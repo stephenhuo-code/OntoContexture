@@ -1,2 +1,13 @@
-# 云端参数（030）：在 US1（T043–T047）中补全
-{}
+# 云端（030）：FE / BE 只调度到弹性池，卷使用配置的存储类
+feSpec:
+  nodeSelector:
+    {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+  persistentVolumeClaim:
+    metaPersistentVolume: { storage: 5Gi, storageClassName: {{ .Values.storageClass }} }
+    logsPersistentVolume: { storage: 2Gi, storageClassName: {{ .Values.storageClass }} }
+beSpec:
+  nodeSelector:
+    {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+  persistentVolumeClaim:
+    dataPersistentVolume: { storage: 10Gi, storageClassName: {{ .Values.storageClass }} }
+    logsPersistentVolume: { storage: 2Gi, storageClassName: {{ .Values.storageClass }} }

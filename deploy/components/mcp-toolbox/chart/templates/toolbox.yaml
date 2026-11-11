@@ -20,6 +20,12 @@ spec:
       annotations:
         checksum/tools: {{ .Values.tools | sha256sum }}
     spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
       automountServiceAccountToken: false
       # Toolbox 启动时连接数据源，失败即退出：先等 Doris FE 的查询端口可用（如集群重启后）
       initContainers:

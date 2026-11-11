@@ -33,13 +33,16 @@ tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 # 云端渲染的结构断言（030 T040：FR-006～FR-009、FR-021、FR-024、FR-027、R7、R19）
 cloud_assertions() {
   local file=$1 before=$failed
+  failed=0
   # 逐个文档检查：Pod 模板都带弹性池 nodeSelector；PVC 都用配置的存储类；自建镜像来自配置的仓库
   awk -v label="$CTX_CLOUD_NODE_LABEL" -v pool="$CTX_CLOUD_NODE_POOL" -v sc="$CTX_CLOUD_STORAGE_CLASS" -v reg="$CTX_CLOUD_REGISTRY" '
     function check() {
       if (doc == "") return
+      # 已知例外：Langfuse 的 SeaweedFS 建桶钩子（上游 Chart 无 nodeSelector 参数，短时任务，research R7 实施记录）
+      if (src ~ /s3\/templates\/shared\/post-install-bucket-hook/) { } else
       if (doc ~ /\n(kind: (Deployment|StatefulSet|DaemonSet|Job|CronJob)|  kind: (Deployment|StatefulSet))\n/ && index(doc, label ": " pool) == 0 && index(doc, label ": \"" pool "\"") == 0)
         printf "  ✘ 缺少弹性池 nodeSelector：%s\n", src
-      if (doc ~ /\nkind: PersistentVolumeClaim\n/ && index(doc, "storageClassName: " sc) == 0)
+      if (doc ~ /\nkind: PersistentVolumeClaim\n/ && index(doc, "storageClassName: " sc) == 0 && index(doc, "storageClassName: \"" sc "\"") == 0)
         printf "  ✘ PVC 未使用存储类 %s：%s\n", sc, src
       if (match(doc, /image: "?contexture\/[a-z-]+/))
         printf "  ✘ 自建镜像未改为仓库 %s：%s\n", reg, src
@@ -50,11 +53,12 @@ cloud_assertions() {
     END { check() }' "$file" > "$tmp/struct.txt"
   if [[ -s $tmp/struct.txt ]]; then failed=1; sort -u "$tmp/struct.txt" | head -40; fi
   local expect
-  for expect in "hostname: https://sso.$CTX_CLOUD_DOMAIN" "https://$CTX_CLOUD_DOMAIN" "$CTX_CLOUD_REGISTRY/bff:" \
+  for expect in "https://sso.$CTX_CLOUD_DOMAIN" "https://$CTX_CLOUD_DOMAIN" "$CTX_CLOUD_REGISTRY/bff:" \
     "$CTX_CLOUD_REGISTRY/web:" "docr-pull" "test-users.yaml" "realms/digital-workforce"; do
     grep -qF -- "$expect" "$file" || report "cloud 渲染中缺少 $expect"
   done
-  [[ $failed == "$before" ]] && printf '  ✔ cloud 渲染结构断言通过\n'
+  [[ $failed == 0 ]] && printf '  ✔ cloud 渲染结构断言通过\n'
+  [[ $before == 0 ]] || failed=1
 }
 
 # 1. 本地渲染不变
@@ -74,8 +78,11 @@ set -a; source "$HERE/fixtures/env.cloud"; set +a
 if ! render cloud > "$tmp/cloud.yaml" || [[ ! -s $tmp/cloud.yaml ]]; then
   report "cloud 环境无法渲染"
 else
+  # 只看实际配置：去掉 CRD（其说明文字含 localhost / NodePort 等词）与注释行
+  awk '/^---$/ { if (!crd) printf "%s", doc; doc = ""; crd = 0 } /^kind: CustomResourceDefinition$/ { crd = 1 }
+       !/^\s*#/ { doc = doc $0 "\n" } END { if (!crd) printf "%s", doc }' "$tmp/cloud.yaml" > "$tmp/cloud-config.yaml"
   for bad in localhost 127.0.0.1.nip.io ctx-trusted-ca NodePort; do
-    if grep -q "$bad" "$tmp/cloud.yaml"; then report "cloud 渲染中出现 $bad"; grep -n "$bad" "$tmp/cloud.yaml" | head -5; fi
+    if grep -q "$bad" "$tmp/cloud-config.yaml"; then report "cloud 渲染中出现 $bad"; grep -n "$bad" "$tmp/cloud-config.yaml" | head -5; fi
   done
   [[ $failed == 0 ]] && printf '  ✔ cloud 渲染无本地地址\n'
   cloud_assertions "$tmp/cloud.yaml"

@@ -28,6 +28,12 @@ spec:
       labels: { app.kubernetes.io/name: prometheus, app.kubernetes.io/part-of: contexture }
       annotations: { checksum/config: {{ .Values.targets | toJson | sha256sum }} }
     spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
       automountServiceAccountToken: false
       securityContext: { fsGroup: 65534, runAsUser: 65534, runAsNonRoot: true }
       containers:
@@ -53,6 +59,9 @@ spec:
   volumeClaimTemplates:
     - metadata: { name: data }
       spec:
+        {{- with .Values.storageClass }}
+        storageClassName: {{ . }}
+        {{- end }}
         accessModes: [ReadWriteOnce]
         resources: { requests: { storage: {{ .Values.storage }} } }
 ---

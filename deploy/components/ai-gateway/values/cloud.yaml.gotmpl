@@ -1,2 +1,8 @@
-# 云端参数（030）：在 US1（T043–T047）中补全
-{}
+# 云端（030）：令牌签发者为集群内 Keycloak 的公网地址；公共 CA
+keycloakIssuer: https://sso.{{ .Values.domain }}/realms/digital-workforce
+trustedCaSecret: ""
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+route:
+  sectionName: https
+  hostnames: [{{ .Values.domain | quote }}]

@@ -9,6 +9,26 @@ data:
   {{- if .Values.import.withTestUsers }}
   test-users.yaml: {{ required "import.files.testUsers 未注入" .Values.import.files.testUsers | quote }}
   {{- end }}
+  {{- if .Values.import.provisionerSecret }}
+  # 工具与 e2e 使用的导入服务账号（云端自带 Keycloak 时随导入创建，030；本地由负责人在既有 Keycloak 中手工创建）
+  provisioner.yaml: |
+    realm: {{ .Values.import.realm }}
+    clients:
+      - clientId: contexture-provisioner
+        name: 织境导入服务账号
+        protocol: openid-connect
+        publicClient: false
+        secret: $(env:CONTEXTURE_PROVISIONER_CLIENT_SECRET)
+        standardFlowEnabled: false
+        directAccessGrantsEnabled: false
+        serviceAccountsEnabled: true
+    users:
+      - username: service-account-contexture-provisioner
+        enabled: true
+        serviceAccountClientId: contexture-provisioner
+        clientRoles:
+          realm-management: [manage-clients, manage-realm, view-realm, view-identity-providers, view-users, manage-users]
+  {{- end }}
 ---
 # 每次安装与升级都执行一次增量导入（只增不删，不影响 realm 中的其他客户端）
 apiVersion: batch/v1
@@ -21,6 +41,12 @@ spec:
   ttlSecondsAfterFinished: 86400
   template:
     spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
       restartPolicy: OnFailure
       automountServiceAccountToken: false
       {{- if .Values.import.trustedCaSecret }}
@@ -46,6 +72,10 @@ spec:
             - { name: CTX_OM_URL, value: {{ .Values.import.omUrl | quote }} }
             - name: CONTEXTURE_OM_CLIENT_SECRET
               valueFrom: { secretKeyRef: { name: {{ .Values.import.omSecret }}, key: client-secret } }
+            {{- if .Values.import.provisionerSecret }}
+            - name: CONTEXTURE_PROVISIONER_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: {{ .Values.import.provisionerSecret }}, key: client-secret } }
+            {{- end }}
             {{- if .Values.keycloak.enabled }}
             - { name: KEYCLOAK_AVAILABILITYCHECK_ENABLED, value: "true" }
             - { name: KEYCLOAK_AVAILABILITYCHECK_TIMEOUT, value: "300s" }

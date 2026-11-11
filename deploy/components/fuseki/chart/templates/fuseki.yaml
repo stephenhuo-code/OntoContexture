@@ -12,6 +12,12 @@ spec:
     metadata:
       labels: { app.kubernetes.io/name: fuseki, app.kubernetes.io/part-of: contexture }
     spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
       automountServiceAccountToken: false
       securityContext: { fsGroup: 1000 }
       containers:
@@ -35,6 +41,9 @@ spec:
   volumeClaimTemplates:
     - metadata: { name: data }
       spec:
+        {{- with .Values.storageClass }}
+        storageClassName: {{ . }}
+        {{- end }}
         accessModes: [ReadWriteOnce]
         resources: { requests: { storage: {{ .Values.storage }} } }
 ---
