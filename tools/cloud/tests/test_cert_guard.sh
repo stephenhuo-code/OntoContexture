@@ -36,3 +36,12 @@ test_guard_gives_up_after_limited_rounds() {
   ctx_cert_guard >/dev/null
   assert_eq 3 "$(stub_calls | grep -c 'delete certificate')" "最多重建 CTX_CERT_GUARD_ROUNDS 次"
 }
+
+# 守护已先行结束（证书已就绪）时，结束守护不得让 set -e 下的部署脚本退出（T042 实测：重复部署在同步后静默退出）
+test_stopping_an_already_finished_guard_does_not_abort() {
+  # 在独立的 bash -e 进程中运行：run.sh 在 if 中执行测试函数，set -e 在其中不生效
+  local out
+  out=$(bash -ec 'source "$1/tools/cloud/deploy.sh"; (sleep 0) & CTX_CERT_GUARD_PID=$!; wait "$CTX_CERT_GUARD_PID"
+    ctx_cert_guard_stop; echo after-stop' _ "$REPO_ROOT" 2>&1) || true
+  assert_contains "$out" "after-stop"
+}
