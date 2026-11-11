@@ -250,7 +250,7 @@
 
   （FR-030）
 - [X] T059 [US7] 实现 `tools/cloud/uninstall.sh`，并在 `Makefile` 新增 `cloud-uninstall` 目标，使 T058 通过（FR-030）
-- [ ] T060 [US7] 编写并执行云端验证测试 `tests/cloud/test_uninstall.sh`：卸载前后其他 namespace 中的资源数量一致，devbox-0 仍在运行。之后重新执行 `make cloud-deploy` 恢复环境（SC-009）
+- [ ] T060 [US7] 编写并执行云端验证测试 `tests/cloud/test_uninstall.sh`：卸载前后其他 namespace 中的资源数量一致，devbox-0 仍在运行。之后重新执行 `make cloud-deploy` 恢复环境（SC-009） ——**负责人 2026-11-11 决定本轮跳过**（会删除全部数据并需重建约 1–1.5 小时；卸载逻辑由单元测试覆盖，未在集群实测，记入 acceptance 已知限制）
 
 ---
 
