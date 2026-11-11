@@ -1,6 +1,6 @@
 image:
   repository: contexture/openmetadata-server
-  tag: 2.0.3-ctx.0
+  tag: 2.0.3-ctx.1
   pullPolicy: IfNotPresent
 
 openmetadata:
@@ -73,7 +73,7 @@ openmetadata:
 # OM 访问 Keycloak（https）需信任其 CA：初始化容器把 Secret ctx-trusted-ca 加入 JDK truststore 的副本
 extraInitContainers:
   - name: truststore
-    image: contexture/openmetadata-server:2.0.3-ctx.0
+    image: contexture/openmetadata-server:2.0.3-ctx.1
     command: [sh, -ec]
     args:
       - |

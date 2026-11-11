@@ -26321,7 +26321,7 @@ data:
     namespace = contexture
     pod_template_file = /opt/airflow/pod_templates/pod_template_file.yaml
     worker_container_repository = contexture/openmetadata-ingestion-airflow
-    worker_container_tag = 2.0.3-ctx.0
+    worker_container_tag = 2.0.3-ctx.1
     
     [logging]
     colored_console_log = False
@@ -26405,7 +26405,7 @@ data:
                   name: om-secrets
                   key: airflow-password
             # Extra env      
-          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.0
+          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.1
           imagePullPolicy: IfNotPresent
           securityContext: 
             allowPrivilegeEscalation: false
@@ -26673,7 +26673,7 @@ spec:
       annotations:
         checksum/metadata-secret: b2fe937560e9635aeb01fce9100c2f836c5880f81c802565ce95fbcc8a56da4c
         checksum/pgbouncer-config-secret: 1dae2adc757473469686d37449d076b0c82404f61413b58ae68b3c5e99527688
-        checksum/airflow-config: f92396b5b88cd266e0b38c14020663d42581d36d13d7490715f28e0aa5a81c98
+        checksum/airflow-config: 613fcf0049201a1103d1920e6bd62c94358420e9425584f536f713ced0444036
         checksum/extra-configmaps: e862ea47e13e634cf17d476323784fa27dac20015550c230953b526182f5cac8
         checksum/extra-secrets: e9582fdd622296c976cbc10a5ba7d6702c28a24fe80795ea5b84ba443a56c827
     spec:
@@ -26709,7 +26709,7 @@ spec:
             requests:
               cpu: 100m
               memory: 512Mi
-          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.0
+          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.1
           imagePullPolicy: IfNotPresent
           securityContext: 
             allowPrivilegeEscalation: false
@@ -26774,7 +26774,7 @@ spec:
                   key: api-secret-key
       containers:
         - name: api-server
-          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.0
+          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.1
           imagePullPolicy: IfNotPresent
           securityContext: 
             allowPrivilegeEscalation: false
@@ -26920,7 +26920,7 @@ spec:
       annotations:
         checksum/metadata-secret: b2fe937560e9635aeb01fce9100c2f836c5880f81c802565ce95fbcc8a56da4c
         checksum/pgbouncer-config-secret: 1dae2adc757473469686d37449d076b0c82404f61413b58ae68b3c5e99527688
-        checksum/airflow-config: f92396b5b88cd266e0b38c14020663d42581d36d13d7490715f28e0aa5a81c98
+        checksum/airflow-config: 613fcf0049201a1103d1920e6bd62c94358420e9425584f536f713ced0444036
         checksum/extra-configmaps: e862ea47e13e634cf17d476323784fa27dac20015550c230953b526182f5cac8
         checksum/extra-secrets: e9582fdd622296c976cbc10a5ba7d6702c28a24fe80795ea5b84ba443a56c827
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
@@ -26958,7 +26958,7 @@ spec:
             requests:
               cpu: 50m
               memory: 256Mi
-          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.0
+          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.1
           imagePullPolicy: IfNotPresent
           securityContext: 
             allowPrivilegeEscalation: false
@@ -27021,7 +27021,7 @@ spec:
                   key: api-secret-key
       containers:
         - name: dag-processor
-          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.0
+          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.1
           imagePullPolicy: IfNotPresent
           securityContext: 
             allowPrivilegeEscalation: false
@@ -27107,7 +27107,7 @@ spec:
         - name: dag-processor-log-groomer
           resources:
             {}
-          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.0
+          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.1
           imagePullPolicy: IfNotPresent
           securityContext: 
             allowPrivilegeEscalation: false
@@ -27176,7 +27176,7 @@ spec:
         checksum/metadata-secret: b2fe937560e9635aeb01fce9100c2f836c5880f81c802565ce95fbcc8a56da4c
         checksum/result-backend-secret: 98a68f230007cfa8f5d3792e1aff843a76b0686409e4a46ab2f092f6865a1b71
         checksum/pgbouncer-config-secret: 1dae2adc757473469686d37449d076b0c82404f61413b58ae68b3c5e99527688
-        checksum/airflow-config: f92396b5b88cd266e0b38c14020663d42581d36d13d7490715f28e0aa5a81c98
+        checksum/airflow-config: 613fcf0049201a1103d1920e6bd62c94358420e9425584f536f713ced0444036
         checksum/extra-configmaps: e862ea47e13e634cf17d476323784fa27dac20015550c230953b526182f5cac8
         checksum/extra-secrets: e9582fdd622296c976cbc10a5ba7d6702c28a24fe80795ea5b84ba443a56c827
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
@@ -27214,7 +27214,7 @@ spec:
             requests:
               cpu: 100m
               memory: 384Mi
-          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.0
+          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.1
           imagePullPolicy: IfNotPresent
           securityContext: 
             allowPrivilegeEscalation: false
@@ -27279,7 +27279,7 @@ spec:
                   key: api-secret-key
       containers:
         - name: scheduler
-          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.0
+          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.1
           imagePullPolicy: IfNotPresent
           securityContext: 
             allowPrivilegeEscalation: false
@@ -27384,7 +27384,7 @@ spec:
         - name: scheduler-log-groomer
           resources:
             {}
-          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.0
+          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.1
           imagePullPolicy: IfNotPresent
           securityContext: 
             allowPrivilegeEscalation: false
@@ -27457,7 +27457,7 @@ spec:
         []
       containers:
         - name: create-user
-          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.0
+          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.1
           imagePullPolicy: IfNotPresent
           securityContext: 
             allowPrivilegeEscalation: false
@@ -27569,7 +27569,7 @@ spec:
         []
       containers:
         - name: run-airflow-migrations
-          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.0
+          image: contexture/openmetadata-ingestion-airflow:2.0.3-ctx.1
           imagePullPolicy: IfNotPresent
           securityContext: 
             allowPrivilegeEscalation: false
@@ -28521,7 +28521,7 @@ spec:
   template:
     metadata:
       annotations:
-        contexture/values-sha: b95c20ad9df57487
+        contexture/values-sha: e397a5581111e4f1
       labels:        
         helm.sh/chart: openmetadata-2.0.3
         app.kubernetes.io/name: openmetadata
@@ -28532,7 +28532,7 @@ spec:
       serviceAccountName: openmetadata
       initContainers:
       - name: run-db-migrations
-        image: "contexture/openmetadata-server:2.0.3-ctx.0"
+        image: "contexture/openmetadata-server:2.0.3-ctx.1"
         imagePullPolicy: IfNotPresent
         
         
@@ -28618,7 +28618,7 @@ spec:
         command:
         - sh
         - -ec
-        image: contexture/openmetadata-server:2.0.3-ctx.0
+        image: contexture/openmetadata-server:2.0.3-ctx.1
         name: truststore
         volumeMounts:
         - mountPath: /ca
@@ -28634,7 +28634,7 @@ spec:
           name: truststore
       containers:
         - name: openmetadata
-          image: "contexture/openmetadata-server:2.0.3-ctx.0"
+          image: "contexture/openmetadata-server:2.0.3-ctx.1"
           imagePullPolicy: IfNotPresent
           volumeMounts:
           - mountPath: /truststore
@@ -28758,7 +28758,7 @@ spec:
       template:
         metadata:
           annotations:
-            contexture/values-sha: b95c20ad9df57487
+            contexture/values-sha: e397a5581111e4f1
           labels:            
             helm.sh/chart: openmetadata-2.0.3
             app.kubernetes.io/name: openmetadata
@@ -28775,7 +28775,7 @@ spec:
               name: truststore
           containers:
           - name: cron-reindex
-            image: "contexture/openmetadata-server:2.0.3-ctx.0"
+            image: "contexture/openmetadata-server:2.0.3-ctx.1"
             imagePullPolicy: IfNotPresent
             volumeMounts:
             - mountPath: /truststore

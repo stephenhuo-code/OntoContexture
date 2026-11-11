@@ -272,3 +272,15 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
 - 工具箱镜像推送 DOCR（T033）：`make cloud-build TARGET=--toolbox` 全程 **215 秒**（含弹性池新扩出节点、buildkitd 启动；构建层命中 20Gi 缓存，推送 8.5 秒），
   产出 `registry.digitalocean.com/contexture/toolbox:toolbox-84e54cb3bd29`，已写入状态记录 `toolboxImage`；结束后 buildkitd 回到 0 副本。
 - 工具箱实际运行测试见首次部署后的 T057 记录；流水线镜像见 T038。
+
+## 实施记录：R9 镜像流水线首次运行（T038，2026-11-11）
+
+- 第 1 次（运行 42973314026，提交 `2adf6da469a7`，标签触发）：bff、web、openmetadata-server、openmetadata-fuseki 的许可与漏洞扫描通过；
+  **openmetadata-ingestion-airflow 未通过 grype `--only-fixed --fail-on critical`**：基础镜像 `apache/airflow:3.3.2-python3.12` 自带
+  certifi 2026.7.22（GHSA-6q48-6c7w-9gw2，修复于 2026.10.18）与 uv 0.12.10 / 0.12.15（GHSA-hq85-5cpj-mr62，修复于 0.13.4）。
+  按门禁全部镜像均未推送。全程约 21 分钟（含 Maven 构建服务端）。
+- 定位（集群内临时 Pod 检查基础镜像）：uv 0.12.10 与 certifi 位于 `~/.local/lib/python3.12/site-packages`；uv 0.12.15 属于以 `uv tool`
+  安装的开发工具 prek（运行时不需要）。
+- 处置：`Dockerfile.airflow` 末尾升级 certifi 与 uv、删除 prek；镜像内容变化，`UPSTREAM.yaml` 的 `image_version` 递增为 `2.0.3-ctx.1`
+  （服务端镜像共用该版本号，随之重建），本地 local / lite 渲染基线随之更新（仅镜像标签与派生校验和变化）。本地 kind 需重新构建 OM 镜像
+  （`make up` 按 `image_version` 构建）。

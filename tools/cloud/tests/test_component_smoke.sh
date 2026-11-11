@@ -21,11 +21,11 @@ run_airflow_smoke() {  # 只关心镜像检查；之后的步骤在假 kubectl �
 }
 
 test_airflow_smoke_accepts_local_image() {
-  assert_not_contains "$(run_airflow_smoke contexture/openmetadata-ingestion-airflow:2.0.3-ctx.0)" "不是织境采集镜像"
+  assert_not_contains "$(run_airflow_smoke contexture/openmetadata-ingestion-airflow:2.0.3-ctx.1)" "不是织境采集镜像"
 }
 
 test_airflow_smoke_accepts_registry_prefixed_image() {
-  local out; out=$(run_airflow_smoke registry.example.com/team/openmetadata-ingestion-airflow:2.0.3-ctx.0)
+  local out; out=$(run_airflow_smoke registry.example.com/team/openmetadata-ingestion-airflow:2.0.3-ctx.1)
   assert_contains "$out" "airflow OK"
   assert_not_contains "$out" "不是织境采集镜像"
 }

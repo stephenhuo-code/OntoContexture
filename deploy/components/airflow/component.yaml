@@ -4,7 +4,7 @@ version: 3.3.2
 image:
   source: self-built
   refs:
-    - contexture/openmetadata-ingestion-airflow:2.0.3-ctx.0
+    - contexture/openmetadata-ingestion-airflow:2.0.3-ctx.1
 license: Apache-2.0
 customization: config
 upstream: https://github.com/apache/airflow

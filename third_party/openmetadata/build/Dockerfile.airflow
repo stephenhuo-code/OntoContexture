@@ -89,3 +89,9 @@ RUN pip uninstall upath -y; pip install "universal-pathlib==0.3.10"
 RUN mkdir -p /opt/airflow/dag_generated_configs
 EXPOSE 8080
 WORKDIR /opt/airflow
+
+# 安全修复（2026-11-11，030 cloud-images 流水线 grype 扫描发现可修复的 Critical）：基础镜像 apache/airflow:3.3.2-python3.12
+# 自带的 certifi 2026.7.22（GHSA-6q48-6c7w-9gw2）与 uv 0.12.10（GHSA-hq85-5cpj-mr62）升级到修复版本；
+# 运行时不需要的开发工具 prek（以 uv tool 安装，自带 uv 0.12.15）删除。放在最后，避免之前按约束安装时回退。
+RUN pip install --upgrade "certifi>=2026.10.18" "uv>=0.13.4" \
+  && rm -rf /home/airflow/.local/share/uv/tools/prek /home/airflow/.local/bin/prek
