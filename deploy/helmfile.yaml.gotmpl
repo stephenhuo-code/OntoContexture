@@ -111,6 +111,13 @@ releases:
     labels: { component: cert-manager }
     needs: [cert-manager/cert-manager, contexture/gateway]
     values: [components/cert-manager/config/values-cloud.yaml.gotmpl]
+
+  # ---------- 云端（030）：集群内构建 ----------
+  - name: buildkit
+    namespace: contexture-build
+    chart: components/buildkit/chart
+    labels: { component: buildkit }
+    values: [components/buildkit/chart/values-cloud.yaml.gotmpl]
 {{- end }}
 
   - name: postgresql

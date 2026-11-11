@@ -1,0 +1,9 @@
+image: moby/buildkit:v0.34.1
+# 平时为 0，由 tools/cloud/lib/buildkit.sh 构建时扩为 1、结束缩回 0；helmfile 同步不改变运行中的副本（见模板注释）
+replicas: 0
+storageClass: ""
+cacheSize: 20Gi
+nodeSelector: {}
+resources:
+  requests: { cpu: 500m, memory: 1Gi }
+  limits: { memory: 4Gi }
