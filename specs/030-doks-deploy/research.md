@@ -352,3 +352,8 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
   dind（否则 keycloak-config-cli 报 `No files matching '/config/*.yaml'`、登录主题为空）；dind 中 Keycloak 较慢，测试辅助代码的
   管理接口超时由 httpx 默认 5 秒放宽到 60 秒。
 - 并行执行部署与 `cloud-test` 时，部署中的 OM 本体配置启动工具箱，删除了正在运行测试的同名 Pod（退出码 137）。互斥改为拒绝而非抢占（见 R12）。
+
+## 实施记录：集群内构建并部署（T063，2026-11-11，SC-004）
+
+- `make cloud-build TARGET=all`：bff、web 在集群内构建、推送并部署，全程 **85 秒**（BuildKit 缓存命中）；部署后网页 200、`/bff/v1/me` 未登录 401。
+- `make cloud-status` 显示“稳定版本：bff/web ws-1cefe96bda3a（来源：工作区构建；含未提交改动：false）”，并列出正在运行的工具箱 Pod（当时 cloud-test 在运行）。

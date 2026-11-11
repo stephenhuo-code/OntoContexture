@@ -264,7 +264,7 @@
 
   （FR-022；US5 场景 1、5）
 - [X] T062 [US5] 实现 `tools/cloud/build.sh`，并在 `Makefile` 新增 `cloud-build` 目标；支持 `--dev` 和 `--toolbox`，这两种只构建、不部署。流程：调用 `lib/buildkit.sh` 构建 → `helmfile -e cloud -l component=bff|web sync` → 写状态记录。使 T061 通过（FR-022）
-- [ ] T063 [US5] 执行 `make cloud-build TARGET=all`，验证 10 分钟内完成，且状态命令显示来源以及是否含未提交改动（SC-004；US5 场景 1、4）
+- [X] T063 [US5] 执行 `make cloud-build TARGET=all`，验证 10 分钟内完成，且状态命令显示来源以及是否含未提交改动（SC-004；US5 场景 1、4）
 
 ---
 
