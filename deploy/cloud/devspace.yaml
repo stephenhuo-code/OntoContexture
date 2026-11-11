@@ -38,6 +38,12 @@ dev:
       - op: replace
         path: spec.containers.name=web.securityContext
         value: {}
+      # 正式容器为 nginx（内存上限 64Mi）；开发模式运行 Vite（Node.js），沿用该上限会被 OOM 终止（T075 实测）
+      - op: replace
+        path: spec.containers.name=web.resources
+        value:
+          requests: { cpu: 100m, memory: 256Mi }
+          limits: { memory: 1Gi }
     env:
       - name: CTX_VITE_ALLOWED_HOSTS
         value: ${CTX_CLOUD_DOMAIN}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { devServer } from "./dev-server";
+import { devServer } from "../dev-server";
 
 // 030：云端开发模式下 Vite 经 HTTPS 入口提供页面，HMR 走 443；未设置环境变量时与本地开发完全一致
 describe("devServer", () => {

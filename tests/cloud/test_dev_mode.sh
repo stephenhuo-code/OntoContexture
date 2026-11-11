@@ -7,7 +7,8 @@ WEB_FILE="$ROOT/apps/web/src/dev-server.ts"; URL="https://$D/src/dev-server.ts";
 trap 'mv -f "$WEB_FILE.bak" "$WEB_FILE"; kill -TERM -- "-$DEV" 2>/dev/null || true' EXIT
 # 后台进程在非交互 shell 中忽略 SIGINT（且无法再捕获），用 setsid 自成进程组，结束时向整组发 TERM（T075 实测）
 setsid bash -c "cd '$ROOT' && exec make cloud-dev" > "$CTX_LOG_DIR/test-dev-mode.log" 2>&1 & DEV=$!
-for i in $(seq 1 60); do grep -q 'Initial sync completed' "$CTX_LOG_DIR/test-dev-mode.log" 2>/dev/null && break; sleep 5; done
+# 等 web 的 3 个同步目录都完成首次同步（bff 的同步先完成，不能以第一条为准）
+for i in $(seq 1 60); do (( $(grep -c 'dev:web.*Initial sync completed' "$CTX_LOG_DIR/test-dev-mode.log" 2>/dev/null) >= 3 )) && break; sleep 5; done
 echo "export const CTX_DEV_MARK = \"$MARK\";" >> "$WEB_FILE"
 start=$(date +%s); ok=0
 for i in $(seq 1 20); do curl -s -m 5 "$URL" | grep -q "$MARK" && { ok=1; break; }; sleep 1; done
