@@ -291,7 +291,7 @@
 
 ## Phase 8: User Story 2 - 开发者改代码后几秒内在云端环境看到效果 (Priority: P1)（阶段 D）
 
-- [ ] T069 [P] [US2] 编写失败测试 `tools/cloud/tests/test_dev.sh`：
+- [X] T069 [P] [US2] 编写失败测试 `tools/cloud/tests/test_dev.sh`：
   - 环境未运行或已停止时，以退出码 2 退出；
   - 进入开发模式时写入 `devMode.active=true`；
   - 收到 EXIT 或 INT 时执行 `devspace reset pods`，并写入 `devMode.active=false`；
@@ -304,20 +304,20 @@
   - 退出后 5 分钟内恢复为稳定版本。
 
   （US2 场景 2、5；SC-002；spec 边界情况“网络短暂中断”）
-- [ ] T071 [P] [US2] 在 `services/bff/Dockerfile` 和 `apps/web/Dockerfile` 中各新增一个**非末尾**的 `dev` 阶段：
+- [X] T071 [P] [US2] 在 `services/bff/Dockerfile` 和 `apps/web/Dockerfile` 中各新增一个**非末尾**的 `dev` 阶段：
   - bff：`uvicorn contexture_bff.main:create_app --factory --reload`；
   - web：Vite 开发服务器，监听 8080。
 
   默认构建目标不变（R11）
-- [ ] T072 [P] [US2] 修改 `apps/web/vite.config.ts`：HMR 的 `clientPort` 和 `allowedHosts` 从环境变量读取，未设置时与现状一致；并补充测试（R11）
-- [ ] T073 [US2] 新建 `deploy/cloud/devspace.yaml`，配置 `bff` 和 `web` 两个目标：
+- [X] T072 [P] [US2] 修改 `apps/web/vite.config.ts`：HMR 的 `clientPort` 和 `allowedHosts` 从环境变量读取，未设置时与现状一致；并补充测试（R11）
+- [X] T073 [US2] 新建 `deploy/cloud/devspace.yaml`，配置 `bff` 和 `web` 两个目标：
   - 用 `imageSelector` 选中要替换的 Pod，替换为开发镜像 `dev-<摘要>`；
   - 同步 `services/bff/src`、`packages/py-core/src`、`apps/web/src`、`packages/ui/src`、`packages/ts-api/src`；
   - 锁文件变化时，执行 `uv sync` / `pnpm install`；
   - 设置 `nodeSelector`。
 
   （FR-011；US2 场景 4）
-- [ ] T074 [US2] 实现 `tools/cloud/dev.sh`，并在 `Makefile` 新增 `cloud-dev`、`cloud-dev-reset` 目标。流程：检查环境状态 → 开发镜像不存在时先执行 `cloud-build --dev` → 运行 `devspace dev` → 在 `trap` 中恢复并写状态。使 T069 通过（FR-011～FR-014）
+- [X] T074 [US2] 实现 `tools/cloud/dev.sh`，并在 `Makefile` 新增 `cloud-dev`、`cloud-dev-reset` 目标。流程：检查环境状态 → 开发镜像不存在时先执行 `cloud-build --dev` → 运行 `devspace dev` → 在 `trap` 中恢复并写状态。使 T069 通过（FR-011～FR-014）
 - [ ] T075 [US2] 执行 `make cloud-dev`，使 T070 通过；验证开发模式期间执行 `cloud-deploy` 会要求确认；测量开发机内存占用不超过 2 GiB（SC-002、SC-003；US2 场景 6）
 
 ---
