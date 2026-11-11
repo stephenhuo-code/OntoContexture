@@ -11,6 +11,9 @@ loc=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -m 20 "http://$D/")
 login=$(curl -s -o /dev/null -w '%{redirect_url}' -m 20 "https://$D/bff/v1/auth/login" || true)
 [[ $login == https://sso.$D/* ]] && pass "未登录跳转到 Keycloak" || fail "登录未跳转到 sso.$D：$login"
 ip=$(K -n envoy-gateway-system get svc -l gateway.envoyproxy.io/owning-gateway-name=contexture -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
+# 不认证的 managed-apis 不得经入口访问（005 research R3、T057）
+code=$(curl -s -o /dev/null -w '%{http_code}' -m 20 "https://airflow.$D/pluginsv2/api/v2/openmetadata/health" || echo 000)
+[[ $code == 302 ]] && pass "Airflow managed-apis 未经入口暴露（$code）" || fail "Airflow managed-apis 经入口返回 $code"
 for port in 3306 5432 13306 15432 9030; do
   timeout 5 bash -c "exec 3<>/dev/tcp/$ip/$port" 2>/dev/null && fail "负载均衡器开放了数据库端口 $port" || pass "端口 $port 未对外开放"
 done

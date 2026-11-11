@@ -63,6 +63,11 @@ cloud_assertions() {
   awk '/^# Source: airflow\/templates\/scheduler\/scheduler-deployment/{f=1} /^---$/{f=0}
     f && /podAntiAffinity/{found=1} END{exit !found}' "$file" ||
     report "Airflow 调度器缺少独占节点的 podAntiAffinity"
+  # Airflow 界面对外：入口须能访问 api-server，但不认证的 managed-apis（/pluginsv2，005 research R3）不得经入口暴露（T057 实测）
+  awk '/^# Source: gateway\/templates\/gateway.yaml/{f=1} /^---$/{f=0; a=0} f && /name: ui-airflow/{a=1} a && /\/pluginsv2/{p=1}
+    a && /RequestRedirect/{r=1} END{exit !(p && r)}' "$file" || report "Airflow 入口未拦截 /pluginsv2"
+  awk '/^# Source: airflow\/templates\/api-server\/api-server-networkpolicy/{f=1} /^---$/{f=0}
+    f && /envoy-gateway-system/{found=1} END{exit !found}' "$file" || report "Airflow api-server 网络策略未放行入口代理"
   [[ $failed == 0 ]] && printf '  ✔ cloud 渲染结构断言通过\n'
   [[ $before == 0 ]] || failed=1
 }
