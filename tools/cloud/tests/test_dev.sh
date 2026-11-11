@@ -75,3 +75,14 @@ test_reset_provides_variables_needed_to_load_devspace_config() {
   local line; line=$(stub_calls | grep "devspace reset pods" | head -1)
   [[ $line != *"BFF= "* && $line != *"WEB=" ]] || fail "reset 未提供开发镜像变量：$line"
 }
+
+# T075 实测：devspace 自行退出（如同步连接中断）后，清理中 kill 已退出的进程失败，set -e 使脚本在恢复稳定版本前退出，
+# 环境停留在开发模式。在独立的 bash -e 进程中验证（run.sh 在 if 中执行测试函数，set -e 不生效）
+test_cleanup_restores_even_when_devspace_has_already_exited() {
+  local out
+  out=$(bash -ec 'source "$1/tools/cloud/dev.sh"
+    ctx_dev_reset() { echo reset-called; }
+    (exit 0) & CTX_DEV_PID=$!; wait "$CTX_DEV_PID"; CTX_DEV_WATCHER=$CTX_DEV_PID CTX_DEV_CLEANED=
+    ctx_dev_cleanup' _ "$REPO_ROOT" 2>&1) || true
+  assert_contains "$out" "reset-called"
+}
