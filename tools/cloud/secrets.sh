@@ -39,6 +39,9 @@ ctx_ensure_secrets() {
   ctx_secret_ensure "$ns" bff-oidc generic bff-oidc --from-literal=client-secret="$(ctx_rand)"
   ctx_secret_ensure "$ns" om-oidc generic om-oidc --from-literal=client-id=contexture-openmetadata \
     --from-literal=client-secret="$(ctx_rand)"
+  # 工具与 e2e 的导入服务账号：Keycloak 导入时创建（keycloak Chart 的 import.provisionerSecret），本地由负责人手工创建
+  ctx_secret_ensure "$ns" keycloak-provisioner generic keycloak-provisioner \
+    --from-literal=client-id=contexture-provisioner --from-literal=client-secret="$(ctx_rand)"
   ctx_secret_ensure "$ns" om-secrets generic om-secrets --from-literal=fernet-key="$(ctx_fernet_key)" \
     --from-literal=airflow-password="$(ctx_rand 12)"
   ctx_secret_ensure "$ns" fuseki-auth generic fuseki-auth --from-literal=admin-password="$(ctx_rand 12)" \
@@ -71,6 +74,16 @@ ctx_ensure_secrets() {
     --arg db "postgresql+asyncpg://bff:$(ctx_secret_value "$ns" pg-bff password)@pg-rw:5432/bff" \
     '{stringData: {ctx_client_secret: $cs, ctx_database_url: $db}}')
   ctx_kubectl -n "$ns" patch secret bff-secrets --type merge -p "$patch" >/dev/null
+
+  # 工具箱（contexture-ci）运行 seed / e2e / mockfactory 所需的端点与凭证，以环境变量注入（不上传任何凭证文件，R12）
+  ctx_secret_apply contexture-ci generic toolbox-env \
+    --from-literal=KEYCLOAK_URL="https://sso.${CTX_CLOUD_DOMAIN:-}" \
+    --from-literal=KEYCLOAK_REALM=digital-workforce \
+    --from-literal=KEYCLOAK_PROVISIONER_CLIENT_ID=contexture-provisioner \
+    --from-literal=KEYCLOAK_PROVISIONER_CLIENT_SECRET="$(ctx_secret_value "$ns" keycloak-provisioner client-secret)" \
+    --from-literal=CTX_E2E_BASE_URL="https://${CTX_CLOUD_DOMAIN:-}" \
+    --from-literal=CTX_CLOUD_NAMESPACE="$ns" \
+    --from-literal=CTX_TENANT_ID=local
 
   # 镜像仓库：拉取用只读令牌（平台与工具箱），推送用读写令牌（集群内构建）；每次刷新
   registry_host=${CTX_CLOUD_REGISTRY%%/*}
