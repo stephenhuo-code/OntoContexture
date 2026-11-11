@@ -35,7 +35,8 @@ if [[ -n ${CTX_KCOV:-} ]]; then
       "$out/$(basename "$file" .sh)" bash "$HERE/run.sh" --single "$file" || status=1
   done
   kcov --merge "$out/merged" "$out"/test_* >/dev/null
-  cp "$out/merged/kcov-merged/cobertura.xml" "$out/cobertura.xml"
+  # 源路径改为仓库相对路径：CI 中不同任务的检出目录不同也能对上
+  sed "s|<source>$ROOT/|<source>|" "$out/merged/kcov-merged/cobertura.xml" > "$out/cobertura.xml"
   echo "bash 覆盖率报告：coverage/bash/cobertura.xml"
 else
   for file in "${files[@]}"; do run_file "$file" || status=1; done

@@ -59,8 +59,35 @@ jobs:
             apps/web/coverage/
             packages/ui/coverage/
 
+
+  # 云端脚本（030）：bash 单元测试在 kcov 下统计覆盖率；helmfile 渲染对比（本地 local / lite 不变）；流水线语法检查
+  cloud-scripts:
+    runs-on: ubuntu-latest
+    container: debian:trixie-slim
+    steps:
+      - run: apt-get update && apt-get install -y --no-install-recommends kcov jq git curl ca-certificates openssl tar make
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: 安装 tools/cloud/tools.lock 锁定的 helm / helmfile
+        run: |
+          tools/cloud/install-tools.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - run: CTX_KCOV=1 make cloud-unit
+      - run: tools/cloud/tests/render-compare.sh
+      - name: 流水线语法检查（actionlint）
+        run: |
+          curl -fsSL -o /tmp/actionlint.tgz https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  /tmp/actionlint.tgz" | sha256sum -c -
+          tar xzf /tmp/actionlint.tgz -C /tmp actionlint && /tmp/actionlint -shellcheck=
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-bash
+          path: coverage/bash/cobertura.xml
+
   coverage:
-    needs: [python, web]
+    needs: [python, web, cloud-scripts]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +103,7 @@ jobs:
       - name: 新增与修改行覆盖率 ≥80%
         env:
           DIFF_BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD^' }}
-        run: python -m tools.coverage_gate --base "$DIFF_BASE" --python coverage.json --lcov apps/web/coverage/lcov.info --lcov packages/ui/coverage/lcov.info
+        run: python -m tools.coverage_gate --base "$DIFF_BASE" --python coverage.json --lcov apps/web/coverage/lcov.info --lcov packages/ui/coverage/lcov.info --cobertura cobertura.xml
 
   # 补丁一致性（宪法 VI）：third_party 发布分支相对上游的提交须与 PATCHES.md 一一对应
   patches:

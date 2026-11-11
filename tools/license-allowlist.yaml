@@ -27,3 +27,7 @@ exceptions:
     component: openmetadata
     scope: OM 界面静态资源、内置 MCP 服务、Python 采集框架；AI SDK 不使用
     adr: docs/adr/0011-OpenMetadata的构建与部署.md
+  - license: GPL-2.0
+    component: ci-toolbox
+    scope: kcov 仅用于 CI 工具箱与 CI 运行器中统计 bash 脚本覆盖率，不进入任何交付物或运行时镜像
+    adr: docs/adr/0014-云端开发环境.md

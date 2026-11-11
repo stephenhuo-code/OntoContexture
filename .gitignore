@@ -37,3 +37,7 @@ deploy/helm/**/charts/*.tgz
 # Playwright 测试产物
 test-results/
 playwright-report/
+
+# 云端开发（030）：DevSpace 本地状态、bash 覆盖率报告
+.devspace/
+coverage/bash/

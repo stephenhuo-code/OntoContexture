@@ -80,3 +80,13 @@ def test_bash_scripts_under_tools_are_gated_but_their_tests_are_not() -> None:
     assert source_file("tools/cloud/common.sh")
     assert source_file("tools/cloud/lib/state.sh")
     assert not source_file("tools/cloud/tests/test_config.sh")
+
+
+def test_cobertura_with_repo_relative_source(tmp_path: Path) -> None:
+    report = tmp_path / "cobertura.xml"
+    report.write_text(
+        "<coverage><sources><source>tools/cloud/</source></sources><packages><package><classes>"
+        '<class filename="lib/state.sh"><lines><line number="1" hits="1"/></lines></class>'
+        "</classes></package></packages></coverage>"
+    )
+    assert read_cobertura(report) == {"tools/cloud/lib/state.sh": {1: True}}

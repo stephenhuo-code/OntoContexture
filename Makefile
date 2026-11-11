@@ -7,7 +7,7 @@ test:
 
 DIFF_BASE ?= HEAD
 coverage-check:
-	uv run python -m tools.coverage_gate --base $(DIFF_BASE) --python coverage.json --lcov apps/web/coverage/lcov.info --lcov packages/ui/coverage/lcov.info
+	uv run python -m tools.coverage_gate --base $(DIFF_BASE) --python coverage.json --lcov apps/web/coverage/lcov.info --lcov packages/ui/coverage/lcov.info$(if $(wildcard coverage/bash/cobertura.xml), --cobertura coverage/bash/cobertura.xml)
 
 lint:
 	uv run ruff check .
