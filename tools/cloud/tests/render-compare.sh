@@ -57,6 +57,9 @@ cloud_assertions() {
     "$CTX_CLOUD_REGISTRY/web:" "docr-pull" "test-users.yaml" "realms/digital-workforce"; do
     grep -qF -- "$expect" "$file" || report "cloud 渲染中缺少 $expect"
   done
+  # Airflow 共用 RWO 卷须同节点：以必需反亲和独占一个节点，避免与其他组件争内存（T052 实测：调度器落在满载节点，其余 Pod 无法调度）
+  awk '/^# Source: airflow\/templates\/scheduler\/scheduler-deployment/{f=1} /^---$/{f=0} f' "$file" | grep -q "podAntiAffinity" ||
+    report "Airflow 调度器缺少独占节点的 podAntiAffinity"
   [[ $failed == 0 ]] && printf '  ✔ cloud 渲染结构断言通过\n'
   [[ $before == 0 ]] || failed=1
 }
