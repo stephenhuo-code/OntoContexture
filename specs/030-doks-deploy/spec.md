@@ -39,6 +39,10 @@
 - Q: 本地 kind 与云端的 make 命令是否区分？ → A: 区分；云端命令使用独立的命令名（`cloud-` 前缀），与本地命令互不越界。
 - Q: 集群内基于工作区构建并部署的 bff / web 版本，是否算作“稳定版本”？ → A: 算；最近一次部署的版本即稳定版本，无论来自流水线还是集群内构建；状态命令标明其来源及是否含未提交改动。
 
+### Session 2026-11-11
+
+- Q: 特性未完成前不合并到 main，而 GitHub 的手动运行要求流水线文件已在默认分支上，镜像流水线如何触发？ → A: 由开发者执行 `make cloud-images`，推送专用标签 `cloud-images/<提交前 12 位>` 触发；保留 GitHub 界面手动运行的入口，合并后照常可用；普通分支推送与合并仍不触发（FR-023）。
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - 运维者一条命令部署云端环境 (Priority: P1)
@@ -227,7 +231,7 @@
 **镜像构建与分发**
 
 - **FR-022**: 系统 MUST 提供集群内构建 bff 与 web 镜像的命令：基于开发机当前工作区在集群内构建，推送到 DOCR 并更新云端环境，MUST NOT 需要开发机上的 Docker 或 git 推送。如此部署的版本即成为稳定版本；其镜像标签 MUST 能识别为集群内构建，并记录对应提交及工作区是否含未提交改动。集群内 MUST NOT 构建 OpenMetadata 相关镜像。
-- **FR-023**: 系统 MUST 提供 GitHub Actions 流水线，构建全部 5 个自建镜像（bff、web、openmetadata-server、openmetadata-fuseki、openmetadata-ingestion-airflow）并推送到 DOCR，镜像标签 MUST 可追溯到源提交。流水线 MUST 仅由手动触发（可选择分支或提交），推送与合并 MUST NOT 自动触发（负责人 2026-11-10 决定）；对上游版本未变的 OpenMetadata 相关镜像 MUST 复用已存在的镜像；构建凭证 MUST 存于 GitHub 仓库的加密 Secret 中。
+- **FR-023**: 系统 MUST 提供 GitHub Actions 流水线，构建全部 5 个自建镜像（bff、web、openmetadata-server、openmetadata-fuseki、openmetadata-ingestion-airflow）并推送到 DOCR，镜像标签 MUST 可追溯到源提交。流水线 MUST 仅由人手动触发（负责人 2026-11-10 决定），方式有两种：在 GitHub 界面运行（可选择分支或提交；GitHub 要求流水线文件已在默认分支上），或由开发者执行 `make cloud-images`，为当前提交推送专用标签 `cloud-images/<提交前 12 位>`（特性合并到默认分支之前使用，负责人 2026-11-11 决定：未完成的特性不合并到 main）；普通的分支推送与合并 MUST NOT 触发；对上游版本未变的 OpenMetadata 相关镜像 MUST 复用已存在的镜像；构建凭证 MUST 存于 GitHub 仓库的加密 Secret 中。
 - **FR-024**: 集群 MUST 使用只读的镜像拉取凭证从 DOCR 拉取自建镜像；运维者 MUST 能在部署时指定镜像版本。
 
 **存储、资源与数据**
