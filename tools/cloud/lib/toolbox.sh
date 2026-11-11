@@ -30,7 +30,8 @@ ctx_toolbox_manifest() {
          env: [{name: "DOCKER_TLS_CERTDIR", value: ""}],
          args: ["--host=tcp://0.0.0.0:2375"],
          resources: {requests: {cpu: "500m", memory: "1Gi"}, limits: {memory: "4Gi"}},
-         volumeMounts: [{name: "cache", mountPath: "/var/lib/docker", subPath: "docker"}]}
+         # 工作区以相同路径挂入：Testcontainers 的绑定挂载由 dind 中的守护进程解析（T068 实测）
+         volumeMounts: [{name: "cache", mountPath: "/var/lib/docker", subPath: "docker"}, {name: "workspace", mountPath: "/workspace"}]}
       ],
       volumes: [{name: "cache", persistentVolumeClaim: {claimName: "toolbox-cache"}}, {name: "workspace", emptyDir: {}}]
     }}'
