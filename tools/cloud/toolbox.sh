@@ -20,7 +20,8 @@ ctx_mock_smoke() {
   local kube t; kube=$(mktemp); chmod 600 "$kube"
   kubectl --kubeconfig "$CTX_CLOUD_KUBECONFIG" --context "$CTX_CLOUD_CONTEXT" config view --minify --flatten --raw > "$kube"
   for t in "$CTX_REPO_ROOT"/testdata/deploy/*/tests/smoke.sh; do
-    KUBECONFIG=$kube CTX_NODE_SELECTOR="$CTX_CLOUD_NODE_LABEL=$CTX_CLOUD_NODE_POOL" "$t" || { rm -f "$kube"; return 1; }
+    KUBECONFIG=$kube KUBE_CONTEXT=$CTX_CLOUD_CONTEXT CTX_NODE_SELECTOR="$CTX_CLOUD_NODE_LABEL=$CTX_CLOUD_NODE_POOL" "$t" ||
+      { rm -f "$kube"; return 1; }
   done
   rm -f "$kube"
 }
