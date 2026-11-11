@@ -71,3 +71,22 @@ def testflatten_charts(tmp_path: Path) -> None:
     flatten_charts(charts)
     assert sorted(p.name for p in charts.iterdir()) == ["airflow", "opentelemetry-collector"]
     assert (charts / "airflow" / "Chart.yaml").exists()
+
+
+def test_cloud_only_components_are_not_delivered(tmp_path: Path) -> None:
+    # 030：只用于云端开发环境的组件（如 CI 工具箱、集群内构建）标记 delivered: false，不进入离线交付包
+    write_component(tmp_path, "a", ["x/a:1"])
+    comp = tmp_path / "ci-toolbox"
+    comp.mkdir()
+    (comp / "component.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "name": "ci-toolbox",
+                "delivered": False,
+                "image": {"source": "official", "refs": ["x/dind:1"]},
+            }
+        )
+    )
+    images = collect_images(tmp_path)
+    assert "x/a:1" in images
+    assert "x/dind:1" not in images
