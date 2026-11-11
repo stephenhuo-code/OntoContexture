@@ -29,8 +29,9 @@ ctx_dev_reset() {  # 恢复稳定版本；不依赖本地进程（开发机重�
 ctx_dev_cleanup() {
   [[ -n ${CTX_DEV_CLEANED:-} ]] && return 0
   CTX_DEV_CLEANED=1
-  [[ -n ${CTX_DEV_PID:-} ]] && kill -KILL "$CTX_DEV_PID" 2>/dev/null
-  [[ -n ${CTX_DEV_WATCHER:-} ]] && kill "$CTX_DEV_WATCHER" 2>/dev/null
+  # 进程可能已自行退出：kill 失败不得在 set -e 下中断清理（T075 实测）
+  [[ -n ${CTX_DEV_PID:-} ]] && { kill -KILL "$CTX_DEV_PID" 2>/dev/null || true; }
+  [[ -n ${CTX_DEV_WATCHER:-} ]] && { kill "$CTX_DEV_WATCHER" 2>/dev/null || true; }
   rm -f "$CTX_LOG_DIR/dev.pid"
   ctx_log "恢复稳定版本"
   ctx_dev_reset
