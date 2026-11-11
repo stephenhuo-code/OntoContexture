@@ -86,3 +86,11 @@ test_cleanup_restores_even_when_devspace_has_already_exited() {
     ctx_dev_cleanup' _ "$REPO_ROOT" 2>&1) || true
   assert_contains "$out" "reset-called"
 }
+
+# T075 实测：web 的正式容器为 nginx，内存上限 64Mi；开发模式沿用该 Pod 规格运行 Vite（Node.js），被 OOM 终止反复重启，
+# 同步因容器不存在而失败。开发模式须替换 web 容器的资源设置
+test_devspace_raises_web_resources_for_vite() {
+  local y; y=$(cat "$REPO_ROOT/deploy/cloud/devspace.yaml")
+  assert_contains "$y" "path: spec.containers.name=web.resources"
+  assert_contains "$y" "memory: 1Gi"
+}
