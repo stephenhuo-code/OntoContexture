@@ -368,7 +368,7 @@
 - [X] T084 [P] 完成 `docs/adr/0014-云端开发环境.md`，记录 R2、R4、R10、R11、R12、R13、R17a、R19 的选型及被否决的替代方案，以及 kcov 的许可例外
 - [ ] T085 [P] 在 `docs/Phase1-特性列表与开发计划.md` 中更新 030 的进度（实际工期、偏差，以及复估后对 007 及之后特性的影响）；在 `README.md` 的环境操作部分加入 `make cloud-*` 命令索引
 - [ ] T086 根据 T023 的结论二选一：在 `tools/cloud/lifecycle.sh` 中实现“启动时跳过补跑”并补充测试；或者修订 `specs/030-doks-deploy/spec.md` 的边界情况，写明接受一次补跑（R13）
-- [ ] T087 [P] 用仓库现有的密钥扫描，检查仓库、`cloud-images` 流水线日志和工具箱镜像中没有明文凭证（SC-010）
+- [X] T087 [P] 用仓库现有的密钥扫描，检查仓库、`cloud-images` 流水线日志和工具箱镜像中没有明文凭证（SC-010）
 - [ ] T088 汇总自动化验证：
   - `CTX_KCOV=1 make cloud-unit`，用 `make coverage-check` 合并 Python、前端和 bash（cobertura）的覆盖率，新增与修改的代码 ≥ 80%；
   - `tools/cloud/tests/render-compare.sh`（SC-007）；
