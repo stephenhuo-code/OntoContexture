@@ -24,8 +24,9 @@ metadata:
   namespace: {{ . }}
 rules:
   - apiGroups: ["", apps, batch]
-    resources: [pods, pods/log, pods/exec, pods/portforward, services, secrets, configmaps, deployments, statefulsets, jobs]
-    verbs: [get, list, watch, create, delete, patch]
+    # deployments/scale：e2e 场景 F 把 OpenMetadata 缩为 0 再恢复，验证不可用时的真实报错（T068 实测）
+    resources: [pods, pods/log, pods/exec, pods/portforward, services, secrets, configmaps, deployments, deployments/scale, statefulsets, jobs]
+    verbs: [get, list, watch, create, delete, patch, update]
   # 云端环境检查（tests/cloud/test_cloud_env.py）读取证书状态与续期设置（T068 实测）
   - apiGroups: [cert-manager.io]
     resources: [certificates]
