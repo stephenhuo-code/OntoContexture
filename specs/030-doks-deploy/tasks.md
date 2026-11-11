@@ -116,7 +116,7 @@
   - `chart/`：`contexture-ci` namespace；`toolbox-cache` PVC；只能读写 `contexture` 和 `mock-sources` 的 ServiceAccount 与 Role；Secret `toolbox-env`，以环境变量形式提供 seed、e2e、mockfactory 需要的凭证（Keycloak 管理员、模型服务、测试用户），由 `secrets.sh` 生成。
 
   （FR-015、FR-017、R12、R17a）
-- [ ] T033 用 `lib/buildkit.sh` 构建工具箱镜像（标签 `toolbox-<摘要>`），推送到 DOCR，记录构建耗时（R12）
+- [X] T033 用 `lib/buildkit.sh` 构建工具箱镜像（标签 `toolbox-<摘要>`），推送到 DOCR，记录构建耗时（R12）
 - [X] T034 [P] 编写失败测试 `tools/cloud/tests/test_toolbox.sh`：用 kubectl 桩函数断言：
   - 上传的文件清单等于 `git ls-files -co --exclude-standard`，且不包含 `.env.*`；
   - 凭证只通过 Secret `toolbox-env` 的环境变量注入；

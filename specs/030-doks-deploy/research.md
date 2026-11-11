@@ -269,4 +269,6 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
 - `buildkitd`（moby/buildkit v0.34.1，特权模式，20Gi 缓存卷）平时 0 副本；开发机 `buildctl --addr kube-pod://…` 直连成功。
 - 不推送的试构建：bff 镜像 **17 秒**、web 镜像 **43 秒**、工具箱镜像 **93 秒**；构建上下文按 `.dockerignore` 上传，均不到 1 MB。满足 SC-004（≤ 10 分钟）。
 - 推送凭证由开发机 buildctl 的一次性 `DOCKER_CONFIG` 提供（BuildKit 由客户端提供仓库认证），集群中的 `docr-push` 不再需要，仍保留以备后用。
-- 推送到 DOCR、工具箱实际运行测试，待负责人提供镜像仓库后完成（T033、T038）。
+- 工具箱镜像推送 DOCR（T033）：`make cloud-build TARGET=--toolbox` 全程 **215 秒**（含弹性池新扩出节点、buildkitd 启动；构建层命中 20Gi 缓存，推送 8.5 秒），
+  产出 `registry.digitalocean.com/contexture/toolbox:toolbox-84e54cb3bd29`，已写入状态记录 `toolboxImage`；结束后 buildkitd 回到 0 副本。
+- 工具箱实际运行测试见首次部署后的 T057 记录；流水线镜像见 T038。
