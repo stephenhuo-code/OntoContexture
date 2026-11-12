@@ -63,10 +63,12 @@ make cloud-images                 # 触发 GitHub 镜像流水线：为当前提
 make cloud-deploy VERSION=git-<提交前 12 位>   # 部署或更新整套环境（镜像由 make cloud-images 触发的流水线构建）
 make cloud-info                   # 各组件地址与凭证位置
 make cloud-dev                    # 开发模式：bff / web 换成工作区代码，保存后几秒生效；Ctrl+C 恢复稳定版本
+make cloud-dev-reset              # 开发模式异常退出（如开发机重建）后恢复稳定版本
 make cloud-lint / cloud-test / cloud-e2e   # 在集群内对当前工作区运行检查与测试
+make cloud-unit                   # 云端脚本的 bash 单元测试（开发机上直接运行）
 make cloud-build TARGET=bff|web|all        # 在集群内构建并部署（成为稳定版本）
 make cloud-seed / cloud-mock-data           # 数据初始化 / 重建模拟数据（后者须确认）
-make cloud-dev-metadata                     # 006 开发态元数据（cloud-e2e 的资产搜索场景需要）
+make cloud-dev-metadata / cloud-dev-metadata-remove   # 导入 / 删除 006 开发态元数据（cloud-e2e 的资产搜索场景需要）
 make cloud-stop / cloud-start / cloud-status   # 停止并释放弹性池 / 恢复 / 查看状态
 make cloud-uninstall              # 卸载（须确认，删除全部数据）
 ```
