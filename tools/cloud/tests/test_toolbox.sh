@@ -133,3 +133,8 @@ test_manifest_keeps_toolbox_off_the_airflow_node() {
   assert_eq "[\"$CTX_CLOUD_NAMESPACE\"]" "$(jq -c '.namespaces' <<< "$term")"
   assert_eq '"kubernetes.io/hostname"' "$(jq -c '.topologyKey' <<< "$term")"
 }
+
+# T088 实测：主进程 sleep infinity 不响应 TERM，删除要等满 30 秒宽限期，命令结束后 Pod 仍处于 Terminating，被报告为残留
+test_manifest_uses_short_termination_grace_period() {
+  assert_eq "2" "$(jq -r '.spec.terminationGracePeriodSeconds' <<< "$(ctx_toolbox_manifest)")"
+}
