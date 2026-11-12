@@ -55,3 +55,9 @@ dagProcessor:
   resources:
     requests: { cpu: 50m, memory: 512Mi }
     limits: { memory: 1536Mi }
+# 采集任务 Pod（KubernetesExecutor 的 pod-template-file 取 workers.kubernetes.resources）：无 requests 时会被调度到已满的节点后 OOM（T068 实测）
+workers:
+  kubernetes:
+    resources:
+      requests: { cpu: 100m, memory: 512Mi }
+      limits: { memory: 1536Mi }

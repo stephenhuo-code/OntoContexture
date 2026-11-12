@@ -14,13 +14,16 @@ ctx_toolbox_image() {  # 优先用 cloud-build --toolbox 记录的镜像，否�
 
 ctx_toolbox_manifest() {
   jq -cn --arg owner "$(hostname)/$$" --arg name "$CTX_TOOLBOX_POD" --arg image "$(ctx_toolbox_image)" --arg dind "$CTX_DIND_IMAGE" \
-    --arg nodekey "$CTX_CLOUD_NODE_LABEL" --arg pool "$CTX_CLOUD_NODE_POOL" '{
+    --arg nodekey "$CTX_CLOUD_NODE_LABEL" --arg pool "$CTX_CLOUD_NODE_POOL" --arg airflowns "$CTX_CLOUD_NAMESPACE" '{
     apiVersion: "v1", kind: "Pod",
     metadata: {name: $name, labels: {"app.kubernetes.io/name": "contexture-toolbox"},
       annotations: {"contexture.io/owner": $owner}},
     spec: {
       serviceAccountName: "toolbox", restartPolicy: "Never",
       nodeSelector: {($nodekey): $pool},
+      # 避开 Airflow 独占的节点（T068 实测：工具箱落在该节点后采集任务 Pod 无法调度）；Airflow 的反亲和只作用于其 namespace
+      affinity: {podAntiAffinity: {requiredDuringSchedulingIgnoredDuringExecution: [
+        {labelSelector: {matchLabels: {release: "airflow"}}, namespaces: [$airflowns], topologyKey: "kubernetes.io/hostname"}]}},
       imagePullSecrets: [{name: "docr-pull"}],
       containers: [
         {name: "toolbox", image: $image, command: ["sleep", "infinity"],
