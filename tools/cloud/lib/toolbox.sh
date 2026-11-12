@@ -43,9 +43,12 @@ ctx_toolbox_cleanup() {
 }
 
 ctx_toolbox_upload() {  # 只上传 git 跟踪与未忽略的文件（另附 .git 供变更覆盖率计算），并再次排除 .env 类凭证文件
+  # 子模块在列表中是目录，tar 会递归上传其全部内容（含 .env.example）；只保留空目录，与未初始化子模块时一致
+  local excludes=() path
+  while read -r _ path; do excludes+=(--exclude="$path/*"); done < <(git -C "$CTX_REPO_ROOT" config -f .gitmodules --get-regexp '\.path$' 2>/dev/null)
   { git -C "$CTX_REPO_ROOT" ls-files -z -co --exclude-standard; printf '.git\0'; } |
     grep -zvE '(^|/)\.env(\.[A-Za-z0-9_-]+)?$' |
-    tar -C "$CTX_REPO_ROOT" --null -T - -czf - |
+    tar -C "$CTX_REPO_ROOT" "${excludes[@]}" --null -T - -czf - |
     ctx_kubectl -n "$CTX_TOOLBOX_NS" exec -i "$CTX_TOOLBOX_POD" -c toolbox -- tar xzf - -C /workspace
 }
 
