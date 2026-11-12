@@ -104,6 +104,7 @@ test_stop_is_idempotent_when_already_stopped() {
 
 test_start_restores_recorded_replicas_in_reverse_order_and_runs_smoke() {
   for f in "$FAKE"/*; do sed -i -E 's#^([^ ]+) ([0-9]+) $#\1 0 \2#' "$f"; done
+  HIBERNATED=on
   LIFECYCLE=stopped
   ctx_lc_start >/dev/null
   local c; c=$(stub_calls)
@@ -147,6 +148,7 @@ test_resume_is_a_no_op_when_nothing_is_stopped() {
 # T082 实测：弹性池为 0 时恢复 CNPG operator 后立即解除休眠，webhook 尚未就绪（connection refused），启动在 3 秒内失败
 test_start_waits_for_operator_rollout_before_unhibernating() {
   for f in "$FAKE"/*; do sed -i -E 's#^([^ ]+) ([0-9]+) $#\1 0 \2#' "$f"; done
+  HIBERNATED=on
   ctx_lc_resume >/dev/null
   local roll; roll=$(line_of "cnpg-system rollout status")
   [[ -n $roll ]] || fail "未等待 CNPG operator 就绪"
@@ -154,7 +156,7 @@ test_start_waits_for_operator_rollout_before_unhibernating() {
 }
 
 test_unhibernate_retries_until_webhook_accepts() {
-  echo 2 > "$FAKE/hib-fail"
+  echo 2 > "$FAKE/hib-fail"; HIBERNATED=on
   CTX_LC_RETRY_SLEEP=0 ctx_lc_cnpg off >/dev/null 2>&1 || fail "webhook 就绪后应成功"
   [[ $(stub_calls | grep -c "contexture cluster.postgresql.cnpg.io/pg cnpg.io/hibernation-") -eq 3 ]] || fail "应重试到成功（共 3 次）"
 }
