@@ -353,7 +353,7 @@
 - [X] T079 [US6] 实现 `tools/cloud/lifecycle.sh` 的停止部分，并在 `Makefile` 新增 `cloud-stop` 目标（`TIMEOUT` 默认 25 分钟；超时时列出仍在弹性池上的非 DaemonSet Pod，以退出码 4 退出）（FR-032、FR-033、FR-038）
 - [X] T080 [US6] 实现启动部分，并在 `Makefile` 新增 `cloud-start` 目标：恢复到稳定版本；等待证书 Ready；运行冒烟测试；等待超时时列出 Pending 的 Pod。使 T076 通过（FR-034、FR-035）
 - [X] T081 [US6] 实现状态部分，并在 `Makefile` 新增 `cloud-status` 目标，使 T077 通过（FR-036）
-- [ ] T082 [US6] 运行 T078，使其通过；连续执行两次 `cloud-stop` 和两次 `cloud-start`，验证幂等；在停止过程中中断命令，再执行一次后环境能收敛（US6 场景 5；FR-035）
+- [X] T082 [US6] 运行 T078，使其通过；连续执行两次 `cloud-stop` 和两次 `cloud-start`，验证幂等；在停止过程中中断命令，再执行一次后环境能收敛（US6 场景 5；FR-035）
 
 ---
 

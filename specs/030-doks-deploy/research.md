@@ -352,6 +352,16 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
   dind（否则 keycloak-config-cli 报 `No files matching '/config/*.yaml'`、登录主题为空）；dind 中 Keycloak 较慢，测试辅助代码的
   管理接口超时由 httpx 默认 5 秒放宽到 60 秒。
 - 并行执行部署与 `cloud-test` 时，部署中的 OM 本体配置启动工具箱，删除了正在运行测试的同名 Pod（退出码 137）。互斥改为拒绝而非抢占（见 R12）。
+- 2026-11-12 续：11-11 遗留的 e2e 失败“US1 接入 MES 并首采”——对应的 Airflow 运行停在 running，其余 MES 运行约 30 秒成功；
+  发生时段与调度器 OOM 重启重合，且采集任务 Pod 没有资源设置（可被调度到已满节点后 OOM），工具箱 Pod（requests 3Gi）也会落到 Airflow 独占的节点。
+  修正：采集任务 Pod 设 `workers.kubernetes.resources`（512Mi / 1536Mi，Chart 1.22.0 的 pod-template-file 取该值）；工具箱 Pod 以必需反亲和避开
+  Airflow 所在节点（Airflow 的反亲和只作用于其 namespace，管不到 `contexture-ci`）。重新部署后该用例通过（56.8 秒）。
+- 同日 `cloud-e2e`：pytest 部分通过；浏览器 26 项中 23 项通过、1 项跳过、2 项失败——`demo.spec` 两个“设备”标题（11-11 已知，非 030），
+  `assets.spec` US1 搜索结果 5 秒内未出现（环境刚启动后的首次搜索）；单独重跑 `assets.spec` 11 项全部通过（该项 3.4 秒）。
+- `pnpm e2e:ui`（开发示例页）在工具箱中无法照原样运行：它在工具箱内启动 Vite（localhost:5173），`/bff` 转发到 localhost:8080，
+  而云端登录 Cookie 属于织境域名，localhost 拿不到会话（ECONNREFUSED / 未登录）。云端对应场景是开发模式（T075 已实测通过）；处理方式待负责人决定。
+- 工具箱上传改为排除子模块内容：初始化 Omnigent 子模块（007 调研）后，`git ls-files` 把子模块列为目录，tar 递归上传了其全部文件（含 `.env.example`），
+  单元测试“不上传凭证文件”因此失败。
 
 ## 实施记录：集群内构建并部署（T063，2026-11-11，SC-004）
 
@@ -396,3 +406,27 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
 - `make cloud-stop`：按序停止控制器、织境工作负载，PostgreSQL 休眠，等待弹性池释放，全程 **949 秒**（SC-011 ≤ 20 分钟），4 个弹性节点全部回收（弹性池 0）；
   `cloud-status` 显示“已停止”，稳定版本记录保留；devbox-0 不受影响。停止期间访问立即失败、不挂起。
 - 尚未验证（下次继续）：`cloud-start` 恢复用时与数据一致性、重复启停幂等、停止中途中断后收敛（`tests/cloud/test_lifecycle.sh`）。
+
+## 实施记录：启动与启停幂等（T082，2026-11-12）
+
+首次从弹性池 0 节点执行 `cloud-start`，暴露 4 个只有真实启停才会出现的问题，均先补失败测试再修正：
+
+| 现象 | 原因 | 修正 |
+| --- | --- | --- |
+| 启动 3 秒即失败：`failed calling webhook "mcluster.cnpg.io" … connection refused` | 恢复 CNPG operator 副本后立即解除 PostgreSQL 休眠，operator 要等新节点就绪才能运行 | 解除休眠前等待 operator `rollout status`，注解被拒时重试（最多 60 次） |
+| 环境已就绪，`cloud-start` 仍判定“等待就绪”失败，诊断列表为空 | `kubectl wait --for=condition=Available deployment --all` 在没有 Deployment 的 namespace（`mock-sources` 只有 StatefulSet，`contexture-ci` 平时为空）返回 1 | 没有 Deployment 的 namespace 跳过该检查 |
+| Keycloak 冒烟失败：`kubectl logs job/keycloak-import-…` 超时 | 停止释放节点后，已完成 Job 的 Pod 被回收 | Pod 已回收时以 Job 的 Complete 状态为准 |
+| Airflow 冒烟失败：“存在首轮遗留 DAG” | OM 删除采集任务时删除了 DAG 文件，Airflow 元数据库仍保留无文件的记录（e2e 与 `ctx005_chain_` 测试残留，名称前缀与首轮遗留规则重合） | 改为检查 dags 目录中的文件 |
+| 已停止时再执行 `cloud-stop` 失败（同样的 webhook 拒绝） | 停止流程再次给已休眠的集群加注解，此时 operator 已停 | 休眠 / 解除休眠只处理状态需要改变的集群；`cloud-deploy` 每次部署前调用的 resume 也不再动未休眠的集群 |
+
+云端验证测试 `tests/cloud/test_lifecycle.sh` 自身也有两处缺陷：数据快照缺 namespace、用了跨库引用，且 Langfuse v3 的轨迹在 ClickHouse
+而非 PostgreSQL，快照恒为空，“数据一致”只是空值比较；停止期间 `curl` 连接失败返回非 0，在 `set -e` 下中止了测试。已修正，快照取不到时直接判失败。
+
+修正后完整运行 `tests/cloud/test_lifecycle.sh`（用时 1925 秒）全部通过：
+
+- 停止 **980 秒**（SC-011 ≤ 20 分钟），弹性池 0 节点，devbox-0 不受影响，停止期间访问 **28 毫秒**内失败、不挂起；重复停止直接成功。
+- 启动 **711 秒**（SC-012 ≤ 30 分钟），20 个组件冒烟测试通过；停止前后数据一致（OM 数据源 3 / 表 29，Langfuse 轨迹 0）；重复启动直接成功（另测 235 秒，含冒烟测试）。
+- 停止中途中断（US6 场景 5，FR-035）：运行中的环境执行 `cloud-stop`，第 240 秒（已进入等待弹性池释放）以 TERM 终止，`cloud-status` 显示
+  “部分运行（记录：stopping）”；再执行一次 `cloud-stop`，**758 秒**收敛为“已停止”、弹性池 0 节点；随后 `cloud-start` **753 秒**恢复，冒烟测试全部通过。
+- 实测中曾误把一次 `cloud-start` 与 `cloud-stop` 并行执行，两者互相改动副本数；终止两者后单独执行一次 `cloud-start`（535 秒）收敛到运行状态。
+  启停命令之间没有互斥锁，同时执行的结果不确定，记入 acceptance.md 已知限制。
