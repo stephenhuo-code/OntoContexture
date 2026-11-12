@@ -20,6 +20,8 @@ ctx_toolbox_manifest() {
       annotations: {"contexture.io/owner": $owner}},
     spec: {
       serviceAccountName: "toolbox", restartPolicy: "Never",
+      # 主进程 sleep infinity 不响应 TERM：默认 30 秒宽限期内 Pod 停在 Terminating，被报告为残留（T088 实测）
+      terminationGracePeriodSeconds: 2,
       nodeSelector: {($nodekey): $pool},
       # 避开 Airflow 独占的节点（T068 实测：工具箱落在该节点后采集任务 Pod 无法调度）；Airflow 的反亲和只作用于其 namespace
       affinity: {podAntiAffinity: {requiredDuringSchedulingIgnoredDuringExecution: [
