@@ -24,7 +24,13 @@ ctx_kubectl() {
   for ((i = 0; i < ${#args[@]}; i++)); do [[ ${args[i]} == -n ]] && ns=${args[i + 1]}; done
   case "$*" in
     *"get deploy,statefulset"*) cat "$FAKE/$ns" 2>/dev/null ;;
-    *"annotate "*) stub_record "annotate -n $ns ${s##*annotate }" ;;
+    *"annotate "*)
+      stub_record "annotate -n $ns ${s##*annotate }"
+      # 模拟 CNPG webhook 尚未就绪：前 N 次解除休眠被拒（T082 实测 connection refused）
+      if [[ $s == *hibernation- && -s $FAKE/hib-fail ]]; then
+        local n; n=$(cat "$FAKE/hib-fail")
+        if ((n > 0)); then echo $((n - 1)) > "$FAKE/hib-fail"; return 1; fi
+      fi ;;
     *"scale "*) stub_record "scale -n $ns ${s##*scale }" ;;
     *"get nodes"*) for ((i = 0; i < NODES; i++)); do echo "node/n$i"; done ;;
     *"get pods"*"--field-selector=spec.nodeName"*) printf '%s' "$BLOCKERS" ;;
@@ -132,4 +138,19 @@ test_resume_restores_annotated_workloads_without_waiting_or_smoke() {
 test_resume_is_a_no_op_when_nothing_is_stopped() {
   ctx_lc_resume >/dev/null
   assert_not_contains "$(stub_calls)" "scale "
+}
+
+# T082 实测：弹性池为 0 时恢复 CNPG operator 后立即解除休眠，webhook 尚未就绪（connection refused），启动在 3 秒内失败
+test_start_waits_for_operator_rollout_before_unhibernating() {
+  for f in "$FAKE"/*; do sed -i -E 's#^([^ ]+) ([0-9]+) $#\1 0 \2#' "$f"; done
+  ctx_lc_resume >/dev/null
+  local roll; roll=$(line_of "cnpg-system rollout status")
+  [[ -n $roll ]] || fail "未等待 CNPG operator 就绪"
+  [[ $(line_of "scale -n cnpg-system") -lt $roll && $roll -lt $(line_of "cnpg.io/hibernation-") ]] || fail "须在恢复 operator 后、解除休眠前等待"
+}
+
+test_unhibernate_retries_until_webhook_accepts() {
+  echo 2 > "$FAKE/hib-fail"
+  CTX_LC_RETRY_SLEEP=0 ctx_lc_cnpg off >/dev/null 2>&1 || fail "webhook 就绪后应成功"
+  [[ $(stub_calls | grep -c "contexture cluster.postgresql.cnpg.io/pg cnpg.io/hibernation-") -eq 3 ]] || fail "应重试到成功（共 3 次）"
 }
