@@ -10,7 +10,7 @@ ctx_info_main() {
   cat <<INFO
 
 织境云端环境（$d）
-  织境 Web               https://$d                 测试用户 user1 / engineer1 / admin1（密码同用户名）
+  织境 Web               https://$d                 engineer1 / engineer1 或 admin1 / admin1（user1 为业务用户，无织境 Web 权限）
   OpenMetadata           https://om.$d              Keycloak 登录（admin1 为 OM 管理员）
   Langfuse（决策轨迹）   https://langfuse.$d        admin@contexture.local；密码：Secret langfuse-init 键 admin-password
   Airflow                https://airflow.$d         openmetadata；密码：Secret om-secrets 键 airflow-password

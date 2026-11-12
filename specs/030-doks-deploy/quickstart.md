@@ -39,7 +39,7 @@ AI 网关等会因无法校验 `https://sso.<域名>` 而启动失败。
 
 ## 4. 访问（US4）
 
-浏览器打开 `https://<域名>`，用 `user1 / user1` 登录。预期：证书受信任，进入首页。
+浏览器打开 `https://<域名>`，用 `engineer1 / engineer1` 登录（`user1` 是业务用户，无织境 Web 权限）。预期：证书受信任，进入首页。
 `make cloud-info` 列出 OpenMetadata、Langfuse、Airflow 等的子域名地址，逐个打开验证。
 
 ## 5. 开发模式（US2）

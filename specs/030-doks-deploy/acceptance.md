@@ -36,7 +36,7 @@ make cloud-info
 
 预期：状态为“运行中”，当前版本为“稳定版本”；`cloud-info` 列出织境、Keycloak、OpenMetadata、Langfuse、Airflow 等子域名地址，不输出任何密码或令牌。
 
-在任意联网电脑的浏览器中打开 <https://ctx.stephenwebsite.net>，用 `user1` / `user1` 登录，**用秒表记录从打开地址到看到首页的时间**。
+在任意联网电脑的浏览器中打开 <https://ctx.stephenwebsite.net>，用 `engineer1` / `engineer1` 登录（织境 Web 只对管理员与 AI 工程师开放；`user1` 是业务用户，会看到“无权访问织境”），**用秒表记录从打开地址到看到首页的时间**。
 预期：浏览器无证书警告，自动跳到 `sso.ctx.stephenwebsite.net` 登录，登录后进入首页，总耗时 ≤ 1 分钟（SC-005）。再逐个打开 `cloud-info` 列出的组件地址，均能打开。
 
 ```bash

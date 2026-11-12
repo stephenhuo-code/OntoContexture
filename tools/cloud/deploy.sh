@@ -138,7 +138,7 @@ ctx_print_access() {
   cat <<INFO
 
 织境云端环境
-  织境 Web     https://$CTX_CLOUD_DOMAIN        测试用户 user1 / engineer1 / admin1（密码同用户名）
+  织境 Web     https://$CTX_CLOUD_DOMAIN        engineer1 / engineer1 或 admin1 / admin1（user1 为业务用户，无织境 Web 权限）
   其他组件     make cloud-info
   负载均衡器   ${ip:-（尚未分配）}
   DNS 记录     $CTX_CLOUD_DOMAIN  A  ${ip:-<负载均衡器 IP>}

@@ -37,7 +37,7 @@ make e2e       # 端到端：AI 网关策略、Toolbox、全链路追踪与审�
 make ports     # 把 OM、Langfuse、Jaeger、Prometheus、OpenSearch Dashboards 的界面转发到本机
 ```
 
-打开 <http://localhost:8080>，用 `user1` / `user1` 登录，查看“设备”的定义与列表。
+打开 <http://localhost:8080>，用 `engineer1` / `engineer1` 登录（`user1` 是业务用户，无织境 Web 权限），查看“设备”的定义与列表。
 
 ### 开发
 
