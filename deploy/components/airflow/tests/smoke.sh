@@ -33,8 +33,9 @@ for d in airflow-api-server airflow-dag-processor; do  # Airflow 3 的 scheduler
 done
 echo "dags volume OK"
 
-if kubectl -n $NS exec deployment/airflow-scheduler -c scheduler -- airflow dags list -o plain 2>/dev/null \
-  | awk 'NR>1{print $1}' | grep -Eq '^(ctx005_|metadata_mock_|metadata_demo_)'; then
+# 只看 dags 目录中的文件：OM 删除采集任务时删除 DAG 文件，但 Airflow 元数据库仍保留无文件的记录（e2e 残留，T082 实测）
+if kubectl -n $NS exec deployment/airflow-api-server -c api-server -- ls -1 "$dags" 2>/dev/null \
+  | grep -Eq '^(ctx005_|metadata_mock_|metadata_demo_)'; then
   echo "存在首轮遗留 DAG"; exit 1
 fi
 kubectl -n $NS exec deployment/airflow-api-server -c api-server -- test ! -e "$dags/contexture_om_dags.py" \

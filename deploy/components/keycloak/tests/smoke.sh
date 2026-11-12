@@ -4,4 +4,9 @@ set -euo pipefail
 NS=contexture
 job=$(kubectl -n $NS get jobs -l app.kubernetes.io/name=keycloak-import --sort-by=.metadata.creationTimestamp -o name | tail -1)
 kubectl -n $NS wait "$job" --for=condition=Complete --timeout=600s
-kubectl -n $NS logs "$job" -c import | grep -q "keycloak-config-cli ran in" && echo "import OK"
+# 停止释放节点后，已完成 Job 的 Pod 可能已被回收（T082 实测）：此时以 Job 的 Complete 状态为准
+if [[ -z $(kubectl -n $NS get pods -l "job-name=${job#*/}" -o name 2>/dev/null) ]]; then
+  echo "import OK（Job 已完成，Pod 已回收）"
+else
+  kubectl -n $NS logs "$job" -c import | grep -q "keycloak-config-cli ran in" && echo "import OK"
+fi
