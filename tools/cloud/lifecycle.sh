@@ -141,7 +141,8 @@ ctx_lc_stop() {
 ctx_lc_wait_ready() {
   local ns
   for ns in cnpg-system cert-manager doris-system "${CTX_LC_WORKLOAD_NS[@]}" envoy-gateway-system; do
-    ctx_kubectl -n "$ns" wait --for=condition=Available deployment --all --timeout="${CTX_LC_READY_TIMEOUT:-1500s}" >/dev/null 2>&1 &&
+    # 没有 Deployment 时 wait --all 返回 1（mock-sources 只有 StatefulSet，contexture-ci 平时为空；T082 实测）
+    { [[ -z $(ctx_kubectl -n "$ns" get deploy -o name 2>/dev/null) ]] || ctx_kubectl -n "$ns" wait --for=condition=Available deployment --all --timeout="${CTX_LC_READY_TIMEOUT:-1500s}" >/dev/null 2>&1; } &&
       ctx_kubectl -n "$ns" rollout status statefulset --timeout="${CTX_LC_READY_TIMEOUT:-1500s}" >/dev/null 2>&1 ||
       { ctx_report_unschedulable; return 1; }
   done
