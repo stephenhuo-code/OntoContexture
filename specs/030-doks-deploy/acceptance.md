@@ -1,8 +1,8 @@
 # 030 DOKS 云端开发与部署环境：验收文档
 
-**状态：实施完成，待产品负责人手动验收。**
+**状态：已验收通过并关闭（2026-11-12，产品负责人确认）。**
 
-- 特性分支：`030-doks-deploy`（已推送；按负责人决定，全部特性开发完成前不合并到 main）
+- 特性分支：`030-doks-deploy`（已推送；负责人验收通过后于 2026-11-12 决定合并到 main，以 merge 提交保留测试先行的提交顺序）
 - 规格：[spec.md](spec.md)；计划：[plan.md](plan.md)；调研与实测记录：[research.md](research.md)（各“实施记录”小节）；命令契约：[contracts/cloud-commands.md](contracts/cloud-commands.md)
 - 本文数字均来自 2026-11-11～11-12 在 DOKS 集群上的实测。
 
@@ -182,10 +182,16 @@ tools/cloud/tests/render-compare.sh
 
 | 步骤 | 结果（通过 / 不通过 / 未执行） | 备注 | 验收人 / 日期 |
 | --- | --- | --- | --- |
-| 3.1 状态与访问（含登录耗时） | | 登录耗时：____ 秒 | |
-| 3.2 开发模式 | | | |
-| 3.3 集群内检查、测试与构建 | | | |
-| 3.4 启停 | | | |
-| 3.5 开发机重启恢复 | | | |
-| 3.6 本地不受影响 | | | |
-| 第 7 节待决事项 | | | |
+| 3.1 状态与访问（含登录耗时） | 通过 | 以 engineer1 登录（user1 为业务用户，无织境 Web 权限，提示已更正）；登录耗时负责人未另行记录 | stephenhuo-code / 2026-11-12 |
+| 3.2 开发模式 | 通过 | | stephenhuo-code / 2026-11-12 |
+| 3.3 集群内检查、测试与构建 | 通过 | | stephenhuo-code / 2026-11-12 |
+| 3.4 启停 | 通过 | | stephenhuo-code / 2026-11-12 |
+| 3.5 开发机重启恢复 | 通过 | | stephenhuo-code / 2026-11-12 |
+| 3.6 本地不受影响 | 通过 | | stephenhuo-code / 2026-11-12 |
+| 第 7 节待决事项 | 随验收关闭 | A1～A4 负责人未逐项说明，按现状记录：A1 云端未运行 e2e:ui；A3 MES 首采偶发超时列为已知限制；A4 远端 CI 随合并到 main 触发 | stephenhuo-code / 2026-11-12 |
+
+**签字**：产品负责人 @stephenhuo-code 于 2026-11-12 确认 030 验收通过，同意关闭并合并到 main。
+
+**验收后遗留（负责人 2026-11-12 决定后续再改）**：`tests/cloud/test_lifecycle.sh` 的 Langfuse 快照查询 ClickHouse `traces` 表，而当前 Langfuse 版本的数据写在
+`events_core`，该项比对未起作用（Langfuse 数据本身持久化在持久卷上，11-11 写入的事件经 4 次启停仍在）；第 4 节与 research 中“Langfuse 轨迹 0”的表述待随测试一并更正。
+Langfuse 接收平台全部 OTel span（Collector 公共配置），是否过滤留待 010 决定；云端 Langfuse 注册保持开放（负责人决定）。

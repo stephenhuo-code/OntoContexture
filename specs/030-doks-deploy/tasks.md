@@ -237,7 +237,7 @@
 - [X] T054 [P] [US4] 编写 `tests/cloud/test_cloud_env.py`（`-m cluster`，在工具箱中运行）：Certificate 为 Ready 且包含全部主机名；续期设置为提前 30 天（US4 场景 5）
 - [X] T055 [US4] 为 OpenMetadata、Langfuse、Airflow、Jaeger、Prometheus、OpenSearch Dashboards、AI 网关管理界面和 Keycloak 在各自的 `values/cloud.yaml(.gotmpl)` 中新增按子域名的 `HTTPRoute`，主机名按 R3。AI 网关管理界面目前只监听 Pod 内地址，需要在 `deploy/components/ai-gateway/chart` 中增加一个可选的 Service，默认关闭（FR-020）
 - [X] T056 [US4] 实现 `tools/cloud/info.sh`，并在 `Makefile` 新增 `cloud-info` 目标：按 `tools/ports.sh` 中的组件列表，输出各组件的云端地址、登录方式，以及凭证所在的 Secret 名和键；不输出凭证值（FR-029；US7 场景 1）
-- [ ] T057 [US4] 运行 T053、T054，使其通过；在浏览器中以 `user1` 登录，并记录登录耗时（SC-005）
+- [X] T057 [US4] 运行 T053、T054，使其通过；在浏览器中以 `user1` 登录，并记录登录耗时（SC-005）
 
 ---
 
@@ -287,7 +287,7 @@
   - `testdata/deploy/{mes,qms}`、`testdata/deploy/secrets.sh`：参数化 kube 上下文和 nodeSelector。
 
   （FR-018、FR-026）
-- [ ] T068 [US3] 依次执行 `make cloud-lint`、`make cloud-test`、`make cloud-mock-data`、`make cloud-seed`、`make cloud-e2e`，修复问题直到全部通过；使 T065 通过；记录各命令耗时（SC-004）
+- [X] T068 [US3] 依次执行 `make cloud-lint`、`make cloud-test`、`make cloud-mock-data`、`make cloud-seed`、`make cloud-e2e`，修复问题直到全部通过；使 T065 通过；记录各命令耗时（SC-004）
 
 ---
 
@@ -359,7 +359,7 @@
 
 ## Phase 10: Polish & Cross-Cutting Concerns（阶段 F）
 
-- [ ] T083 开发机重启恢复验证（R18）：
+- [X] T083 开发机重启恢复验证（R18）：
   1. `cloud-dev` 运行期间删除 devbox-0 的 Pod，重建后执行 `cloud-status` 显示“开发模式（无本地进程）”，再执行 `cloud-dev-reset` 能恢复；
   2. `cloud-test` 运行期间删除 devbox-0 的 Pod，重建后执行 `cloud-status` 能报告残留 Pod，再次执行 `cloud-test` 时会先清理残留；
   3. 重建后执行 `which kubectl helm helmfile doctl devspace buildctl jq`，全部指向 `~/.local/bin`。
