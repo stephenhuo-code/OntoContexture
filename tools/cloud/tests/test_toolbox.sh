@@ -124,3 +124,12 @@ test_manifest_records_owner_process() {
   ctx_toolbox_run "true" >/dev/null
   assert_contains "$(cat "$STUB_LOG.manifest")" "\"contexture.io/owner\":\"$(hostname)/$$\""
 }
+
+# T068 实测：工具箱 Pod（requests 3Gi）落在 Airflow 独占的节点上，采集任务 Pod 无法调度；Airflow 的反亲和只作用于其所在 namespace
+test_manifest_keeps_toolbox_off_the_airflow_node() {
+  local m; m=$(ctx_toolbox_manifest)
+  local term; term=$(jq -c '.spec.affinity.podAntiAffinity.requiredDuringSchedulingIgnoredDuringExecution[0]' <<< "$m")
+  assert_eq '"airflow"' "$(jq -c '.labelSelector.matchLabels.release' <<< "$term")"
+  assert_eq "[\"$CTX_CLOUD_NAMESPACE\"]" "$(jq -c '.namespaces' <<< "$term")"
+  assert_eq '"kubernetes.io/hostname"' "$(jq -c '.topologyKey' <<< "$term")"
+}

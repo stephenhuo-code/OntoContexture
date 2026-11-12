@@ -69,6 +69,9 @@ cloud_assertions() {
   # Airflow 界面对外：入口须能访问 api-server，但不认证的 managed-apis（/pluginsv2，005 research R3）不得经入口暴露（T057 实测）
   awk '/^# Source: envoy-gateway-config\/templates\/gateway.yaml/{f=1} /^---$/{f=0; a=0} f && /name: ui-airflow/{a=1} a && /\/pluginsv2/{p=1}
     a && /RequestRedirect/{r=1} END{exit !(p && r)}' "$file" || report "Airflow 入口未拦截 /pluginsv2"
+  # 采集任务 Pod 须有资源设置（T068 实测：任务 Pod 无 requests，被调度到已满的节点后 OOM）
+  awk '/pod_template_file.yaml: \|-/{f=1} /^---$/{f=0} f && /memory: 1536Mi/{found=1} END{exit !found}' "$file" ||
+    report "Airflow 采集任务 Pod 未设置资源（512Mi / 1536Mi）"
   awk '/^# Source: airflow\/templates\/api-server\/api-server-networkpolicy/{f=1} /^---$/{f=0}
     f && /envoy-gateway-system/{found=1} END{exit !found}' "$file" || report "Airflow api-server 网络策略未放行入口代理"
   [[ $failed == 0 ]] && printf '  ✔ cloud 渲染结构断言通过\n'
