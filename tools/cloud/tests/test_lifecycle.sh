@@ -35,7 +35,7 @@ ctx_kubectl() {
     *"get nodes"*) for ((i = 0; i < NODES; i++)); do echo "node/n$i"; done ;;
     *"get pods"*"--field-selector=spec.nodeName"*) printf '%s' "$BLOCKERS" ;;
     *"get pod contexture-toolbox"*) printf '%s' "$TOOLBOX_RUNNING" ;;
-    *"get clusters.postgresql.cnpg.io"*) printf 'contexture/pg\nmock-sources/mock-qms\n' ;;
+    *"get clusters.postgresql.cnpg.io"*) printf 'contexture/pg %s\nmock-sources/mock-qms %s\n' "${HIBERNATED:-}" "${HIBERNATED:-}" ;;
     *"get cronjob"*) printf 'openmetadata-reindex\n' ;;
     *"get certificate"*) echo True ;;
     # 真实 kubectl：namespace 中没有 Deployment 时 wait --all 报 “no matching resources found” 并返回 1
@@ -167,4 +167,16 @@ test_wait_ready_skips_namespaces_without_deployments() {
   assert_not_contains "$(stub_calls)" "report-unschedulable"
   assert_contains "$(stub_calls)" "kubectl -n mock-sources rollout status statefulset"
   assert_contains "$(stub_calls)" "kubectl -n contexture wait deployment"
+}
+
+# T082 实测：已停止时再执行 cloud-stop，CNPG operator 已停，给已休眠的集群再加注解被 webhook 拒绝（connection refused），重复停止失败
+test_stop_skips_clusters_already_hibernated() {
+  HIBERNATED=on
+  ctx_lc_cnpg on >/dev/null || fail "已休眠的集群不应再加注解"
+  assert_not_contains "$(stub_calls)" "hibernation=on"
+}
+
+test_stop_hibernates_clusters_not_yet_hibernated() {
+  ctx_lc_cnpg on >/dev/null
+  assert_contains "$(stub_calls)" "annotate -n contexture cluster.postgresql.cnpg.io/pg cnpg.io/hibernation=on"
 }
