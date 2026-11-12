@@ -60,7 +60,13 @@ ctx_lc_cnpg() {  # ctx_lc_cnpg <on|off>：CNPG 原生休眠，保留 PVC
     if [[ $1 == on ]]; then
       ctx_kubectl -n "$ns" annotate "cluster.postgresql.cnpg.io/$name" cnpg.io/hibernation=on --overwrite >/dev/null
     else
-      ctx_kubectl -n "$ns" annotate "cluster.postgresql.cnpg.io/$name" cnpg.io/hibernation- >/dev/null
+      # operator 刚恢复时 webhook 可能尚未接受请求（T082 实测 connection refused）：重试至成功
+      local i
+      for ((i = 0; ; i++)); do
+        ctx_kubectl -n "$ns" annotate "cluster.postgresql.cnpg.io/$name" cnpg.io/hibernation- >/dev/null && break
+        ((i < 60)) || return 1
+        sleep "${CTX_LC_RETRY_SLEEP:-10}"
+      done
     fi
   done
 }
@@ -146,6 +152,8 @@ ctx_lc_resume() {
   ctx_log "恢复控制器与数据库"
   ctx_lc_start_ns cnpg-system
   ctx_lc_start_ns cert-manager
+  # 弹性池为 0 时 operator 需等新节点就绪才能运行，解除休眠依赖其 webhook（T082 实测）
+  ctx_kubectl -n cnpg-system rollout status deployment --timeout=1200s >/dev/null || return 1
   ctx_lc_cnpg off
   ctx_log "恢复织境工作负载（bff / web 为稳定版本）"
   ctx_lc_start_ns doris-system
