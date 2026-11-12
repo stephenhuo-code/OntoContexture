@@ -127,7 +127,7 @@ tools/cloud/tests/render-compare.sh
 | US1 / SC-001 | 一条命令部署；重复部署 ≤ 20 分钟 | 20 个组件冒烟通过；重复部署 324 秒，Secret 不变；全新安装用时未单独测得（首次安装分 5 次完成） | research 首次完整部署（T052、T042） |
 | US2 / SC-002、SC-003 | 开发模式即时生效；开发机 ≤ 2 GB | 1 秒生效；1726 MiB | research 开发模式（T075） |
 | US3 / SC-004 | 集群内检查 ≤ 10 分钟 | cloud-lint 83 秒；cloud-test 596 秒；cloud-e2e 417 秒 | research 集群内测试（T068） |
-| US4 / SC-005 | HTTPS 域名访问、1 分钟内登录 | 证书受信任、各子域名可达；浏览器登录耗时待负责人在 3.1 记录 | research R4 / R5、test_access |
+| US4 / SC-005 | HTTPS 域名访问、1 分钟内登录 | 证书受信任、各子域名可达；浏览器登录约 3 秒（负责人实测） | research R4 / R5、test_access |
 | US5 / SC-004、SC-008 | 集群内构建 ≤ 10 分钟；流水线镜像 | cloud-build 85 秒；流水线约 30 分钟（OM 镜像版本不变时只构建 bff / web） | research T063、R9 |
 | US6 / SC-011、SC-012 | 停止 ≤ 20 分钟、启动 ≤ 30 分钟、数据保留 | 980 秒 / 711 秒，数据一致，幂等；中断后收敛见第 5 节 | research 启动与启停幂等（T082） |
 | US7 / SC-009 | 卸载 | **本轮未实测**（负责人 2026-11-11 决定跳过 T060） | — |
@@ -182,7 +182,7 @@ tools/cloud/tests/render-compare.sh
 
 | 步骤 | 结果（通过 / 不通过 / 未执行） | 备注 | 验收人 / 日期 |
 | --- | --- | --- | --- |
-| 3.1 状态与访问（含登录耗时） | 通过 | 以 engineer1 登录（user1 为业务用户，无织境 Web 权限，提示已更正）；登录耗时负责人未另行记录 | stephenhuo-code / 2026-11-12 |
+| 3.1 状态与访问（含登录耗时） | 通过 | 以 engineer1 登录（user1 为业务用户，无织境 Web 权限，提示已更正）；登录耗时约 3 秒（SC-005 ≤ 1 分钟） | stephenhuo-code / 2026-11-12 |
 | 3.2 开发模式 | 通过 | | stephenhuo-code / 2026-11-12 |
 | 3.3 集群内检查、测试与构建 | 通过 | | stephenhuo-code / 2026-11-12 |
 | 3.4 启停 | 通过 | | stephenhuo-code / 2026-11-12 |
