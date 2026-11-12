@@ -9,6 +9,13 @@ spec:
   imageName: ghcr.io/cloudnative-pg/postgresql:17.6-standard-bookworm
   storage:
     size: {{ .Values.storage }}
+    {{- with .Values.storageClass }}
+    storageClass: {{ . }}
+    {{- end }}
+  {{- with .Values.nodeSelector }}
+  affinity:
+    nodeSelector: {{- toYaml . | nindent 6 }}
+  {{- end }}
   resources:
     requests: { cpu: 100m, memory: {{ .Values.memory }} }
     limits: { memory: {{ .Values.memory }} }

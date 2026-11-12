@@ -1,0 +1,11 @@
+# 云端（030）：令牌签发者为集群内 Keycloak 的公网地址；公共 CA
+keycloakIssuer: https://sso.{{ .Values.domain }}/realms/digital-workforce
+trustedCaSecret: ""
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+route:
+  sectionName: https
+  hostnames: [{{ .Values.domain | quote }}]
+adminAddr: 0.0.0.0:15000
+adminService:
+  enabled: true

@@ -1,0 +1,23 @@
+# 云端入口（030 research R3、R4、R19）：LoadBalancer + HTTPS 监听器 + HTTP 重定向；负载均衡器注解在 values/cloud-lb.yaml 中按云厂商维护
+envoyService:
+  type: LoadBalancer
+loadBalancer:
+  annotations:
+{{- readFile "../values/cloud-lb.yaml" | fromYaml | toYaml | nindent 4 }}
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+https:
+  enabled: true
+  certificateSecret: contexture-tls
+  redirectHttp: true
+# 组件界面（FR-020，research R3）：子域名 → Service
+routes:
+  - { name: keycloak, host: "sso.{{ .Values.domain }}", service: keycloak-keycloak, port: 8080 }
+  - { name: openmetadata, host: "om.{{ .Values.domain }}", service: openmetadata, port: 8585, timeout: 60s }
+  - { name: langfuse, host: "langfuse.{{ .Values.domain }}", service: langfuse-web, port: 3000 }
+  # managed-apis（/pluginsv2）不认证，只供 OpenMetadata 在集群内调用（005 research R3），不经入口暴露（T057 实测）
+  - { name: airflow, host: "airflow.{{ .Values.domain }}", service: airflow-api-server, port: 8080, blockPathPrefixes: [/pluginsv2] }
+  - { name: jaeger, host: "jaeger.{{ .Values.domain }}", service: jaeger, port: 16686 }
+  - { name: prometheus, host: "prometheus.{{ .Values.domain }}", service: prometheus, port: 9090 }
+  - { name: dashboards, host: "dashboards.{{ .Values.domain }}", service: opensearch-dashboards, port: 5601 }
+  - { name: gateway-admin, host: "gateway-admin.{{ .Values.domain }}", service: ai-gateway-admin, port: 15000 }

@@ -1,0 +1,9 @@
+domain: ""
+# 子域名（research R3）：织境 Web 与 bff 使用基础域名本身
+subdomains:
+  [sso, om, langfuse, airflow, jaeger, prometheus, dashboards, gateway-admin]
+acmeServer: production # staging | production
+acmeEmail: ""
+secretName: contexture-tls
+gateway: { name: contexture, namespace: contexture, listener: http }
+nodeSelector: {}

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from jsonschema import Draft202012Validator
 
 from tools.components_check import check_components
 
@@ -97,3 +98,25 @@ def test_missing_smoke_test_fails(tmp_path: Path) -> None:
 def test_name_must_match_directory(tmp_path: Path) -> None:
     errors = run(make_repo(tmp_path, with_(name="other")))
     assert any("name" in e for e in errors)
+
+
+def test_delivered_flag_is_an_optional_boolean() -> None:
+    # 030：delivered 为可选布尔值（默认交付）；非布尔值须被拒绝
+    schema = yaml.safe_load(
+        (
+            Path(__file__).resolve().parents[2] / "deploy/components/component.schema.json"
+        ).read_text()
+    )
+    base = {
+        "name": "x",
+        "version": "1",
+        "image": {"source": "official", "refs": ["x/y:1"]},
+        "license": "MIT",
+        "customization": "config",
+        "upstream": "https://example.com",
+        "owner": "@o",
+        "smoke_test": "tests/smoke.sh",
+    }
+    validator = Draft202012Validator(schema)
+    assert not list(validator.iter_errors({**base, "delivered": False}))
+    assert list(validator.iter_errors({**base, "delivered": "no"}))

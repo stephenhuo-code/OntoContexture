@@ -8,6 +8,12 @@ metadata:
 spec:
   parentRefs:
     - name: {{ .Values.route.gateway }}
+      {{- with .Values.route.sectionName }}
+      sectionName: {{ . }}
+      {{- end }}
+  {{- with .Values.route.hostnames }}
+  hostnames: {{- toYaml . | nindent 4 }}
+  {{- end }}
   rules:
     - matches:
         - path: { type: PathPrefix, value: /bff/ }

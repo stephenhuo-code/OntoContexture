@@ -21,14 +21,18 @@ import httpx
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 NS = "contexture"
-APP_URL = "http://localhost:8080"
+# 云端（030）：工具箱中由 CTX_E2E_BASE_URL 给出织境地址
+APP_URL = os.environ.get("CTX_E2E_BASE_URL", "http://localhost:8080")
 TOKEN_EXCHANGE = "urn:ietf:params:oauth:grant-type:token-exchange"
 ACCESS_TOKEN = "urn:ietf:params:oauth:token-type:access_token"
 
 
 def env() -> dict[str, str]:
+    path = REPO_ROOT / ".env.local"
+    if not path.is_file():  # 云端工具箱（030）：凭证由 Secret toolbox-env 注入为环境变量
+        return dict(os.environ)
     values: dict[str, str] = {}
-    for line in (REPO_ROOT / ".env.local").read_text(encoding="utf-8").splitlines():
+    for line in path.read_text(encoding="utf-8").splitlines():
         if "=" in line and not line.lstrip().startswith("#"):
             k, _, v = line.partition("=")
             values[k.strip()] = v.strip()
@@ -37,6 +41,8 @@ def env() -> dict[str, str]:
 
 def trusted_ca() -> ssl.SSLContext:
     """本机 Keycloak 经 Paperclip 的 Caddy，证书由 Caddy 本地 CA 签发。"""
+    if os.environ.get("CTX_E2E_BASE_URL"):  # 云端（030）：公共 CA 签发的证书
+        return ssl.create_default_context()
     pem = subprocess.run(
         [
             "docker",

@@ -1,0 +1,4 @@
+apiVersion: v2
+name: cert-manager-config
+description: 织境云端证书（ClusterIssuer 与覆盖全部主机名的 Certificate，030）
+version: 0.1.0

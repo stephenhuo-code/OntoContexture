@@ -1,0 +1,6 @@
+image: {{ .Values.registry }}/openmetadata-fuseki:6.2.0-ctx.0
+imagePullSecrets:
+  - name: docr-pull
+storageClass: {{ .Values.storageClass }}
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}

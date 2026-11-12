@@ -14,7 +14,9 @@ http_get() {
 http_get http://airflow-api-server:8080/api/v2/monitor/health | grep -q '"scheduler": *{"status": *"healthy"' && echo "airflow OK"
 
 image=$(kubectl -n $NS get deployment airflow-api-server -o jsonpath='{.spec.template.spec.containers[0].image}')
-[[ $image == contexture/openmetadata-ingestion-airflow:* ]] || { echo "airflow 镜像不是织境采集镜像：$image"; exit 1; }
+# 云端镜像带仓库前缀（030：<仓库>/openmetadata-ingestion-airflow），只校验仓库内的镜像名
+[[ $image == contexture/openmetadata-ingestion-airflow:* || $image == */openmetadata-ingestion-airflow:* ]] \
+  || { echo "airflow 镜像不是织境采集镜像：$image"; exit 1; }
 http_get http://airflow-api-server:8080/pluginsv2/api/v2/openmetadata/health | grep -q '"status": *"healthy"' \
   && echo "managed-apis OK"
 # managed-apis 在 Airflow 3 下不校验凭证（research R3），其他 Pod 必须连不上 api-server
@@ -31,8 +33,9 @@ for d in airflow-api-server airflow-dag-processor; do  # Airflow 3 的 scheduler
 done
 echo "dags volume OK"
 
-if kubectl -n $NS exec deployment/airflow-scheduler -c scheduler -- airflow dags list -o plain 2>/dev/null \
-  | awk 'NR>1{print $1}' | grep -Eq '^(ctx005_|metadata_mock_|metadata_demo_)'; then
+# 只看 dags 目录中的文件：OM 删除采集任务时删除 DAG 文件，但 Airflow 元数据库仍保留无文件的记录（e2e 残留，T082 实测）
+if kubectl -n $NS exec deployment/airflow-api-server -c api-server -- ls -1 "$dags" 2>/dev/null \
+  | grep -Eq '^(ctx005_|metadata_mock_|metadata_demo_)'; then
   echo "存在首轮遗留 DAG"; exit 1
 fi
 kubectl -n $NS exec deployment/airflow-api-server -c api-server -- test ! -e "$dags/contexture_om_dags.py" \

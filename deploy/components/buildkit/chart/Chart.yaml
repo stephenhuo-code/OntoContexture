@@ -1,0 +1,4 @@
+apiVersion: v2
+name: buildkit
+description: 集群内镜像构建（buildkitd，平时 0 副本；030）
+version: 0.1.0

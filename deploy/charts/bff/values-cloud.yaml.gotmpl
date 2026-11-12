@@ -1,0 +1,15 @@
+# 云端（030）：对外地址为 https://<域名>，Keycloak 为集群内自带（公网地址）；公共 CA；镜像来自 DOCR；路由只挂 HTTPS
+image:
+  repository: {{ .Values.registry }}/bff
+  tag: {{ .Values.bffTag | quote }}
+imagePullSecrets:
+  - name: docr-pull
+config:
+  publicUrl: https://{{ .Values.domain }}
+  keycloakUrl: https://sso.{{ .Values.domain }}
+trustedCaSecret: ""
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+route:
+  sectionName: https
+  hostnames: [{{ .Values.domain | quote }}]

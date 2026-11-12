@@ -9,11 +9,11 @@ executor: KubernetesExecutor
 images:
   airflow:
     repository: contexture/openmetadata-ingestion-airflow
-    tag: 2.0.3-ctx.0
+    tag: 2.0.3-ctx.1
     pullPolicy: IfNotPresent
   pod_template:
     repository: contexture/openmetadata-ingestion-airflow
-    tag: 2.0.3-ctx.0
+    tag: 2.0.3-ctx.1
     pullPolicy: IfNotPresent
 
 # managed-apis 把 DAG 写入 dags 目录、把生成配置写入 DAG_GENERATED_CONFIGS（operations/deploy.py），

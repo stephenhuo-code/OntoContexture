@@ -1,0 +1,11 @@
+# 开发机云端命令所需工具（030 FR-031、research R15）。make cloud-tools 安装到 ~/.local/bin（持久卷）。
+# 规则：只锁定发布满两周的版本；SHA256 均已与上游发布的校验值核对（buildkit 取 GitHub 发布资产摘要）。
+# 字段：名称 版本 许可 发布日期 URL SHA256 包内路径（- 表示下载即为可执行文件）
+# locked: 2026-11-11
+kubectl v1.37.2 Apache-2.0 2026-10-28 https://dl.k8s.io/release/v1.37.2/bin/linux/amd64/kubectl c04487523e7aa7d1493f7808174c899db93d7a9cf57531420cd76b9bd415f8f4 -
+helm v3.22.1 Apache-2.0 2026-10-15 https://get.helm.sh/helm-v3.22.1-linux-amd64.tar.gz 896cf63684a42a723d61c980369d6e588330927deb13676ca0d85006dd6da0ea linux-amd64/helm
+helmfile v1.8.2 MIT 2026-10-16 https://github.com/helmfile/helmfile/releases/download/v1.8.2/helmfile_1.8.2_linux_amd64.tar.gz f179485c5bb9f8e20fbd8ea16d8807915988aba4d60131ee864fb3232452716e helmfile
+doctl v2.1.0 Apache-2.0 2026-10-28 https://github.com/digitalocean/doctl/releases/download/v2.1.0/doctl-2.1.0-linux-amd64.tar.gz e9d0488c56cfe6369d3310a14e14b0a6cd71a37091503d016d28e31630ee3010 doctl
+devspace v6.3.21 Apache-2.0 2026-04-22 https://github.com/devspace-sh/devspace/releases/download/v6.3.21/devspace-linux-amd64 9720a6c87a2465f6d73b4db5a908e15e1971158443b5de9162d94aa5f87f79f0 -
+buildctl v0.34.1 Apache-2.0 2026-10-20 https://github.com/moby/buildkit/releases/download/v0.34.1/buildkit-v0.34.1.linux-amd64.tar.gz a59539daf547fe0958efe2d07e41c0a6944e1112a66d7e519ec1cf5b673ef15b bin/buildctl
+jq 1.8.2 MIT 2026-06-20 https://github.com/jqlang/jq/releases/download/jq-1.8.2/jq-linux-amd64 b1c22172dd303f3be49e935aa56aa48a8b7a46e0bc838b4997d3bb451495870f -

@@ -1,0 +1,13 @@
+# 030：集群内构建 bff / web / 开发 / 工具箱镜像（research R10）；平时 0 副本，只在 cloud 环境安装，不进入离线交付包
+name: buildkit
+version: v0.34.1
+delivered: false
+image:
+  source: official
+  refs:
+    - moby/buildkit:v0.34.1
+license: Apache-2.0
+customization: config
+upstream: https://github.com/moby/buildkit
+owner: "@stephenhuo-code"
+smoke_test: tests/smoke.sh

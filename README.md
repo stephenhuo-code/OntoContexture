@@ -37,7 +37,7 @@ make e2e       # 端到端：AI 网关策略、Toolbox、全链路追踪与审�
 make ports     # 把 OM、Langfuse、Jaeger、Prometheus、OpenSearch Dashboards 的界面转发到本机
 ```
 
-打开 <http://localhost:8080>，用 `user1` / `user1` 登录，查看“设备”的定义与列表。
+打开 <http://localhost:8080>，用 `engineer1` / `engineer1` 登录（`user1` 是业务用户，无织境 Web 权限），查看“设备”的定义与列表。
 
 ### 开发
 
@@ -49,6 +49,29 @@ pnpm --filter @contexture/web dev   # 前端开发服务器（/bff 代理到 loc
 ```
 
 新增一个后端接口的步骤见 `services/bff/README.md`。
+
+## 云端开发与部署（DOKS，030）
+
+在 DigitalOcean Kubernetes 上运行一套织境，兼作开发环境：开发机不需要 Docker，构建、测试都在集群内执行。
+云端命令统一以 `cloud-` 开头，只作用于 `.env.cloud` 指定的集群，与上面的本地命令互不影响。
+完整步骤见 [specs/030-doks-deploy/quickstart.md](specs/030-doks-deploy/quickstart.md)。
+
+```bash
+make cloud-tools                  # 安装 kubectl、helm、helmfile、doctl、devspace、buildctl、jq 到 ~/.local/bin
+cp .env.cloud.example .env.cloud  # 填写集群、域名、镜像仓库（不进仓库）
+make cloud-images                 # 触发 GitHub 镜像流水线：为当前提交推送标签 cloud-images/<提交前 12 位>（须确认）
+make cloud-deploy VERSION=git-<提交前 12 位>   # 部署或更新整套环境（镜像由 make cloud-images 触发的流水线构建）
+make cloud-info                   # 各组件地址与凭证位置
+make cloud-dev                    # 开发模式：bff / web 换成工作区代码，保存后几秒生效；Ctrl+C 恢复稳定版本
+make cloud-dev-reset              # 开发模式异常退出（如开发机重建）后恢复稳定版本
+make cloud-lint / cloud-test / cloud-e2e   # 在集群内对当前工作区运行检查与测试
+make cloud-unit                   # 云端脚本的 bash 单元测试（开发机上直接运行）
+make cloud-build TARGET=bff|web|all        # 在集群内构建并部署（成为稳定版本）
+make cloud-seed / cloud-mock-data           # 数据初始化 / 重建模拟数据（后者须确认）
+make cloud-dev-metadata / cloud-dev-metadata-remove   # 导入 / 删除 006 开发态元数据（cloud-e2e 的资产搜索场景需要）
+make cloud-stop / cloud-start / cloud-status   # 停止并释放弹性池 / 恢复 / 查看状态
+make cloud-uninstall              # 卸载（须确认，删除全部数据）
+```
 
 ## 目录
 

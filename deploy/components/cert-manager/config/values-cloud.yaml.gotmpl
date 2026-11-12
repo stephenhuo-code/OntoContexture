@@ -1,0 +1,5 @@
+domain: {{ .Values.domain | quote }}
+acmeServer: {{ .Values.acmeServer }}
+acmeEmail: {{ .Values.acmeEmail | quote }}
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}

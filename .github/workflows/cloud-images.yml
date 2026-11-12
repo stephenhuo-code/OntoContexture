@@ -1,0 +1,116 @@
+# 云端镜像流水线（030 FR-023、research R9）：只能手动触发（GitHub 界面运行，或 make cloud-images 推送专用标签 cloud-images/<提交前 12 位>）；构建织境 5 个自建镜像并推送到云端镜像仓库（DOCR）。
+# - bff / web 以 git-<提交前 12 位> 为标签；OpenMetadata 相关 3 个镜像沿用上游版本标签，仓库中已有同版本时跳过构建。
+# - 全部新构建的镜像做 SBOM 与许可检查；漏洞扫描对自建镜像（bff、web）阻断推送，对 OpenMetadata 第三方镜像留档告警（宪法 III、R9）。
+# 需要：仓库 Secret DIGITALOCEAN_REGISTRY_TOKEN（读写令牌）；仓库变量 CTX_CLOUD_REGISTRY（如 registry.digitalocean.com/<名称>）。
+name: cloud-images
+
+on:
+  workflow_dispatch: # GitHub 界面手动运行（要求本文件已在默认分支上）
+    inputs:
+      ref:
+        description: 要构建的分支或提交
+        required: true
+        default: main
+  push: # make cloud-images 推送的专用标签（特性合并到默认分支前使用）；不含分支，普通推送与合并不触发
+    tags:
+      - "cloud-images/*"
+
+permissions:
+  contents: read
+
+env:
+  SYFT_IMAGE: anchore/syft:v1.54.1
+  GRYPE_IMAGE: anchore/grype:v0.120.1
+  TRIVY_IMAGE: aquasec/trivy:0.76.0
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: ${{ vars.CTX_CLOUD_REGISTRY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+      - name: 检出 OpenMetadata 子仓库（发布分支）
+        run: git submodule update --init --depth 1 third_party/openmetadata/src
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --package contexture-tools --frozen
+      - name: 版本与标签
+        id: v
+        run: |
+          test -n "$REGISTRY" || { echo "缺少仓库变量 CTX_CLOUD_REGISTRY"; exit 1; }
+          sha=$(git rev-parse HEAD)
+          om=$(awk '/^image_version:/{print $2}' third_party/openmetadata/UPSTREAM.yaml)
+          fuseki=$(awk -F= '/^ENV FUSEKI_VERSION=/{print $2}' third_party/openmetadata/src/docker/rdf-store/Dockerfile)
+          {
+            echo "tag=git-${sha:0:12}"
+            echo "om=$om"
+            echo "fuseki=$fuseki-ctx.0"
+          } >> "$GITHUB_OUTPUT"
+      - name: 登录镜像仓库（主机名取自 CTX_CLOUD_REGISTRY，换云厂商时只改仓库变量）
+        env:
+          TOKEN: ${{ secrets.DIGITALOCEAN_REGISTRY_TOKEN }}
+        run: echo "$TOKEN" | docker login "${REGISTRY%%/*}" -u contexture --password-stdin
+      - name: 构建 bff、web
+        env:
+          TAG: ${{ steps.v.outputs.tag }}
+        run: |
+          docker build -f services/bff/Dockerfile -t "$REGISTRY/bff:$TAG" .
+          docker build -f apps/web/Dockerfile -t "$REGISTRY/web:$TAG" .
+          echo "$REGISTRY/bff:$TAG $REGISTRY/web:$TAG" > built.txt
+      - name: 构建 OpenMetadata 相关镜像（仓库中已有同版本则跳过）
+        env:
+          OM: ${{ steps.v.outputs.om }}
+          FUSEKI: ${{ steps.v.outputs.fuseki }}
+        run: |
+          build() {  # build <build.sh 目标> <镜像引用>
+            if docker manifest inspect "$2" >/dev/null 2>&1; then
+              echo "已存在，跳过：$2"
+            else
+              CTX_REGISTRY="$REGISTRY" third_party/openmetadata/build/build.sh "$1"
+              echo -n " $2" >> built.txt
+            fi
+          }
+          build server "$REGISTRY/openmetadata-server:$OM"
+          build fuseki "$REGISTRY/openmetadata-fuseki:$FUSEKI"
+          build airflow "$REGISTRY/openmetadata-ingestion-airflow:$OM"
+      - name: SBOM、许可与漏洞扫描（许可全部阻断；漏洞：自建镜像阻断，OpenMetadata 第三方镜像留档告警）
+        # 与 ci.yml 一致：漏洞门禁作用于织境自建镜像（bff、web）。OpenMetadata 相关镜像来自上游基础镜像（如 Airflow 3.3.2
+        # 自带的 Python 解释器），不升级上游版本无法清零，扫描结果写入 sbom/ 随产物上传并在摘要告警（030 research R9 实施记录）。
+        run: |
+          mkdir -p sbom
+          for image in $(cat built.txt); do
+            name=$(basename "${image%%:*}")
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/sbom:/out" \
+              "$SYFT_IMAGE" "$image" -o "cyclonedx-json=/out/$name.cdx.json"
+            uv run python -m tools.license_check "sbom/$name.cdx.json"
+            status=0
+            docker run --rm -v "$PWD/sbom:/sbom" "$GRYPE_IMAGE" "sbom:/sbom/$name.cdx.json" --only-fixed --fail-on critical \
+              > "sbom/$name.grype.txt" || status=1
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock "$TRIVY_IMAGE" \
+              image --severity CRITICAL --ignore-unfixed --exit-code 1 "$image" > "sbom/$name.trivy.txt" || status=1
+            [[ $status == 0 ]] && continue
+            case $name in
+              openmetadata-*)
+                echo "::warning::$name 存在可修复的 Critical 漏洞（第三方镜像，留档不阻断），见产物 sbom/$name.grype.txt"
+                echo "- ⚠ \`$name\` 存在可修复的 Critical 漏洞（第三方镜像，留档不阻断）" >> "$GITHUB_STEP_SUMMARY" ;;
+              *)
+                cat "sbom/$name.grype.txt" "sbom/$name.trivy.txt"
+                echo "::error::$name 存在可修复的 Critical 漏洞，不推送"; exit 1 ;;
+            esac
+          done
+      - name: 统一推送
+        run: |
+          for image in $(cat built.txt); do docker push "$image"; done
+          {
+            echo "### 已推送镜像"
+            for image in $(cat built.txt); do echo "- \`$image\`"; done
+            echo
+            echo "部署：\`make cloud-deploy VERSION=${{ steps.v.outputs.tag }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloud-images-sbom
+          path: sbom/

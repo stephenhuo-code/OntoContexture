@@ -1,0 +1,4 @@
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+persistence:
+  storageClass: {{ .Values.storageClass }}

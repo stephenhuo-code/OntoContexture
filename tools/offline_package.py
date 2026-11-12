@@ -36,6 +36,8 @@ def collect_images(components_dir: Path = COMPONENTS) -> list[str]:
     images: set[str] = {*SELF_BUILT_SERVICES, *TOOL_IMAGES}
     for manifest in sorted(components_dir.glob("*/component.yaml")):
         data = cast(dict[str, Any], yaml.safe_load(manifest.read_text(encoding="utf-8")))
+        if data.get("delivered") is False:  # 云端开发专用组件（030），不进入交付物
+            continue
         images.update(str(r) for r in data["image"]["refs"])
     return sorted(images)
 

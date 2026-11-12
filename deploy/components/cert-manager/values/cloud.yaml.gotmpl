@@ -1,0 +1,13 @@
+# cert-manager（030 R4）：安装 CRD；开启 Gateway API 支持（HTTP-01 用 gatewayHTTPRoute 求解）；全部组件只调度到弹性池
+crds:
+  enabled: true
+config:
+  apiVersion: controller.config.cert-manager.io/v1alpha1
+  kind: ControllerConfiguration
+  enableGatewayAPI: true
+global:
+  nodeSelector:
+    {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+resources:
+  requests: { cpu: 10m, memory: 64Mi }
+  limits: { memory: 256Mi }

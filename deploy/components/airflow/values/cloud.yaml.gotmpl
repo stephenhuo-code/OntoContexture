@@ -1,0 +1,63 @@
+# 云端（030 research R6）：块存储只支持 RWO，Airflow 全部 Pod（含 KubernetesExecutor 任务 Pod，Chart 1.22.0 的
+# pod-template-file 取全局 affinity / nodeSelector）以 Pod 亲和固定到调度器所在节点，共享 dags 卷；只调度到弹性池
+images:
+  airflow:
+    repository: {{ .Values.registry }}/openmetadata-ingestion-airflow
+  pod_template:
+    repository: {{ .Values.registry }}/openmetadata-ingestion-airflow
+registry:
+  secretName: docr-pull
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}
+affinity:
+  podAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchLabels: { component: scheduler, release: airflow }
+        topologyKey: kubernetes.io/hostname
+  # 独占节点（T052 实测）：Airflow 常驻 Pod 与采集任务 Pod 须同节点，若与其他组件混放，调度器所在节点满载后其余 Pod 无法调度，
+  # 集群扩容也无济于事。必需反亲和是对称的：Airflow 不进有其他组件的节点，其他组件也不进 Airflow 所在节点。
+  # 本 namespace 中只有 Airflow 带 release 标签；OTel 采集代理是 DaemonSet，须排除。
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - { key: release, operator: NotIn, values: [airflow] }
+            - { key: component, operator: NotIn, values: [agent-collector] }
+        topologyKey: kubernetes.io/hostname
+dags:
+  persistence:
+    storageClassName: {{ .Values.storageClass }}
+triggerer:
+  persistence:
+    storageClassName: {{ .Values.storageClass }}
+# 界面经 Envoy 入口对外（FR-020）：api-server 的网络策略在 base 的两类来源之外放行入口代理（列表整体覆盖，须重复 base 的条目）；
+# 不认证的 /pluginsv2 由入口路由拦截（envoy-gateway config 的 blockPathPrefixes，T057 实测）
+apiServer:
+  networkPolicy:
+    ingress:
+      from:
+        - podSelector:
+            matchLabels: { tier: airflow, release: airflow }
+        - podSelector:
+            matchLabels: { app.kubernetes.io/name: openmetadata }
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: envoy-gateway-system }
+          podSelector:
+            matchLabels: { app.kubernetes.io/component: proxy, gateway.envoyproxy.io/owning-gateway-name: contexture }
+# 资源（T068 实测）：沿用本地设置时调度器（上限 768Mi）与 DAG 处理器（512Mi）在采集与 e2e 期间反复 OOM，采集任务无法调度。
+# 云端 Airflow 已独占一个节点（见上方反亲和），放宽上限；本地 kind 不变
+scheduler:
+  resources:
+    requests: { cpu: 100m, memory: 768Mi }
+    limits: { memory: 2Gi }
+dagProcessor:
+  resources:
+    requests: { cpu: 50m, memory: 512Mi }
+    limits: { memory: 1536Mi }
+# 采集任务 Pod（KubernetesExecutor 的 pod-template-file 取 workers.kubernetes.resources）：无 requests 时会被调度到已满的节点后 OOM（T068 实测）
+workers:
+  kubernetes:
+    resources:
+      requests: { cpu: 100m, memory: 512Mi }
+      limits: { memory: 1536Mi }

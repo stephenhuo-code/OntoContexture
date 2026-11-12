@@ -1,0 +1,4 @@
+# 云端（030 FR-026）：模拟源系统只调度到弹性池，卷使用配置的存储类
+storageClass: {{ .Values.storageClass }}
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}

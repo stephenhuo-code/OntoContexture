@@ -21,6 +21,9 @@ spec:
     metadata:
       labels: { app: mock-mes }
     spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: mysql
           image: {{ .Values.image }}
@@ -45,6 +48,9 @@ spec:
   volumeClaimTemplates:
     - metadata: { name: data }
       spec:
+        {{- with .Values.storageClass }}
+        storageClassName: {{ . }}
+        {{- end }}
         accessModes: [ReadWriteOnce]
         resources:
           requests: { storage: {{ .Values.storage }} }

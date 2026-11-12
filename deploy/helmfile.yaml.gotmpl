@@ -8,9 +8,27 @@ environments:
   lite:
     values:
       - env: lite
+  # 云端（030）：参数来自 .env.cloud（由 tools/cloud/*.sh 导出）；云厂商专用值只在这里与各组件 values/cloud.yaml.gotmpl 中出现
+  cloud:
+    values:
+      - env: cloud
+        namespace: {{ env "CTX_CLOUD_NAMESPACE" | default "contexture" }}
+        domain: {{ env "CTX_CLOUD_DOMAIN" | quote }}
+        nodeLabel: {{ env "CTX_CLOUD_NODE_LABEL" | quote }}
+        nodePool: {{ env "CTX_CLOUD_NODE_POOL" | quote }}
+        storageClass: {{ env "CTX_CLOUD_STORAGE_CLASS" | quote }}
+        registry: {{ env "CTX_CLOUD_REGISTRY" | quote }}
+        bffTag: {{ env "CTX_CLOUD_BFF_TAG" | quote }}
+        webTag: {{ env "CTX_CLOUD_WEB_TAG" | quote }}
+        acmeServer: {{ env "CTX_CLOUD_ACME_SERVER" | default "production" }}
+        acmeEmail: {{ env "CTX_CLOUD_ACME_EMAIL" | quote }}
 ---
 {{- /* 离线安装：CTX_OFFLINE_CHARTS 指向离线包的 charts/（按 Chart 名组织），远程 Chart 改用本地目录，且不添加仓库 */}}
 {{- $offline := env "CTX_OFFLINE_CHARTS" }}
+{{- $cloud := eq .Environment.Name "cloud" }}
+{{- /* 各组件的环境参数文件：本地为 values/<环境>.yaml；云端为 values/cloud.yaml.gotmpl（可引用环境值，030） */}}
+{{- $envValues := printf "%s.yaml" .Environment.Name }}
+{{- if $cloud }}{{ $envValues = "cloud.yaml.gotmpl" }}{{ end }}
 {{- if not $offline }}
 repositories:
   - name: cnpg
@@ -27,6 +45,11 @@ repositories:
     url: https://open-telemetry.github.io/opentelemetry-helm-charts
   - name: apache-airflow
     url: https://airflow.apache.org
+{{- if $cloud }}
+  # 云端（030）：证书
+  - name: jetstack
+    url: https://charts.jetstack.io
+{{- end }}
 
 {{- end }}
 
@@ -43,21 +66,33 @@ releases:
     chart: {{ if $offline }}{{ $offline }}/gateway-helm{{ else }}oci://docker.io/envoyproxy/gateway-helm{{ end }}
     version: v1.9.2
     labels: { component: envoy-gateway, phase: operators }
-    values: [components/envoy-gateway/values/base.yaml]
+    values:
+      - components/envoy-gateway/values/base.yaml
+{{- if $cloud }}
+      - components/envoy-gateway/values/cloud.yaml.gotmpl
+{{- end }}
 
   - name: cnpg
     namespace: cnpg-system
     chart: {{ if $offline }}{{ $offline }}/cloudnative-pg{{ else }}cnpg/cloudnative-pg{{ end }}
     version: 0.29.1
     labels: { component: postgresql, phase: operators }
-    values: [components/postgresql/values/base.yaml]
+    values:
+      - components/postgresql/values/base.yaml
+{{- if $cloud }}
+      - components/postgresql/values/operator-cloud.yaml.gotmpl
+{{- end }}
 
   - name: doris-operator
     namespace: doris-system
     chart: {{ if $offline }}{{ $offline }}/doris-operator{{ else }}doris/doris-operator{{ end }}
     version: 25.8.0
     labels: { component: doris, phase: operators }
-    values: [components/doris/values/operator.yaml]
+    values:
+      - components/doris/values/operator.yaml
+{{- if $cloud }}
+      - components/doris/values/operator-cloud.yaml.gotmpl
+{{- end }}
 
   # ---------- 平台组件 ----------
   - name: gateway
@@ -65,6 +100,39 @@ releases:
     chart: components/envoy-gateway/config
     labels: { component: envoy-gateway }
     needs: [envoy-gateway-system/envoy-gateway]
+{{- if $cloud }}
+    values: [components/envoy-gateway/config/values-cloud.yaml.gotmpl]
+{{- end }}
+{{- if $cloud }}
+
+  # ---------- 云端（030）：HTTPS 证书 ----------
+  - name: cert-manager
+    namespace: cert-manager
+    chart: jetstack/cert-manager
+    version: v1.21.3
+    labels: { component: cert-manager, phase: operators }
+    values: [components/cert-manager/values/cloud.yaml.gotmpl]
+
+  - name: certificates
+    namespace: contexture
+    chart: components/cert-manager/config
+    labels: { component: cert-manager }
+    needs: [cert-manager/cert-manager, contexture/gateway]
+    values: [components/cert-manager/config/values-cloud.yaml.gotmpl]
+
+  # ---------- 云端（030）：集群内构建 ----------
+  - name: buildkit
+    namespace: contexture-build
+    chart: components/buildkit/chart
+    labels: { component: buildkit }
+    values: [components/buildkit/chart/values-cloud.yaml.gotmpl]
+
+  - name: ci-toolbox
+    namespace: contexture-ci
+    chart: components/ci-toolbox/chart
+    labels: { component: ci-toolbox }
+    values: [components/ci-toolbox/chart/values-cloud.yaml.gotmpl]
+{{- end }}
 
   - name: postgresql
     namespace: contexture
@@ -72,7 +140,7 @@ releases:
     labels: { component: postgresql }
     needs: [cnpg-system/cnpg]
     values:
-      - components/postgresql/values/{{ .Environment.Name }}.yaml
+      - components/postgresql/values/{{ $envValues }}
 
   - name: keycloak
     namespace: contexture
@@ -82,7 +150,7 @@ releases:
     values:
       - components/keycloak/values/base.yaml
       - components/keycloak/values/theme.yaml
-      - components/keycloak/values/{{ .Environment.Name }}.yaml
+      - components/keycloak/values/{{ $envValues }}
       - components/keycloak/values/import-env.yaml.gotmpl
     set:
       - name: import.files.contexture
@@ -97,7 +165,7 @@ releases:
     labels: { component: opensearch }
     values:
       - components/opensearch/values/base.yaml
-      - components/opensearch/values/{{ .Environment.Name }}.yaml
+      - components/opensearch/values/{{ $envValues }}
 
   - name: fuseki
     namespace: contexture
@@ -105,7 +173,7 @@ releases:
     labels: { component: fuseki }
     values:
       - components/fuseki/values/base.yaml
-      - components/fuseki/values/{{ .Environment.Name }}.yaml
+      - components/fuseki/values/{{ $envValues }}
 
   - name: doris
     namespace: contexture
@@ -124,7 +192,7 @@ releases:
                -p, '{"spec":{"beSpec":{"skipDefaultSystemInit":true}}}']
     values:
       - components/doris/values/base.yaml
-      - components/doris/values/{{ .Environment.Name }}.yaml
+      - components/doris/values/{{ $envValues }}
 
   - name: doris-config
     namespace: contexture
@@ -132,6 +200,9 @@ releases:
     labels: { component: doris }
     needs: [contexture/doris]
     wait: false
+{{- if $cloud }}
+    values: [components/doris/config/values-cloud.yaml.gotmpl]
+{{- end }}
 
   - name: mcp-toolbox
     namespace: contexture
@@ -140,7 +211,7 @@ releases:
     needs: [contexture/doris-config]
     values:
       - components/mcp-toolbox/values/base.yaml
-      - components/mcp-toolbox/values/{{ .Environment.Name }}.yaml
+      - components/mcp-toolbox/values/{{ $envValues }}
     set:
       - name: tools
         file: components/mcp-toolbox/config/tools.yaml
@@ -149,6 +220,9 @@ releases:
     namespace: contexture
     chart: components/langfuse/clickhouse
     labels: { component: langfuse }
+{{- if $cloud }}
+    values: [components/langfuse/clickhouse/values-cloud.yaml.gotmpl]
+{{- end }}
 
   - name: langfuse
     namespace: contexture
@@ -158,7 +232,7 @@ releases:
     needs: [contexture/postgresql, contexture/clickhouse]
     values:
       - components/langfuse/values/base.yaml
-      - components/langfuse/values/{{ .Environment.Name }}.yaml
+      - components/langfuse/values/{{ $envValues }}
 
   - name: openmetadata
     namespace: contexture
@@ -168,10 +242,10 @@ releases:
     needs: [contexture/postgresql, contexture/opensearch, contexture/fuseki, contexture/keycloak]
     values:
       - components/openmetadata/values/base.yaml
-      - components/openmetadata/values/{{ .Environment.Name }}.yaml
+      - components/openmetadata/values/{{ $envValues }}
       # OM Chart 的配置变化不会重启 Pod：以参数文件的哈希作为 Pod 注解
       - podAnnotations:
-          contexture/values-sha: {{ print (readFile "components/openmetadata/values/base.yaml") (readFile (printf "components/openmetadata/values/%s.yaml" .Environment.Name)) | sha256sum | trunc 16 | quote }}
+          contexture/values-sha: {{ print (readFile "components/openmetadata/values/base.yaml") (readFile (printf "components/openmetadata/values/%s" $envValues)) | sha256sum | trunc 16 | quote }}
 
   - name: otel-collector
     namespace: contexture
@@ -180,7 +254,7 @@ releases:
     labels: { component: otel-collector }
     values:
       - components/otel-collector/values/base.yaml
-      - components/otel-collector/values/{{ .Environment.Name }}.yaml
+      - components/otel-collector/values/{{ $envValues }}
 
   - name: airflow
     namespace: contexture
@@ -190,7 +264,7 @@ releases:
     needs: [contexture/postgresql]
     values:
       - components/airflow/values/base.yaml
-      - components/airflow/values/{{ .Environment.Name }}.yaml
+      - components/airflow/values/{{ $envValues }}
 
   - name: ai-gateway
     namespace: contexture
@@ -199,7 +273,7 @@ releases:
     needs: [contexture/mcp-toolbox, contexture/gateway]
     values:
       - components/ai-gateway/values/base.yaml
-      - components/ai-gateway/values/{{ .Environment.Name }}.yaml
+      - components/ai-gateway/values/{{ $envValues }}
     set:
       - name: config
         file: components/ai-gateway/config/config.yaml
@@ -211,7 +285,7 @@ releases:
     labels: { component: jaeger }
     values:
       - components/jaeger/values/base.yaml
-      - components/jaeger/values/{{ .Environment.Name }}.yaml
+      - components/jaeger/values/{{ $envValues }}
 
   - name: prometheus
     namespace: contexture
@@ -219,7 +293,7 @@ releases:
     labels: { component: prometheus }
     values:
       - components/prometheus/values/base.yaml
-      - components/prometheus/values/{{ .Environment.Name }}.yaml
+      - components/prometheus/values/{{ $envValues }}
 
   - name: otel-collector-agent
     namespace: contexture
@@ -227,7 +301,11 @@ releases:
     version: 0.176.0
     labels: { component: otel-collector }
     needs: [contexture/opensearch]
-    values: [components/otel-collector/values/agent.yaml]
+    values:
+      - components/otel-collector/values/agent.yaml
+{{- if $cloud }}
+      - components/otel-collector/values/agent-cloud.yaml.gotmpl
+{{- end }}
 
   - name: opensearch-dashboards
     namespace: contexture
@@ -237,7 +315,7 @@ releases:
     needs: [contexture/opensearch]
     values:
       - components/opensearch-dashboards/values/base.yaml
-      - components/opensearch-dashboards/values/{{ .Environment.Name }}.yaml
+      - components/opensearch-dashboards/values/{{ $envValues }}
 
   # ---------- 自建服务 ----------
   - name: contexture
@@ -249,12 +327,18 @@ releases:
       - config:
           otelEndpoint: http://otel-collector:4318
           aiGatewayMcpUrl: http://ai-gateway:8080/mcp
+{{- if $cloud }}
+      - charts/bff/values-cloud.yaml.gotmpl
+{{- end }}
 
   - name: web
     namespace: contexture
     chart: charts/web
     labels: { component: web }
     needs: [contexture/gateway]
+{{- if $cloud }}
+    values: [charts/web/values-cloud.yaml.gotmpl]
+{{- end }}
 
   # ---------- 模拟源系统（003）：开发测试设施，不进入交付物；离线模式不安装 ----------
   # 不随 make up 部署（tools/up.sh 以 -l 'group!=mock-sources' 排除）；由 make mock-data 以 -l group=mock-sources 按需同步，
@@ -263,11 +347,17 @@ releases:
     namespace: mock-sources
     chart: ../testdata/deploy/mes
     labels: { group: mock-sources }
+{{- if $cloud }}
+    values: [../testdata/deploy/values-cloud.yaml.gotmpl]
+{{- end }}
     installed: {{ not $offline }}
 
   - name: mock-qms
     namespace: mock-sources
     chart: ../testdata/deploy/qms
     labels: { group: mock-sources }
+{{- if $cloud }}
+    values: [../testdata/deploy/values-cloud.yaml.gotmpl]
+{{- end }}
     needs: [cnpg-system/cnpg]
     installed: {{ not $offline }}

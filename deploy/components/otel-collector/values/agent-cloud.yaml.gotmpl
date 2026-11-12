@@ -1,0 +1,3 @@
+# 云端（030 R7）：日志采集代理只在弹性池节点运行（不采集固定开发节点上的 devbox）
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}

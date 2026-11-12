@@ -1,0 +1,15 @@
+# 云端（030 R5）：集群内自带 Keycloak（参照 bundled-example.yaml），对外地址 https://sso.<域名>；公共 CA，无需受信 CA
+keycloak:
+  enabled: true
+  hostname: https://sso.{{ .Values.domain }}
+  databaseHost: pg-rw
+import:
+  realm: digital-workforce
+  trustedCaSecret: ""
+  publicUrl: https://{{ .Values.domain }}
+  omUrl: https://om.{{ .Values.domain }}
+  withTestUsers: true
+  # 工具与 e2e 使用的导入服务账号（本地由负责人在既有 Keycloak 中手工创建，云端随导入创建）
+  provisionerSecret: keycloak-provisioner
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}

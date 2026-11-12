@@ -1,14 +1,24 @@
 # 织境常用命令。标注 TODO 的目标由后续任务实现。
-.PHONY: test lint up down seed e2e e2e-mock-data coverage-check ports components-check patches-check offline-package mock-data dev-metadata dev-metadata-remove
+.PHONY: test lint up down seed e2e e2e-mock-data coverage-check ports components-check patches-check offline-package mock-data dev-metadata dev-metadata-remove \
+	cloud-unit cloud-tools cloud-deploy cloud-info cloud-uninstall cloud-build cloud-images cloud-dev-metadata cloud-dev-metadata-remove \
+	cloud-lint cloud-test cloud-e2e cloud-seed cloud-mock-data cloud-dev cloud-dev-reset \
+	cloud-stop cloud-start cloud-status
+
+# 开发机没有 uv 时（如 DOKS 上的 devbox）提示改用集群内运行（030 FR-001a）
+define require_uv
+	@command -v uv >/dev/null 2>&1 || { echo "未找到 uv：本机无法运行 $(1)，请改用 make cloud-$(1)（在集群内对当前工作区运行）"; exit 2; }
+endef
 
 test:
+	$(call require_uv,test)
 	uv run pytest --cov --cov-report=term-missing --cov-report=json:coverage.json
 
 DIFF_BASE ?= HEAD
 coverage-check:
-	uv run python -m tools.coverage_gate --base $(DIFF_BASE) --python coverage.json --lcov apps/web/coverage/lcov.info --lcov packages/ui/coverage/lcov.info
+	uv run python -m tools.coverage_gate --base $(DIFF_BASE) --python coverage.json --lcov apps/web/coverage/lcov.info --lcov packages/ui/coverage/lcov.info$(if $(wildcard coverage/bash/cobertura.xml), --cobertura coverage/bash/cobertura.xml)
 
 lint:
+	$(call require_uv,lint)
 	uv run ruff check .
 	uv run ruff format --check .
 	uv run pyright
@@ -79,3 +89,66 @@ patches-check:
 
 offline-package:
 	uv run python -m tools.offline_package
+
+# ---------- 云端（DOKS，030）：命令统一以 cloud- 开头，只作用于 .env.cloud 指定的集群，与本地 kind 命令互不越界 ----------
+# 云端脚本单元测试（纯 bash）；CTX_KCOV=1 时在 kcov 下统计覆盖率（工具箱 / CI）
+cloud-unit:
+	tools/cloud/tests/run.sh
+
+# 开发机工具：按 tools/cloud/tools.lock 安装到 ~/.local/bin（持久卷）
+cloud-tools:
+	tools/cloud/install-tools.sh
+
+# 部署或更新整套云端环境；首次须指定 VERSION=git-<提交前 12 位>（cloud-images 流水线产出），之后省略即沿用稳定版本
+cloud-deploy:
+	tools/cloud/deploy.sh $(VERSION)
+
+# 各组件云端地址、登录方式与凭证位置（不输出凭证值）
+cloud-info:
+	tools/cloud/info.sh
+
+# 卸载云端环境（删除织境的 namespace、持久卷与 CRD；须输入 yes 确认）
+cloud-uninstall:
+	tools/cloud/uninstall.sh
+
+# 触发 cloud-images 流水线：为当前提交推送专用标签 cloud-images/<提交前 12 位>（工作区须已提交；须确认）
+cloud-images:
+	tools/cloud/images.sh
+
+# 集群内构建：TARGET=bff|web|all（默认 all，构建后部署并成为稳定版本）；TARGET=--dev / --toolbox 只构建开发 / 工具箱镜像
+TARGET ?= all
+cloud-build:
+	tools/cloud/build.sh $(TARGET)
+
+# 集群内工具箱：对开发机当前工作区（含未提交改动）运行，输出实时显示、退出码透传；cloud-mock-data 会清空重建模拟库，须确认
+cloud-lint:
+	tools/cloud/toolbox.sh lint
+# DIFF_BASE=main：变更行覆盖率比较整个特性分支（默认 HEAD，只看未提交改动）
+cloud-test:
+	tools/cloud/toolbox.sh test
+cloud-e2e:
+	tools/cloud/toolbox.sh e2e
+# 006 开发态元数据（对应本地 make dev-metadata / dev-metadata-remove；cloud-e2e 的资产搜索场景以此为前提）
+cloud-dev-metadata:
+	tools/cloud/toolbox.sh dev-metadata
+cloud-dev-metadata-remove:
+	tools/cloud/toolbox.sh dev-metadata-remove
+cloud-seed:
+	tools/cloud/toolbox.sh seed
+cloud-mock-data:
+	MONTHS=$(MONTHS) SEED=$(SEED) tools/cloud/toolbox.sh mock-data
+
+# 开发模式：bff / web 换成开发机工作区的代码（保存后几秒生效），Ctrl+C 结束并恢复稳定版本；TARGET=bff|web|all
+cloud-dev:
+	tools/cloud/dev.sh $(if $(filter bff web,$(TARGET)),$(TARGET),all)
+# 开发模式异常退出（如开发机重建）后恢复稳定版本
+cloud-dev-reset:
+	tools/cloud/dev.sh reset
+
+# 启停：停止后释放弹性池节点（数据保留），启动后恢复到停止前的状态；状态查看
+cloud-stop:
+	tools/cloud/lifecycle.sh stop
+cloud-start:
+	tools/cloud/lifecycle.sh start
+cloud-status:
+	tools/cloud/lifecycle.sh status

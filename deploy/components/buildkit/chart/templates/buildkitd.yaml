@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: buildkit-cache
+  annotations: { helm.sh/resource-policy: keep }
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources: { requests: { storage: {{ .Values.cacheSize }} } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: buildkitd
+  labels: { app.kubernetes.io/name: buildkitd, app.kubernetes.io/part-of: contexture }
+spec:
+  replicas: {{ .Values.replicas }}
+  strategy: { type: Recreate }   # 缓存卷为 RWO
+  selector:
+    matchLabels: { app.kubernetes.io/name: buildkitd }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: buildkitd, app.kubernetes.io/part-of: contexture }
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: buildkitd
+          image: {{ .Values.image }}
+          # 特权模式（集群允许，research R1/R10）；仅监听 Pod 内 unix 套接字，经 kubectl exec 由 buildctl dial-stdio 访问
+          securityContext: { privileged: true }
+          readinessProbe:
+            exec: { command: [buildctl, debug, workers] }
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources: {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - { name: cache, mountPath: /var/lib/buildkit }
+      volumes:
+        - name: cache
+          persistentVolumeClaim: { claimName: buildkit-cache }

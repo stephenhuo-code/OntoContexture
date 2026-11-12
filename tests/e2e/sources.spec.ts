@@ -591,7 +591,8 @@ test("场景 F：OpenMetadata 不可用时 /assets/sources 显示真实错误与
       "--for=delete",
       "pod",
       "-l",
-      "app.kubernetes.io/name=openmetadata",
+      // 排除 OM 定时重建索引任务的 Pod：已完成的 Job Pod 不随缩容删除，会让等待超时（030 T068 实测）
+      "app.kubernetes.io/name=openmetadata,!batch.kubernetes.io/job-name",
       "--timeout=180s",
     );
     await page.reload();

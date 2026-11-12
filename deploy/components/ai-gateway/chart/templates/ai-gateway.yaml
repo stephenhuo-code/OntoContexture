@@ -3,7 +3,10 @@ kind: ConfigMap
 metadata:
   name: ai-gateway
 data:
-  config.yaml: {{ required "config 未注入" .Values.config | quote }}
+  {{- $config := required "config 未注入" .Values.config }}
+  {{- /* 云端（030 FR-020）：管理界面改为监听 Pod 地址，经 adminService 与子域名路由访问 */}}
+  {{- with .Values.adminAddr }}{{ $config = replace "127.0.0.1:15000" . $config }}{{ end }}
+  config.yaml: {{ $config | quote }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -20,6 +23,12 @@ spec:
       annotations:
         checksum/config: {{ .Values.config | sha256sum }}
     spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
       automountServiceAccountToken: false
       containers:
         - name: agentgateway
@@ -75,6 +84,18 @@ spec:
   selector: { app.kubernetes.io/name: ai-gateway }
   ports:
     - { name: http, port: 8080, targetPort: http }
+{{- if (.Values.adminService).enabled }}
+---
+# 管理界面（030 FR-020，云端经 gateway-admin 子域名访问）
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-gateway-admin
+spec:
+  selector: { app.kubernetes.io/name: ai-gateway }
+  ports:
+    - { name: admin, port: 15000, targetPort: 15000 }
+{{- end }}
 ---
 # 网关自带的 Prometheus 指标（不经入口暴露）
 apiVersion: v1
@@ -95,6 +116,12 @@ metadata:
 spec:
   parentRefs:
     - name: {{ .Values.route.gateway }}
+      {{- with .Values.route.sectionName }}
+      sectionName: {{ . }}
+      {{- end }}
+  {{- with .Values.route.hostnames }}
+  hostnames: {{- toYaml . | nindent 4 }}
+  {{- end }}
   rules:
     - matches:
         - path: { type: PathPrefix, value: /mcp }

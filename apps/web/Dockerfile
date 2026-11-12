@@ -13,6 +13,14 @@ RUN pnpm install --frozen-lockfile --filter @contexture/web...
 # Node 22 自带 npm 10 的 tar 7.5.11 已被安全门禁阻断；固定到已修复版本。
 RUN npm install --global npm@12.2.1
 
+# 云端开发模式（030 make cloud-dev）：Vite 开发服务器，源码由 DevSpace 同步进来；非末尾阶段，默认构建目标不变
+FROM frontend-dependencies AS dev
+COPY packages/ts-api packages/ts-api
+COPY packages/ui packages/ui
+COPY apps/web apps/web
+EXPOSE 8080
+CMD ["pnpm", "--filter", "@contexture/web", "exec", "vite", "--host", "0.0.0.0", "--port", "8080", "--strictPort"]
+
 FROM frontend-dependencies AS build
 COPY packages/ts-api packages/ts-api
 COPY packages/ui packages/ui

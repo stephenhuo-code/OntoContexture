@@ -1,0 +1,3 @@
+# 云端（030）：CloudNativePG operator 只调度到弹性池
+nodeSelector:
+  {{ .Values.nodeLabel }}: {{ .Values.nodePool | quote }}

@@ -1,0 +1,4 @@
+storageClass: ""
+cacheSize: 20Gi
+# 工具箱可读写的 namespace（e2e 与 seed 需要 kubectl 访问平台与模拟源系统）
+targetNamespaces: [contexture, mock-sources]

@@ -1,1 +1,13 @@
-{}
+# 默认值即本地 kind 的行为（NodePort 30080、仅 HTTP）；云端参数见 values-cloud.yaml.gotmpl（030）
+tenantId: local
+envoyService:
+  type: NodePort
+loadBalancer:
+  annotations: {}
+nodeSelector: {}
+https:
+  enabled: false
+  certificateSecret: contexture-tls
+  redirectHttp: false
+# 组件界面的子域名路由：[{name, host, service, port}]（云端，030）
+routes: []

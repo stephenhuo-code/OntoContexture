@@ -5,22 +5,58 @@ kind: ConfigMap
 metadata:
   name: {{ .Release.Name }}-import
 data:
+  {{- if .Values.keycloak.enabled }}
+  # 自带 Keycloak 时 realm 由织境创建，须显式启用（新建 realm 默认未启用，令牌端点返回 Realm not enabled；030 T052 实测）。
+  # 使用既有 Keycloak 时不改 realm 级设置（见 contexture.yaml 说明）
+  00-realm.yaml: |
+    realm: {{ .Values.import.realm }}
+    enabled: true
+  {{- end }}
   contexture.yaml: {{ required "import.files.contexture 未注入" .Values.import.files.contexture | quote }}
   {{- if .Values.import.withTestUsers }}
   test-users.yaml: {{ required "import.files.testUsers 未注入" .Values.import.files.testUsers | quote }}
+  {{- end }}
+  {{- if .Values.import.provisionerSecret }}
+  # 工具与 e2e 使用的导入服务账号（云端自带 Keycloak 时随导入创建，030；本地由负责人在既有 Keycloak 中手工创建）
+  provisioner.yaml: |
+    realm: {{ .Values.import.realm }}
+    clients:
+      - clientId: contexture-provisioner
+        name: 织境导入服务账号
+        protocol: openid-connect
+        publicClient: false
+        secret: $(env:CONTEXTURE_PROVISIONER_CLIENT_SECRET)
+        standardFlowEnabled: false
+        directAccessGrantsEnabled: false
+        serviceAccountsEnabled: true
+    users:
+      - username: service-account-contexture-provisioner
+        enabled: true
+        serviceAccountClientId: contexture-provisioner
+        clientRoles:
+          realm-management: [manage-clients, manage-realm, view-realm, view-identity-providers, view-users, manage-users]
   {{- end }}
 ---
 # 每次安装与升级都执行一次增量导入（只增不删，不影响 realm 中的其他客户端）
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Release.Name }}-import-{{ .Values.import.files | toJson | sha256sum | trunc 8 }}
+  {{- /* 自带 Keycloak 时导入内容多了 00-realm.yaml，计入名称使已部署环境重新导入；使用既有 Keycloak 时名称不变 */}}
+  {{- $hash := .Values.import.files }}
+  {{- if .Values.keycloak.enabled }}{{ $hash = list .Values.import.files "realm-enabled" }}{{ end }}
+  name: {{ .Release.Name }}-import-{{ $hash | toJson | sha256sum | trunc 8 }}
   labels: { app.kubernetes.io/name: keycloak-import, app.kubernetes.io/part-of: contexture }
 spec:
   backoffLimit: 6
   ttlSecondsAfterFinished: 86400
   template:
     spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
       restartPolicy: OnFailure
       automountServiceAccountToken: false
       {{- if .Values.import.trustedCaSecret }}
@@ -46,6 +82,10 @@ spec:
             - { name: CTX_OM_URL, value: {{ .Values.import.omUrl | quote }} }
             - name: CONTEXTURE_OM_CLIENT_SECRET
               valueFrom: { secretKeyRef: { name: {{ .Values.import.omSecret }}, key: client-secret } }
+            {{- if .Values.import.provisionerSecret }}
+            - name: CONTEXTURE_PROVISIONER_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: {{ .Values.import.provisionerSecret }}, key: client-secret } }
+            {{- end }}
             {{- if .Values.keycloak.enabled }}
             - { name: KEYCLOAK_AVAILABILITYCHECK_ENABLED, value: "true" }
             - { name: KEYCLOAK_AVAILABILITYCHECK_TIMEOUT, value: "300s" }

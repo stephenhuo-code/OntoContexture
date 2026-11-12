@@ -11,6 +11,12 @@ spec:
     metadata:
       labels: { app.kubernetes.io/name: web, app.kubernetes.io/instance: {{ .Release.Name }}, app.kubernetes.io/part-of: contexture }
     spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
       automountServiceAccountToken: false
       containers:
         - name: web
@@ -52,6 +58,12 @@ metadata:
 spec:
   parentRefs:
     - name: {{ .Values.route.gateway }}
+      {{- with .Values.route.sectionName }}
+      sectionName: {{ . }}
+      {{- end }}
+  {{- with .Values.route.hostnames }}
+  hostnames: {{- toYaml . | nindent 4 }}
+  {{- end }}
   rules:
     - matches:
         - path: { type: PathPrefix, value: / }

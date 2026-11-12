@@ -1,4 +1,4 @@
-"""合并 Python / LCOV，检查 git 变更中的可执行行覆盖率，缺报告时失败。"""
+"""合并 Python / LCOV / Cobertura（kcov），检查 git 变更中的可执行行覆盖率，缺报告时失败。"""
 
 import argparse
 import json
@@ -7,6 +7,7 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
+from xml.etree import ElementTree
 
 Coverage = dict[str, dict[int, bool]]
 GIT = shutil.which("git") or "/usr/bin/git"
@@ -25,7 +26,7 @@ SOURCE_PREFIXES = (
 def source_file(path: str) -> bool:
     return (
         path.startswith(SOURCE_PREFIXES)
-        and path.endswith((".py", ".ts", ".tsx", ".js"))
+        and path.endswith((".py", ".ts", ".tsx", ".js", ".sh"))
         and "/tests/" not in path
         and "/__tests__/" not in path
         and not path.endswith((".d.ts", "test-setup.ts"))
@@ -43,6 +44,22 @@ def read_lcov(path: Path, prefix: Path) -> Coverage:
         elif line.startswith("DA:") and current is not None:
             number, count, *_ = line[3:].split(",")
             current[int(number)] = int(count) > 0
+    return result
+
+
+def read_cobertura(path: Path) -> Coverage:
+    """kcov 输出：<source> 为脚本目录（绝对路径），class 的 filename 相对于它。"""
+    tree = ElementTree.parse(path)  # noqa: S314 — 本地生成的覆盖率报告
+    sources = [Path(node.text or "") for node in tree.iter("source")]
+    result: Coverage = {}
+    for cls in tree.iter("class"):
+        filename = cls.get("filename", "")
+        candidates = [base / filename for base in sources] or [Path(filename)]
+        source = next((c for c in candidates if c.is_absolute()), candidates[0])
+        key = source.relative_to(ROOT) if source.is_absolute() else source
+        lines = result.setdefault(posixpath.normpath(key.as_posix()), {})
+        for line in cls.iter("line"):
+            lines[int(line.get("number", "0"))] = int(line.get("hits", "0")) > 0
     return result
 
 
@@ -90,10 +107,13 @@ def main() -> int:
     parser.add_argument("--base", default="HEAD")
     parser.add_argument("--python", type=Path)
     parser.add_argument("--lcov", type=Path, action="append", default=[])
+    parser.add_argument("--cobertura", type=Path, action="append", default=[])
     args = parser.parse_args()
     reports: Coverage = read_python(args.python) if args.python else {}
     for report in args.lcov:
         reports.update(read_lcov(report, report.parent.parent))
+    for report in args.cobertura:
+        reports.update(read_cobertura(report))
     # 参数作为 argv 传入，不通过 shell；未跟踪的新文件也必须纳入本地门禁。
     diff = subprocess.run(  # noqa: S603
         [GIT, "diff", "--no-ext-diff", "--unified=0", args.base, "--"],
