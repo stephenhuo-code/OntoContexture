@@ -39,8 +39,9 @@ ctx_kubectl() {
     *"get cronjob"*) printf 'openmetadata-reindex\n' ;;
     *"get certificate"*) echo True ;;
     # 真实 kubectl：namespace 中没有 Deployment 时 wait --all 报 “no matching resources found” 并返回 1
-    *"wait --for=condition=Available deployment --all"*) grep -q "^Deployment/" "$FAKE/$ns" 2>/dev/null || { echo "error: no matching resources found" >&2; return 1; } ;;
-    *"rollout status"*) stub_record "kubectl -n $ns $*" ;;
+    *"get deploy -o name"*) grep "^Deployment/" "$FAKE/$ns" 2>/dev/null | cut -d" " -f1 || true ;;
+    *"wait --for=condition=Available deployment --all"*) stub_record "kubectl -n $ns wait deployment"; grep -q "^Deployment/" "$FAKE/$ns" 2>/dev/null || { echo "error: no matching resources found" >&2; return 1; } ;;
+    *"rollout status"*) stub_record "kubectl $*" ;;
     *) stub_record "kubectl -n $ns $*" ;;
   esac
 }
@@ -165,4 +166,5 @@ test_wait_ready_skips_namespaces_without_deployments() {
   ctx_lc_wait_ready || fail "没有 Deployment 的 namespace 不应判为未就绪"
   assert_not_contains "$(stub_calls)" "report-unschedulable"
   assert_contains "$(stub_calls)" "kubectl -n mock-sources rollout status statefulset"
+  assert_contains "$(stub_calls)" "kubectl -n contexture wait deployment"
 }
