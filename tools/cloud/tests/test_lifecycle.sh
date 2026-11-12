@@ -38,6 +38,9 @@ ctx_kubectl() {
     *"get clusters.postgresql.cnpg.io"*) printf 'contexture/pg\nmock-sources/mock-qms\n' ;;
     *"get cronjob"*) printf 'openmetadata-reindex\n' ;;
     *"get certificate"*) echo True ;;
+    # 真实 kubectl：namespace 中没有 Deployment 时 wait --all 报 “no matching resources found” 并返回 1
+    *"wait --for=condition=Available deployment --all"*) grep -q "^Deployment/" "$FAKE/$ns" 2>/dev/null || { echo "error: no matching resources found" >&2; return 1; } ;;
+    *"rollout status"*) stub_record "kubectl -n $ns $*" ;;
     *) stub_record "kubectl -n $ns $*" ;;
   esac
 }
@@ -153,4 +156,13 @@ test_unhibernate_retries_until_webhook_accepts() {
   echo 2 > "$FAKE/hib-fail"
   CTX_LC_RETRY_SLEEP=0 ctx_lc_cnpg off >/dev/null 2>&1 || fail "webhook 就绪后应成功"
   [[ $(stub_calls | grep -c "contexture cluster.postgresql.cnpg.io/pg cnpg.io/hibernation-") -eq 3 ]] || fail "应重试到成功（共 3 次）"
+}
+
+# T082 实测：mock-sources 只有 StatefulSet、contexture-ci 为空，wait --all 返回 1，环境已就绪但 cloud-start 判定失败
+test_wait_ready_skips_namespaces_without_deployments() {
+  eval "$(sed -n '/^ctx_lc_wait_ready()/,/^}/p' "$REPO_ROOT/tools/cloud/lifecycle.sh")"
+  ctx_report_unschedulable() { stub_record "report-unschedulable"; }
+  ctx_lc_wait_ready || fail "没有 Deployment 的 namespace 不应判为未就绪"
+  assert_not_contains "$(stub_calls)" "report-unschedulable"
+  assert_contains "$(stub_calls)" "kubectl -n mock-sources rollout status statefulset"
 }
