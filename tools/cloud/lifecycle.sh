@@ -53,13 +53,16 @@ ctx_lc_cronjobs() {  # ctx_lc_cronjobs <true|false>：停止期间暂停定时�
 }
 
 ctx_lc_cnpg() {  # ctx_lc_cnpg <on|off>：CNPG 原生休眠，保留 PVC
-  local item ns name
-  for item in $(ctx_kubectl get clusters.postgresql.cnpg.io -A --ignore-not-found \
-    -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}{"\n"}{end}' 2>/dev/null); do
+  local item state ns name
+  while read -r item state; do
+    [[ -z $item ]] && continue
     ns=${item%%/*}; name=${item#*/}
     if [[ $1 == on ]]; then
+      # 已休眠的跳过：重复停止时 operator 已停，再加注解会被 webhook 拒绝（T082 实测）
+      [[ $state == on ]] && continue
       ctx_kubectl -n "$ns" annotate "cluster.postgresql.cnpg.io/$name" cnpg.io/hibernation=on --overwrite >/dev/null
     else
+      [[ $state == on ]] || continue   # 未休眠的不动（cloud-deploy 每次部署前都会调用 resume）
       # operator 刚恢复时 webhook 可能尚未接受请求（T082 实测 connection refused）：重试至成功
       local i
       for ((i = 0; ; i++)); do
@@ -68,7 +71,8 @@ ctx_lc_cnpg() {  # ctx_lc_cnpg <on|off>：CNPG 原生休眠，保留 PVC
         sleep "${CTX_LC_RETRY_SLEEP:-10}"
       done
     fi
-  done
+  done < <(ctx_kubectl get clusters.postgresql.cnpg.io -A --ignore-not-found \
+    -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name} {.metadata.annotations.cnpg\.io/hibernation}{"\n"}{end}' 2>/dev/null)
 }
 
 ctx_lc_wait_pg_down() {
