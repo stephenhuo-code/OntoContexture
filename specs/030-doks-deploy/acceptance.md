@@ -135,9 +135,23 @@ tools/cloud/tests/render-compare.sh
 | SC-007 | 本地渲染不变 | 通过 | render-compare |
 | SC-010 | 无明文凭证 | 仓库、流水线日志、工具箱镜像扫描通过 | research T087 |
 
-## 5. 自动化验证结论（T088）
+## 5. 自动化验证结论（T088，2026-11-12）
 
-（待补）
+| 项目 | 结果 | 用时 / 说明 |
+| --- | --- | --- |
+| `make cloud-unit`（bash 单元测试） | 通过 | 开发机与工具箱中均全部通过 |
+| `tools/cloud/tests/render-compare.sh`（SC-007） | 通过 | 5 项全部 ✔ |
+| `make components-check` | 通过 | 组件清单与 Keycloak 主题副本一致 |
+| `make cloud-lint` | 通过 | 83 秒 |
+| `make cloud-test DIFF_BASE=main` | 通过 | 596 秒；Python 557 项、Web 147 项、UI 包 24 项、bash 单元测试全部通过；**变更行覆盖率 621/727 = 85.42%**（≥ 80%） |
+| `make cloud-e2e` | **1 项失败** | pytest 部分 16 项通过；浏览器 25 项通过、1 项跳过、1 项失败：005 的“US1 接入 MES 并首采”（见第 7 节 A3）；`pnpm e2e:ui` 未运行（见 A1） |
+| `tests/cloud/test_access.sh` | 通过 | 28 秒 |
+| `tests/cloud/test_deploy.sh` | 通过 | 重复部署 326 秒；首轮因 DOKS 控制面接口断开（`cluster unreachable … EOF`）失败，重跑通过 |
+| `tests/cloud/test_lifecycle.sh` | 通过 | 停止 980 秒、启动 711 秒、数据一致、幂等；另测中断后收敛 |
+| `tests/cloud/test_toolbox_run.sh` | 通过 | 首轮发现删除后 Pod 残留约 30 秒、中断未真正生效，修正后通过 |
+| `tests/cloud/test_dev_mode.sh` | 未重跑 | 11-11 已通过；本次开发模式代码未改动，且开发机内存已接近 2 GiB 上限，重跑有使开发机 OOM 的风险 |
+| `tests/cloud/test_uninstall.sh` | 未执行 | 负责人决定本轮跳过（T060） |
+| 远端 CI | 未运行 | CI 只在 PR 与推送到 main 时触发；030 按负责人决定不开 PR、不合并（见 A4） |
 
 ## 6. 已知限制
 
@@ -152,6 +166,7 @@ tools/cloud/tests/render-compare.sh
 - **启停命令之间没有互斥**：同时执行 `cloud-stop` 与 `cloud-start` 的结果不确定；任一命令被中断后，再执行一次目标命令即可收敛。
 - **环境刚启动后的首次搜索可能超过 5 秒**：`assets.spec` US1 在启动后首轮失败、单独重跑通过；不影响功能。
 - **`cloud-e2e` 中开发示例页用例（`pnpm e2e:ui`）在云端无法照原样运行**，见第 7 节。
+- **005 的 MES 首采 e2e 偶发超时**（第 7 节 A3）。
 - 卸载（US7）本轮未实测。
 
 ## 7. 待负责人决定
@@ -160,6 +175,8 @@ tools/cloud/tests/render-compare.sh
 | --- | --- | --- |
 | A1 | `pnpm e2e:ui` 在工具箱中启动本地 Vite，云端登录 Cookie 属于织境域名，localhost 拿不到会话，无法照原样运行 | `cloud-e2e` 跳过该用例并提示原因；对应场景由开发模式验证（`tests/cloud/test_dev_mode.sh`）覆盖 |
 | A2 | 已知不稳定用例（非 030 引入）：`demo.spec` 两个“设备”标题、006 建议接口的空白关键词契约、`column-locate` 滚动 | 另立任务在所属特性中修复 |
+| A3 | 005 e2e“US1 接入 MES 并首采”偶发超时：Airflow 第一次尝试的 Pod 26 秒正常结束，任务却被标为 `up_for_reschedule`，约 2 分钟后第二次尝试成功，总耗时超出用例 5 分钟上限；同日另一轮通过（56.8 秒）。首次尝试的任务日志随 Pod 删除未保留 | 记入已知限制，另立任务（保留任务日志后复现定位） |
+| A4 | 远端 CI 未运行 | 如需要，开一个不合并的草稿 PR 触发 CI |
 
 ## 8. 验收记录
 

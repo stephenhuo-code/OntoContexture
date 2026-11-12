@@ -369,7 +369,7 @@
 - [X] T085 [P] 在 `docs/Phase1-特性列表与开发计划.md` 中更新 030 的进度（实际工期、偏差，以及复估后对 007 及之后特性的影响）；在 `README.md` 的环境操作部分加入 `make cloud-*` 命令索引
 - [X] T086 根据 T023 的结论二选一：在 `tools/cloud/lifecycle.sh` 中实现“启动时跳过补跑”并补充测试；或者修订 `specs/030-doks-deploy/spec.md` 的边界情况，写明接受一次补跑（R13）
 - [X] T087 [P] 用仓库现有的密钥扫描，检查仓库、`cloud-images` 流水线日志和工具箱镜像中没有明文凭证（SC-010）
-- [ ] T088 汇总自动化验证：
+- [X] T088 汇总自动化验证：
   - `CTX_KCOV=1 make cloud-unit`，用 `make coverage-check` 合并 Python、前端和 bash（cobertura）的覆盖率，新增与修改的代码 ≥ 80%；
   - `tools/cloud/tests/render-compare.sh`（SC-007）；
   - `make cloud-lint`、`make cloud-test`、`make cloud-e2e`；
@@ -378,7 +378,7 @@
   - 远端 CI 全部通过。
 
   因环境原因未能通过的项目，如实记录原因
-- [ ] T089 编写 `specs/030-doks-deploy/acceptance.md`，包括：
+- [X] T089 编写 `specs/030-doks-deploy/acceptance.md`，包括：
   - 前置条件：kubeconfig、域名与 DNS、DOCR 令牌、GitHub Secret；
   - 预计用时；
   - 按 quickstart.md 逐步操作，每条命令都可以直接复制执行，并写明预期结果；

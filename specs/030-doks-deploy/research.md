@@ -430,3 +430,13 @@ doctl v2.1.0、devspace v6.3.21、buildctl v0.34.1、jq 1.8.2（均发布满两�
   “部分运行（记录：stopping）”；再执行一次 `cloud-stop`，**758 秒**收敛为“已停止”、弹性池 0 节点；随后 `cloud-start` **753 秒**恢复，冒烟测试全部通过。
 - 实测中曾误把一次 `cloud-start` 与 `cloud-stop` 并行执行，两者互相改动副本数；终止两者后单独执行一次 `cloud-start`（535 秒）收敛到运行状态。
   启停命令之间没有互斥锁，同时执行的结果不确定，记入 acceptance.md 已知限制。
+
+## 实施记录：自动化验证汇总（T088，2026-11-12）
+
+结论与用时见 [acceptance.md 第 5 节](acceptance.md#5-自动化验证结论t0882026-11-12)。本轮新发现并修正（均测试先行）：
+
+- 工具箱 Pod 主进程 `sleep infinity` 不响应 TERM，删除后在默认 30 秒宽限期内停在 Terminating，`test_toolbox_run.sh` 判为残留；宽限期改为 2 秒。
+  该测试的“中断”一步向后台进程发 SIGINT，而非交互 shell 中后台进程忽略 SIGINT，命令实际未被中断；改为 setsid 进程组发 TERM，并断言命令非 0 退出。
+- `test_deploy.sh` 首轮重复部署时 DOKS 控制面接口断开（`Kubernetes cluster unreachable … EOF`），envoy-gateway、cert-manager 升级失败；重跑通过（326 秒）。
+- 005 e2e“US1 接入 MES 并首采”再次超时：Airflow 第一次尝试的任务 Pod 运行 26 秒后正常结束，调度器收到 `up_for_reschedule`，约 2 分钟后第二次尝试成功（04:39:25～04:42:35）。
+  首次尝试的日志随 Pod 删除未保留，原因未定位；交负责人决定（acceptance.md A3）。
