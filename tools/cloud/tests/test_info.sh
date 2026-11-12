@@ -22,3 +22,10 @@ test_points_to_secret_locations_without_values() {
   assert_not_contains "$out" "secret-value"
   assert_not_contains "$out" "c2VjcmV0LXZhbHVl"
 }
+
+# 负责人验收反馈（2026-11-12）：按提示用 user1 登录被拒——织境 Web 只对 admin / ai-engineer 开放，user1 是业务用户
+test_web_login_hint_names_accounts_with_web_access() {
+  local out; out=$(ctx_info_main)
+  assert_contains "$out" "engineer1 / engineer1"
+  assert_contains "$out" "user1 为业务用户"
+}
