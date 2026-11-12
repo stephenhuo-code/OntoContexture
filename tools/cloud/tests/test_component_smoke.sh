@@ -130,3 +130,57 @@ test_mock_source_smoke_uses_cloud_context() {
   )
   assert_contains "$(stub_calls)" "ctx=do-cloud"
 }
+
+# T082 实测：停止 / 启动后 Airflow 元数据库仍列出已删除文件的 DAG（e2e 与 ctx005_chain 测试的残留），冒烟误判为首轮遗留
+fake_airflow_dags_path() {  # $FAKE_DAG_LIST：dags list 输出；$FAKE_DAG_FILES：dags 目录中的文件
+  local dir; dir=$(tmpdir)
+  cat > "$dir/kubectl" <<'SH'
+#!/usr/bin/env bash
+case "$*" in
+  *"containers[0].image"*) echo "registry.example.com/team/openmetadata-ingestion-airflow:2.0.3-ctx.1" ;;
+  *" logs smoke-"*) echo 000 ;;   # incluster curl 的输出：非授权 Pod 连不上 api-server
+  *"dags list"*) printf 'dag_id fileloc\n%s\n' "$FAKE_DAG_LIST" ;;
+  *"ls -1"*) printf '%s\n' "$FAKE_DAG_FILES" ;;
+  *"dags_folder"*) echo /opt/airflow/dags ;;
+  *"DAG_GENERATED_CONFIGS"*) echo /opt/airflow/dags/generated ;;
+  *"claimName"*) echo "airflow-dags" ;;
+  *"test ! -e"*) exit 0 ;;
+  *exec*) echo '{"scheduler": {"status": "healthy"}, "status": "healthy"}' ;;
+esac
+exit 0
+SH
+  chmod +x "$dir/kubectl"
+  printf '%s' "$dir"
+}
+
+test_airflow_smoke_ignores_stale_dag_records_without_files() {
+  local out
+  out=$(PATH="$(fake_airflow_dags_path):$PATH" FAKE_DAG_LIST="ctx005_chain_mes_metadata_3Y3LdvDY /opt/airflow/dags/ctx005_chain_mes_metadata_3Y3LdvDY.py" \
+    FAKE_DAG_FILES="" bash "$REPO_ROOT/deploy/components/airflow/tests/smoke.sh" 2>&1) || fail "无文件的残留记录不应判失败：$out"
+  assert_contains "$out" "no legacy dags OK"
+}
+
+test_airflow_smoke_still_rejects_first_round_dag_files() {
+  local out
+  out=$(PATH="$(fake_airflow_dags_path):$PATH" FAKE_DAG_LIST="" FAKE_DAG_FILES="metadata_mock_mes.py" \
+    bash "$REPO_ROOT/deploy/components/airflow/tests/smoke.sh" 2>&1) && fail "首轮遗留 DAG 文件应判失败"
+  assert_contains "$out" "存在首轮遗留 DAG"
+}
+
+# T082 实测：停止释放节点后，已完成的导入 Job 的 Pod 已被回收，kubectl logs 超时，冒烟误判失败
+test_keycloak_smoke_accepts_completed_import_whose_pod_was_reclaimed() {
+  local dir out; dir=$(tmpdir)
+  cat > "$dir/kubectl" <<'SH'
+#!/usr/bin/env bash
+case "$*" in
+  *"get jobs"*) echo "job.batch/keycloak-import-abc" ;;
+  *"wait"*) echo "job.batch/keycloak-import-abc condition met" ;;
+  *"get pods"*) ;;
+  *"logs"*) echo "error: timed out waiting for the condition" >&2; exit 1 ;;
+esac
+exit 0
+SH
+  chmod +x "$dir/kubectl"
+  out=$(PATH="$dir:$PATH" bash "$REPO_ROOT/deploy/components/keycloak/tests/smoke.sh" 2>&1) || fail "Job 已完成应通过：$out"
+  assert_contains "$out" "import OK"
+}
