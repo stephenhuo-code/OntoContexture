@@ -1,0 +1,2076 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agent 工作台原型</title>
+    <style>
+      :root {
+        --ctx-primary: #2563eb;
+        --ctx-primary-hover: #1d4ed8;
+        --ctx-ink: #172338;
+        --ctx-muted: #627087;
+        --ctx-border: #dfe5ee;
+        --ctx-surface: #ffffff;
+        --ctx-background: #f4f6fa;
+        --ctx-radius: 12px;
+        --ctx-font:
+          "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui,
+          sans-serif;
+        --ctx-mono:
+          ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ctx-ink);
+        font-family: var(--ctx-font);
+        background: var(--ctx-background);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+
+      body.resizing {
+        cursor: col-resize;
+        user-select: none;
+      }
+
+      a:focus-visible,
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible {
+        outline: 2px solid var(--ctx-primary);
+        outline-offset: 2px;
+      }
+
+      /* 原型演示状态条（仅用于负责人评审，不进入生产页面） */
+      .proto-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 16px;
+        background: #172338;
+        color: #e2e8f0;
+        font-size: 12px;
+        border-bottom: 1px solid #2b3b55;
+        flex-wrap: wrap;
+      }
+      .proto-banner-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .proto-tag {
+        background: #2563eb;
+        color: #fff;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+      }
+      .proto-note {
+        color: #94a3b8;
+      }
+      .proto-Presets {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .proto-btn {
+        border: 1px solid #334155;
+        background: #1e293b;
+        color: #e2e8f0;
+        border-radius: 6px;
+        padding: 3px 9px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.12s;
+      }
+      .proto-btn:hover {
+        background: #334155;
+      }
+      .proto-btn.active {
+        background: #2563eb;
+        border-color: #3b82f6;
+        color: #fff;
+        font-weight: 600;
+      }
+
+      /* 生产外壳：与 apps/web/src/styles.css 对齐 */
+      .app-shell {
+        display: flex;
+        height: calc(100dvh - 37px);
+        width: 100%;
+        overflow: hidden;
+      }
+
+      .primary-rail {
+        flex: 0 0 76px;
+        background: linear-gradient(180deg, #f3f6fe 0%, #e8eefc 100%);
+        border-right: 1px solid #dfe6f5;
+        color: #5b6b82;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 18px 10px;
+        gap: 16px;
+      }
+      .primary-rail .brand {
+        display: grid;
+        place-items: center;
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #3b82f6 0%, #4f46e5 100%);
+        box-shadow: 0 8px 18px #3b5bdb40;
+        color: white;
+        text-decoration: none;
+      }
+      .primary-rail .brand svg {
+        width: 28px;
+        height: 28px;
+        stroke-width: 1.8;
+      }
+      .rail-divider {
+        width: 28px;
+        height: 2px;
+        border-radius: 1px;
+        background: #d5ddef;
+      }
+      .primary-rail nav {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .primary-link {
+        position: relative;
+        display: grid;
+        place-items: center;
+        color: #4b5b74;
+        width: 50px;
+        height: 50px;
+        border-radius: 14px;
+        border: 1px solid transparent;
+        text-decoration: none;
+        cursor: pointer;
+        background: transparent;
+      }
+      .primary-link svg {
+        width: 26px;
+        height: 26px;
+      }
+      .primary-link:hover {
+        background: #ffffffa8;
+        color: var(--ctx-primary);
+      }
+      .primary-link[aria-current="page"] {
+        background: #fff;
+        border-color: #cfdcf8;
+        color: var(--ctx-primary);
+        box-shadow: 0 4px 12px #2f5bd51a;
+      }
+      .primary-link[aria-current="page"]::before {
+        content: "";
+        position: absolute;
+        left: -11px;
+        top: 14px;
+        bottom: 14px;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background: var(--ctx-primary);
+      }
+      .rail-caption {
+        margin-top: auto;
+        font-size: 13px;
+        color: #4b5b74;
+        font-weight: 500;
+      }
+
+      /* 二级栏：可拖宽 200px - 480px，默认 248px */
+      .secondary-rail {
+        position: relative;
+        flex: 0 0 248px;
+        min-width: 200px;
+        max-width: 480px;
+        background: var(--ctx-surface);
+        border-right: 1px solid var(--ctx-border);
+        padding: 0 12px 16px;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+      }
+      .module-label {
+        flex: 0 0 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 17px;
+        color: var(--ctx-ink);
+        border-bottom: 1px solid var(--ctx-border);
+        margin: 0 -12px 10px;
+        padding: 0 18px;
+      }
+      .module-label-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .module-label svg {
+        width: 22px;
+        height: 22px;
+        color: var(--ctx-primary);
+      }
+      .rail-resizer {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 6px;
+        height: 100%;
+        cursor: col-resize;
+        z-index: 5;
+      }
+      .rail-resizer:hover {
+        background: linear-gradient(
+          90deg,
+          transparent 2px,
+          var(--ctx-primary) 2px 4px,
+          transparent 4px
+        );
+      }
+
+      /* 左栏模式说明头 */
+      .rail-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 8px 6px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--ctx-muted);
+        letter-spacing: 0.04em;
+      }
+      .rail-mode-badge {
+        font-size: 11px;
+        padding: 1px 6px;
+        border-radius: 6px;
+        background: #eef4ff;
+        color: var(--ctx-primary);
+        font-weight: 500;
+      }
+
+      /* 浏览树 & 类型菜单（与 005 .catalog-row 样式一脉相承，对齐 OM ExploreTree） */
+      .catalog-tree,
+      .catalog-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .catalog-row {
+        display: flex;
+        align-items: center;
+        min-height: 34px;
+        border-radius: 9px;
+        margin-bottom: 2px;
+      }
+      .catalog-row:hover {
+        background: #f3f6fb;
+      }
+      .catalog-row.selected {
+        background: #eaf1ff;
+      }
+      .catalog-toggle {
+        display: grid;
+        place-items: center;
+        width: 22px;
+        min-width: 22px;
+        height: 28px;
+        border: 0;
+        padding: 0;
+        background: none;
+        color: #7a889c;
+        cursor: pointer;
+      }
+      .catalog-toggle svg {
+        width: 14px;
+        height: 14px;
+        transition: transform 0.15s;
+      }
+      .catalog-toggle svg.open {
+        transform: rotate(90deg);
+      }
+      .catalog-pick {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 5px 8px 5px 2px;
+        background: none;
+        border: 0;
+        text-align: left;
+        color: #344256;
+        font-size: 13.5px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .catalog-row.selected .catalog-pick {
+        color: var(--ctx-primary);
+        font-weight: 600;
+      }
+      .catalog-pick span.node-label {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .catalog-pick small {
+        flex: none;
+        margin-left: auto;
+        padding: 1px 7px;
+        border: 1px solid #dfe5ef;
+        border-radius: 7px;
+        background: #f7f9fc;
+        font-size: 11.5px;
+        color: #4b5b74;
+        white-space: nowrap;
+      }
+      .catalog-row.selected .catalog-pick small {
+        background: #fff;
+        border-color: #bfd3f8;
+        color: var(--ctx-primary);
+      }
+      .connector-badge {
+        display: inline-grid;
+        place-items: center;
+        width: 20px;
+        height: 20px;
+        border-radius: 5px;
+        background: #e8efff;
+        color: var(--ctx-primary);
+        font-weight: 700;
+        font-size: 9px;
+        flex: none;
+      }
+      .connector-postgres {
+        background: #f0eaff;
+        color: #6d3fd1;
+      }
+      .connector-doris {
+        background: #e6f7f4;
+        color: #0f766e;
+      }
+      .connector-gov {
+        background: #fef3c7;
+        color: #b45309;
+      }
+      .connector-domain {
+        background: #fce7f3;
+        color: #be185d;
+      }
+
+      /* 主工作区 */
+      .workspace {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--ctx-background);
+      }
+
+      /* 顶栏：面包屑 + 数据资产搜索框（带范围选择器与输入建议） + 账号 */
+      .page-header {
+        flex: 0 0 64px;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 0 24px;
+        background: var(--ctx-surface);
+        border-bottom: 1px solid var(--ctx-border);
+        z-index: 20;
+      }
+      .page-heading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        flex-shrink: 0;
+      }
+      .breadcrumb-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        color: var(--ctx-muted);
+        white-space: nowrap;
+      }
+      .breadcrumb-bar strong {
+        color: var(--ctx-ink);
+        font-weight: 600;
+        font-size: 16px;
+      }
+      .breadcrumb-link {
+        border: 0;
+        background: none;
+        padding: 0;
+        color: var(--ctx-primary);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 500;
+      }
+      .breadcrumb-link:hover {
+        text-decoration: underline;
+      }
+
+      /* OM 风格组合搜索栏：范围下拉 + 关键词输入 + 清除 + 建议浮层 */
+      .om-search-container {
+        position: relative;
+        flex: 1 1 560px;
+        max-width: 640px;
+        min-width: 240px;
+      }
+      .om-search-box {
+        display: flex;
+        align-items: center;
+        height: 38px;
+        border: 1px solid #cbd5e1;
+        border-radius: 9px;
+        background: #f8fafc;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s,
+          background 0.15s;
+      }
+      .om-search-box:focus-within {
+        background: #fff;
+        border-color: var(--ctx-primary);
+        box-shadow: 0 0 0 3px #2563eb1f;
+      }
+      .om-scope-select {
+        height: 100%;
+        border: 0;
+        border-right: 1px solid #dfe5ee;
+        background: transparent;
+        padding: 0 10px 0 12px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #334155;
+        cursor: pointer;
+        border-radius: 9px 0 0 9px;
+      }
+      .om-search-icon {
+        width: 17px;
+        height: 17px;
+        color: #64748b;
+        margin-left: 10px;
+        flex-shrink: 0;
+      }
+      .om-search-input {
+        flex: 1;
+        border: 0;
+        background: transparent;
+        padding: 0 10px;
+        font-size: 13.5px;
+        color: var(--ctx-ink);
+        height: 100%;
+        min-width: 0;
+      }
+      .om-search-input:focus {
+        outline: none;
+      }
+      .om-search-clear {
+        border: 0;
+        background: none;
+        color: #64748b;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+      }
+      .om-search-kbd {
+        margin-right: 8px;
+        padding: 2px 6px;
+        font-size: 11px;
+        border-radius: 5px;
+        background: #eef2f6;
+        color: #64748b;
+        border: 1px solid #dfe5ee;
+        white-space: nowrap;
+      }
+
+      /* 搜索输入建议浮层（对应 OM Suggestions，按 entityType 分组，每组最多 5 条） */
+      .om-suggestions-popover {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid var(--ctx-border);
+        border-radius: 12px;
+        box-shadow: 0 14px 36px #0f172a24;
+        z-index: 50;
+        max-height: 440px;
+        overflow-y: auto;
+        padding: 8px 0;
+      }
+      .om-Suggestions-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 14px;
+        font-size: 11.5px;
+        color: var(--ctx-muted);
+        border-bottom: 1px solid #f1f5f9;
+      }
+      .om-suggestion-group-title {
+        padding: 8px 14px 4px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .om-suggestion-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        width: 100%;
+        padding: 8px 14px;
+        border: 0;
+        background: none;
+        text-align: left;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .om-suggestion-item:hover {
+        background: #f1f5f9;
+      }
+      .om-suggestion-main {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+      }
+      .om-suggestion-fqn {
+        font-size: 11.5px;
+        color: var(--ctx-muted);
+        font-family: var(--ctx-mono);
+      }
+
+      /* 顶栏右侧账户 */
+      .account-identity {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        flex-shrink: 0;
+      }
+      .account-avatar {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #e8efff;
+        color: #2556b5;
+        font-weight: 600;
+      }
+
+      /* 探索主视图布局 */
+      .explore-wrapper {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      /* 页头与工具栏区 */
+      .explore-toolbar-area {
+        background: var(--ctx-surface);
+        border-bottom: 1px solid var(--ctx-border);
+        padding: 14px 24px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .explore-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .explore-title-left {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .explore-title-left h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .hit-counter {
+        font-size: 13px;
+        color: var(--ctx-muted);
+      }
+      .hit-counter strong {
+        color: var(--ctx-ink);
+      }
+      .explore-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .ctx-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 34px;
+        padding: 6px 12px;
+        border: 1px solid transparent;
+        border-radius: 7px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 13px;
+        font-family: inherit;
+        transition: background 0.12s;
+      }
+      .ctx-button--primary {
+        background: var(--ctx-primary);
+        color: #fff;
+      }
+      .ctx-button--primary:hover {
+        background: var(--ctx-primary-hover);
+      }
+      .ctx-button--secondary {
+        border-color: var(--ctx-border);
+        background: var(--ctx-surface);
+        color: var(--ctx-ink);
+      }
+      .ctx-button--secondary:hover {
+        background: #eaf0fa;
+      }
+      .ctx-button--ghost {
+        background: transparent;
+        color: var(--ctx-muted);
+      }
+      .ctx-button--ghost:hover {
+        background: #eaf0fa;
+        color: var(--ctx-ink);
+      }
+
+      /* 快速筛选栏（ExploreQuickFilters）+ 排序控件 */
+      .quick-filters-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .quick-filters-list {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .filter-dropdown-wrap {
+        position: relative;
+      }
+      .filter-pill-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        height: 30px;
+        padding: 0 10px;
+        border: 1px solid #d5deeb;
+        border-radius: 7px;
+        background: #fff;
+        color: #334155;
+        font-size: 12.5px;
+        cursor: pointer;
+        font-family: inherit;
+      }
+      .filter-pill-btn:hover {
+        border-color: #94a3b8;
+        background: #f8fafc;
+      }
+      .filter-pill-btn.active {
+        border-color: var(--ctx-primary);
+        background: #eef4ff;
+        color: var(--ctx-primary);
+        font-weight: 600;
+      }
+      .filter-pill-count {
+        display: inline-grid;
+        place-items: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 999px;
+        background: var(--ctx-primary);
+        color: #fff;
+        font-size: 11px;
+      }
+
+      /* 筛选下拉面板（支持选项内搜索、计数、多选 OR、「无 (未分配)」） */
+      .filter-popover {
+        position: absolute;
+        top: calc(100% + 5px);
+        left: 0;
+        width: 268px;
+        background: #fff;
+        border: 1px solid var(--ctx-border);
+        border-radius: 10px;
+        box-shadow: 0 12px 28px #0f172a20;
+        z-index: 40;
+        padding: 10px;
+      }
+      .filter-popover-search {
+        width: 100%;
+        padding: 6px 9px;
+        border: 1px solid var(--ctx-border);
+        border-radius: 6px;
+        font-size: 12.5px;
+        margin-bottom: 8px;
+      }
+      .filter-popover-hint {
+        font-size: 11px;
+        color: var(--ctx-muted);
+        margin-bottom: 6px;
+      }
+      .filter-options-list {
+        max-height: 210px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .filter-option-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 5px 6px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12.5px;
+      }
+      .filter-option-row:hover {
+        background: #f1f5f9;
+      }
+      .filter-option-left {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+      }
+      .filter-option-count {
+        font-size: 11.5px;
+        color: var(--ctx-muted);
+        background: #f1f5f9;
+        padding: 1px 6px;
+        border-radius: 6px;
+      }
+
+      /* 排序控件 */
+      .sort-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        color: var(--ctx-muted);
+      }
+      .sort-select {
+        height: 30px;
+        border: 1px solid #d5deeb;
+        border-radius: 7px;
+        padding: 0 8px;
+        background: #fff;
+        color: var(--ctx-ink);
+        font-size: 12.5px;
+      }
+      .sort-order-btn {
+        height: 30px;
+        width: 30px;
+        border: 1px solid #d5deeb;
+        border-radius: 7px;
+        background: #fff;
+        cursor: pointer;
+        display: grid;
+        place-items: center;
+        color: #334155;
+      }
+
+      /* 条件条（ExploreQueryFilterChips） */
+      .filter-chips-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        padding-top: 2px;
+        min-height: 26px;
+      }
+      .active-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        background: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        color: #1e293b;
+      }
+      .active-chip.location-chip {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #1e40af;
+      }
+      .active-chip button {
+        border: 0;
+        background: none;
+        padding: 0 2px;
+        cursor: pointer;
+        color: inherit;
+        font-size: 13px;
+        line-height: 1;
+      }
+      .chips-idle-hint {
+        font-size: 12px;
+        color: var(--ctx-muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      /* 主体双栏：左侧结果卡片列表 + 右侧只读摘要面板 */
+      .explore-main-split {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        overflow: hidden;
+      }
+      .results-column {
+        flex: 1;
+        min-width: 0;
+        overflow-y: auto;
+        padding: 16px 24px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      /* 结果卡片（对齐 OM ExploreSearchCard） */
+      .search-card {
+        background: var(--ctx-surface);
+        border: 1px solid var(--ctx-border);
+        border-radius: 11px;
+        padding: 14px 16px;
+        cursor: pointer;
+        transition:
+          border-color 0.12s,
+          box-shadow 0.12s;
+      }
+      .search-card:hover {
+        border-color: #93c5fd;
+      }
+      .search-card.selected {
+        border-color: var(--ctx-primary);
+        box-shadow: 0 0 0 2px #2563eb1f;
+        background: #fcfdff;
+      }
+      .card-top-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 5px;
+        flex-wrap: wrap;
+      }
+      .card-breadcrumb {
+        font-size: 12px;
+        color: var(--ctx-muted);
+        font-family: var(--ctx-mono);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-wrap: wrap;
+      }
+      .card-badges {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .card-title-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        flex-wrap: wrap;
+      }
+      .entity-type-pill {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 7px;
+        border-radius: 5px;
+        background: #eef2ff;
+        color: #3730a3;
+      }
+      .card-title-link {
+        border: 0;
+        background: none;
+        padding: 0;
+        font-size: 15.5px;
+        font-weight: 600;
+        color: var(--ctx-primary);
+        cursor: pointer;
+        text-align: left;
+        font-family: inherit;
+      }
+      .card-title-link:hover {
+        text-decoration: underline;
+      }
+      .card-tech-name {
+        font-size: 12.5px;
+        color: var(--ctx-muted);
+        font-family: var(--ctx-mono);
+      }
+      .card-desc {
+        margin: 0 0 10px;
+        font-size: 13.5px;
+        color: #334155;
+        line-height: 1.5;
+      }
+      .text-highlighter {
+        background: #fef08a;
+        color: #713f12;
+        padding: 0 2px;
+        border-radius: 3px;
+        font-weight: 600;
+      }
+      .card-meta-footer {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+        font-size: 12px;
+        color: var(--ctx-muted);
+        padding-top: 8px;
+        border-top: 1px dashed #e2e8f0;
+      }
+      .meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .meta-item strong {
+        color: #334155;
+        font-weight: 500;
+      }
+
+      /* 徽章体系：明确区分 分级(Tier)、数据安全级别(一级/二级/三级)、认证、来源 */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .badge-tier {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+      }
+      .badge-sec-l1 {
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+      }
+      .badge-sec-l2 {
+        background: #fffbeb;
+        color: #b45309;
+        border: 1px solid #fde68a;
+      }
+      .badge-sec-l3 {
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+      }
+      .badge-cert {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+      }
+      .badge-source-005 {
+        background: #f1f5f9;
+        color: #334155;
+      }
+      .badge-source-006 {
+        background: #f5f3ff;
+        color: #6d28d9;
+      }
+      .badge-match {
+        background: #fff7ed;
+        color: #c2410c;
+        border: 1px solid #fed7aa;
+      }
+
+      /* 分页栏 */
+      .pagination-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 4px 4px;
+        font-size: 12.5px;
+        color: var(--ctx-muted);
+        flex-wrap: wrap;
+      }
+      .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      /* 右侧摘要面板（EntitySummaryPanel，只读，包含 概览 / Schema 两个页签） */
+      .summary-drawer {
+        flex: 0 0 400px;
+        width: 400px;
+        background: var(--ctx-surface);
+        border-left: 1px solid var(--ctx-border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .summary-drawer.hidden {
+        display: none;
+      }
+      .summary-head {
+        padding: 14px 18px 10px;
+        border-bottom: 1px solid var(--ctx-border);
+      }
+      .summary-head-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .summary-title-link {
+        border: 0;
+        background: none;
+        padding: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--ctx-primary);
+        cursor: pointer;
+        text-align: left;
+        font-family: inherit;
+      }
+      .summary-title-link:hover {
+        text-decoration: underline;
+      }
+      .summary-close {
+        border: 0;
+        background: none;
+        color: var(--ctx-muted);
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+        padding: 2px 6px;
+      }
+      .summary-fqn {
+        margin-top: 4px;
+        font-size: 11.5px;
+        color: var(--ctx-muted);
+        font-family: var(--ctx-mono);
+        word-break: break-all;
+      }
+      .summary-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--ctx-border);
+        padding: 0 18px;
+        gap: 16px;
+        background: #f8fafc;
+      }
+      .summary-tab {
+        border: 0;
+        background: none;
+        padding: 9px 2px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ctx-muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        font-family: inherit;
+      }
+      .summary-tab.active {
+        color: var(--ctx-primary);
+        border-bottom-color: var(--ctx-primary);
+      }
+      .summary-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px 18px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .summary-readonly-banner {
+        font-size: 11.5px;
+        color: #475569;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 7px 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .summary-section {
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 12px;
+      }
+      .summary-section:last-child {
+        border-bottom: 0;
+      }
+      .summary-section h4 {
+        margin: 0 0 6px;
+        font-size: 12px;
+        color: var(--ctx-muted);
+        font-weight: 600;
+      }
+      .summary-kv-grid {
+        display: grid;
+        grid-template-columns: 112px 1fr;
+        row-gap: 8px;
+        column-gap: 8px;
+        font-size: 13px;
+      }
+      .summary-kv-label {
+        color: var(--ctx-muted);
+      }
+      .summary-col-card {
+        border: 1px solid var(--ctx-border);
+        border-radius: 8px;
+        padding: 8px 10px;
+        margin-bottom: 8px;
+        background: #fcfdff;
+      }
+      .summary-col-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        font-family: var(--ctx-mono);
+        font-size: 12.5px;
+        font-weight: 600;
+      }
+      .summary-col-type {
+        font-size: 11px;
+        color: #475569;
+        background: #f1f5f9;
+        padding: 1px 6px;
+        border-radius: 4px;
+      }
+      .summary-col-desc {
+        margin-top: 4px;
+        font-size: 12px;
+        color: #475569;
+      }
+
+      /* 空状态、错误状态、骨架屏、子视图容器 */
+      .state-panel {
+        background: var(--ctx-surface);
+        border: 1px solid var(--ctx-border);
+        border-radius: 12px;
+        padding: 36px 24px;
+        text-align: center;
+        margin: 8px 0;
+      }
+      .state-panel.error-state {
+        border-color: #f5c2c0;
+        background: #fff5f5;
+        text-align: left;
+      }
+      .skeleton-box {
+        height: 112px;
+        border-radius: 11px;
+        background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+        background-size: 200% 100%;
+        animation: pulse 1.4s infinite;
+      }
+      @keyframes pulse {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+
+      .subview-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px;
+      }
+      .subview-card {
+        background: var(--ctx-surface);
+        border: 1px solid var(--ctx-border);
+        border-radius: 12px;
+        padding: 20px 24px;
+        margin-bottom: 16px;
+      }
+
+      /* 窄屏适配：抽屉目录 */
+      .mobile-drawer-btn {
+        display: none;
+      }
+      @media (max-width: 960px) {
+        .secondary-rail {
+          display: none;
+        }
+        .secondary-rail.mobile-open {
+          display: flex;
+          position: fixed;
+          top: 37px;
+          bottom: 0;
+          left: 76px;
+          z-index: 60;
+          width: 280px;
+          box-shadow: 12px 0 36px #0f172a30;
+        }
+        .mobile-drawer-btn {
+          display: inline-flex;
+        }
+        .summary-drawer {
+          position: fixed;
+          top: 101px;
+          right: 0;
+          bottom: 0;
+          z-index: 45;
+          box-shadow: -10px 0 30px #0f172a25;
+        }
+      }
+
+      /* ===== 007 新增：页面助手、工作台嵌入、新建对话、结果组件 ===== */
+      .proto-banner { position: relative; z-index: 60; }
+      .header-actions { display: flex; align-items: center; gap: 10px; }
+      .assistant-toggle {
+        display: inline-flex; align-items: center; gap: 6px;
+        border: 1px solid #c7d6fb; background: #eef3ff; color: #1d4ed8;
+        border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px;
+        font-weight: 600; cursor: pointer;
+      }
+      .assistant-toggle:hover { background: #e0e9ff; }
+      .assistant-toggle[aria-pressed="true"] { background: #2563eb; color: #fff; border-color: #2563eb; }
+      .assistant-toggle svg { width: 16px; height: 16px; }
+
+      .ask-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        border: 1px solid #c7d6fb; background: #eef3ff; color: #1d4ed8;
+        border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 12.5px;
+        font-weight: 600; cursor: pointer;
+      }
+      .ask-btn:hover { background: #e0e9ff; }
+
+      .workspace-row { flex: 1; min-height: 0; display: flex; overflow: hidden; }
+      .workspace-main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+      /* 页面助手侧栏 */
+      .assistant-panel {
+        flex: 0 0 420px; width: 420px; display: flex; flex-direction: column;
+        background: #fff; border-left: 1px solid var(--ctx-border);
+        box-shadow: -6px 0 18px #0f172a0d; min-height: 0;
+      }
+      .ap-head { padding: 12px 14px 10px; border-bottom: 1px solid var(--ctx-border); }
+      .ap-head-row { display: flex; align-items: center; gap: 8px; }
+      .ap-title { font-weight: 700; font-size: 14.5px; flex: 1; min-width: 0;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .ap-sub { font-size: 12px; color: var(--ctx-muted); margin-top: 3px;
+        display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+      .icon-btn {
+        border: 1px solid transparent; background: transparent; color: #475569;
+        border-radius: 7px; padding: 4px 7px; cursor: pointer; font: inherit; font-size: 12.5px;
+        display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+      }
+      .icon-btn:hover { background: #f1f5f9; border-color: var(--ctx-border); }
+      .icon-btn.primary { color: #1d4ed8; font-weight: 600; }
+      .agent-chip {
+        display: inline-flex; align-items: center; gap: 5px; padding: 1px 8px;
+        border-radius: 999px; background: #f1f5f9; border: 1px solid var(--ctx-border);
+        font-size: 11.5px; color: #334155;
+      }
+      .dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; display: inline-block; }
+      .dot.warn { background: #f59e0b; } .dot.err { background: #ef4444; } .dot.idle { background: #94a3b8; }
+
+      .ap-history {
+        border-bottom: 1px solid var(--ctx-border); background: #f8fafc; padding: 8px 10px;
+        max-height: 220px; overflow: auto;
+      }
+      .ap-history h5 { margin: 2px 4px 6px; font-size: 11.5px; color: var(--ctx-muted); font-weight: 600; }
+      .hist-item { display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px;
+        border-radius: 7px; cursor: pointer; font-size: 12.5px; }
+      .hist-item:hover { background: #eef3ff; }
+      .hist-item small { color: var(--ctx-muted); white-space: nowrap; }
+      .hist-item.current { background: #e0e9ff; font-weight: 600; }
+
+      .ap-body { flex: 1; min-height: 0; overflow: auto; padding: 14px; display: flex;
+        flex-direction: column; gap: 14px; background: #fbfcfe; }
+      .ap-status { margin: 0 14px; margin-top: 10px; padding: 8px 10px; border-radius: 8px;
+        font-size: 12.5px; display: flex; gap: 8px; align-items: flex-start; }
+      .ap-status.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+      .ap-status.warn { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+      .ap-status.err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+      .ap-status .grow { flex: 1; }
+      .ap-status code { font-family: var(--ctx-mono); font-size: 11.5px; }
+
+      .msg { display: flex; flex-direction: column; gap: 6px; }
+      .msg.user { align-items: flex-end; }
+      .bubble { max-width: 92%; padding: 9px 12px; border-radius: 12px; font-size: 13.5px; }
+      .msg.user .bubble { background: #2563eb; color: #fff; border-bottom-right-radius: 4px; }
+      .msg.agent .bubble { background: #fff; border: 1px solid var(--ctx-border); border-bottom-left-radius: 4px; max-width: 100%; }
+      .ctx-tag {
+        display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: #475569;
+        background: #f1f5f9; border: 1px solid var(--ctx-border); border-radius: 6px; padding: 1px 7px;
+        max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+      }
+      .ctx-tag b { color: #1e293b; font-weight: 600; }
+      .msg-meta { font-size: 11px; color: var(--ctx-muted); }
+
+      .tool-block { border: 1px solid var(--ctx-border); border-radius: 8px; background: #f8fafc;
+        font-size: 12px; overflow: hidden; }
+      .tool-head { display: flex; align-items: center; gap: 7px; padding: 6px 9px; cursor: pointer; }
+      .tool-head code { font-family: var(--ctx-mono); font-size: 11.5px; color: #0f172a; }
+      .tool-head .grow { flex: 1; }
+      .tool-detail { border-top: 1px dashed var(--ctx-border); padding: 6px 9px; font-family: var(--ctx-mono);
+        font-size: 11px; color: #475569; white-space: pre-wrap; word-break: break-all; }
+      .spin { width: 12px; height: 12px; border: 2px solid #bfdbfe; border-top-color: #2563eb;
+        border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .caret { display: inline-block; width: 7px; height: 14px; background: #2563eb; vertical-align: -2px;
+        animation: blink 1s steps(2) infinite; margin-left: 2px; }
+      @keyframes blink { 50% { opacity: 0; } }
+
+      .sources { border-top: 1px solid #eef2f7; margin-top: 8px; padding-top: 7px; font-size: 12px; }
+      .sources h6 { margin: 0 0 4px; font-size: 11.5px; color: var(--ctx-muted); font-weight: 600; }
+      .src-row { display: flex; gap: 6px; align-items: baseline; padding: 2px 0; flex-wrap: wrap; }
+      .src-row a { color: #1d4ed8; text-decoration: none; font-weight: 600; cursor: pointer; }
+      .src-row a:hover { text-decoration: underline; }
+      .src-row small { color: var(--ctx-muted); font-family: var(--ctx-mono); font-size: 10.5px; }
+
+      .ap-composer { border-top: 1px solid var(--ctx-border); padding: 10px 12px 12px; background: #fff; }
+      .ctx-attach { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; font-size: 12px; color: #475569; flex-wrap: wrap; }
+      .ctx-attach .ctx-tag { background: #eef3ff; border-color: #c7d6fb; color: #1e3a8a; }
+      .ctx-attach button { border: 0; background: none; color: var(--ctx-muted); cursor: pointer; font-size: 12px; }
+      .composer-box { border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 10px; display: flex; gap: 8px; align-items: flex-end; }
+      .composer-box:focus-within { border-color: var(--ctx-primary); box-shadow: 0 0 0 3px #2563eb22; }
+      .composer-box textarea { flex: 1; border: 0; outline: 0; resize: none; font: inherit; font-size: 13.5px; min-height: 40px; max-height: 120px; background: transparent; }
+      .send-btn { border: 0; background: var(--ctx-primary); color: #fff; border-radius: 8px; padding: 7px 12px; cursor: pointer; font: inherit; font-size: 13px; font-weight: 600; }
+      .send-btn.stop { background: #0f172a; }
+      .send-btn:disabled { background: #94a3b8; cursor: not-allowed; }
+      .composer-hint { font-size: 11px; color: var(--ctx-muted); margin-top: 6px; }
+
+      .suggest-list { display: flex; flex-direction: column; gap: 6px; }
+      .suggest { text-align: left; border: 1px solid var(--ctx-border); background: #fff; border-radius: 9px;
+        padding: 8px 10px; font: inherit; font-size: 13px; cursor: pointer; color: #1e293b; }
+      .suggest:hover { border-color: #93b4f8; background: #f5f8ff; }
+      .empty-hero { text-align: center; color: var(--ctx-muted); font-size: 13px; padding: 18px 8px 4px; }
+      .empty-hero strong { display: block; color: var(--ctx-ink); font-size: 15px; margin-bottom: 4px; }
+
+      /* 结果组件 */
+      .rc { border: 1px solid var(--ctx-border); border-radius: 10px; background: #fff; margin-top: 8px; overflow: hidden; }
+      .rc-head { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: #f8fafc;
+        border-bottom: 1px solid var(--ctx-border); font-size: 12px; }
+      .rc-head .grow { flex: 1; }
+      .rc-kind { font-weight: 700; color: #334155; }
+      .rc-sample { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; border-radius: 999px; padding: 0 7px; font-size: 10.5px; font-weight: 600; }
+      .rc-real { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; border-radius: 999px; padding: 0 7px; font-size: 10.5px; font-weight: 600; }
+      .rc table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      .rc th, .rc td { text-align: left; padding: 5px 9px; border-bottom: 1px solid #eef2f7; }
+      .rc th { color: var(--ctx-muted); font-weight: 600; background: #fcfdff; }
+      .rc td code { font-family: var(--ctx-mono); font-size: 11.5px; }
+      .rc-foot { padding: 5px 10px; font-size: 11px; color: var(--ctx-muted); display: flex; justify-content: space-between; }
+      .obj-card { padding: 10px 12px; display: grid; gap: 4px; font-size: 12.5px; }
+      .obj-card .t { font-weight: 700; font-size: 14px; color: #1d4ed8; cursor: pointer; }
+      .obj-card .f { font-family: var(--ctx-mono); font-size: 11px; color: var(--ctx-muted); }
+      .obj-card .kv { display: flex; gap: 10px; flex-wrap: wrap; color: #475569; }
+      .lineage { padding: 10px; }
+      .lineage svg { width: 100%; height: auto; display: block; }
+      .lin-node rect { fill: #fff; stroke: #cbd5e1; }
+      .lin-node.focus rect { fill: #eef3ff; stroke: #2563eb; stroke-width: 1.5; }
+      .lin-node text { font-size: 10.5px; fill: #1e293b; font-family: var(--ctx-font); }
+      .lin-node .sub { fill: #64748b; font-size: 9px; font-family: var(--ctx-mono); }
+      .diff { display: grid; grid-template-columns: 1fr 1fr; font-size: 12px; }
+      .diff > div { padding: 8px 10px; }
+      .diff > div + div { border-left: 1px solid var(--ctx-border); }
+      .diff h6 { margin: 0 0 5px; font-size: 11.5px; color: var(--ctx-muted); }
+      .diff pre { margin: 0; font-family: var(--ctx-mono); font-size: 11px; white-space: pre-wrap; }
+      .del { background: #fee2e2; color: #991b1b; } .add { background: #dcfce7; color: #166534; }
+      .rc-empty, .rc-error { padding: 12px; font-size: 12.5px; color: var(--ctx-muted); }
+      .rc-error { color: #991b1b; background: #fef2f2; }
+
+      /* 嵌入工作台（模拟 Omnigent v0.18.0 默认样式区域，仅示意布局） */
+      .embed-frame { flex: 1; min-height: 0; display: flex; flex-direction: column; background: #fff; }
+      .embed-bar { display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: #fffbeb;
+        border-bottom: 1px solid #fde68a; font-size: 12.5px; color: #92400e; }
+      .embed-bar .grow { flex: 1; }
+      .omni { flex: 1; min-height: 0; display: flex; font-family: Inter, system-ui, sans-serif; font-size: 13px; color: #18181b; }
+      .omni-side { width: 252px; flex: 0 0 252px; background: #fafafa; border-right: 1px solid #e4e4e7; display: flex; flex-direction: column; padding: 10px 8px; gap: 2px; }
+      .omni-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; color: #3f3f46; cursor: default; }
+      .omni-row:hover { background: #f4f4f5; }
+      .omni-row.active { background: #e4e4e7; color: #09090b; font-weight: 500; }
+      .omni-sec { font-size: 11px; color: #71717a; padding: 12px 8px 4px; font-weight: 500; }
+      .omni-row .ico { width: 14px; height: 14px; border: 1.5px solid #a1a1aa; border-radius: 3px; flex: 0 0 auto; }
+      .omni-row.child { padding-left: 26px; }
+      .omni-row small { margin-left: auto; color: #a1a1aa; font-size: 11px; }
+      .omni-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+      .omni-head { display: flex; align-items: center; gap: 8px; padding: 10px 18px; border-bottom: 1px solid #e4e4e7; }
+      .omni-head .grow { flex: 1; }
+      .omni-pill { border: 1px solid #e4e4e7; border-radius: 6px; padding: 2px 8px; font-size: 12px; color: #52525b; }
+      .omni-pill.off { color: #a1a1aa; text-decoration: line-through; }
+      .omni-transcript { flex: 1; overflow: auto; padding: 18px 0; }
+      .omni-col { max-width: 720px; margin: 0 auto; padding: 0 20px; display: flex; flex-direction: column; gap: 14px; }
+      .omni-user { align-self: flex-end; background: #f4f4f5; border-radius: 14px; padding: 8px 12px; max-width: 80%; }
+      .omni-agent { line-height: 1.6; }
+      .omni-tool { border: 1px solid #e4e4e7; border-radius: 8px; padding: 6px 10px; font-size: 12px; color: #52525b; font-family: var(--ctx-mono); }
+      .omni-composer { border-top: 1px solid #f4f4f5; padding: 12px 20px 16px; }
+      .omni-composer .box { max-width: 720px; margin: 0 auto; border: 1px solid #d4d4d8; border-radius: 14px; padding: 10px 12px; color: #a1a1aa; display: flex; justify-content: space-between; align-items: center; }
+      .omni-note { font-size: 11px; color: #a1a1aa; text-align: center; margin-top: 6px; }
+      .omni-reject { border: 1px solid #fecaca; background: #fef2f2; color: #991b1b; border-radius: 8px; padding: 8px 10px; font-size: 12.5px; }
+      .omni-reject code { font-family: var(--ctx-mono); font-size: 11.5px; }
+
+      /* 新建对话页 */
+      .newchat { flex: 1; overflow: auto; padding: 48px 24px; }
+      .newchat-inner { max-width: 760px; margin: 0 auto; }
+      .newchat h2 { font-size: 22px; margin: 0 0 6px; }
+      .newchat p.lead { color: var(--ctx-muted); margin: 0 0 18px; }
+      .newchat .composer-box { background: #fff; padding: 12px; }
+      .agent-select { border: 1px solid var(--ctx-border); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 13px; background: #fff; }
+      .recent { margin-top: 28px; }
+      .recent h3 { font-size: 14px; margin: 0 0 8px; display: flex; justify-content: space-between; align-items: baseline; }
+      .recent h3 a { font-size: 12.5px; font-weight: 500; color: #1d4ed8; cursor: pointer; }
+      .recent-list { background: #fff; border: 1px solid var(--ctx-border); border-radius: 12px; overflow: hidden; }
+      .recent-item { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 10px 14px; border-bottom: 1px solid #eef2f7; cursor: pointer; font-size: 13px; }
+      .recent-item:last-child { border-bottom: 0; }
+      .recent-item:hover { background: #f8fafc; }
+      .recent-item small { color: var(--ctx-muted); }
+      .state-inline { padding: 22px; text-align: center; color: var(--ctx-muted); font-size: 13px; }
+      .state-inline.err { color: #991b1b; background: #fef2f2; }
+
+      .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: #0f172a; color: #fff;
+        padding: 8px 14px; border-radius: 8px; font-size: 13px; z-index: 90; box-shadow: 0 8px 20px #0f172a40; }
+
+      @media (max-width: 1100px) {
+        .assistant-panel { position: fixed; right: 0; top: 37px; bottom: 0; z-index: 50; width: min(420px, 100vw); }
+        .omni-side { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 原型评审工具栏（仅用于负责人评审，不进入生产页面） -->
+    <div class="proto-banner" role="region" aria-label="原型评审演示工具栏">
+      <div class="proto-banner-left">
+        <span class="proto-tag">007 高保真原型</span>
+        <span>Agent 工作台与页面助手（方案 B）</span>
+        <span class="proto-note">资产、会话、时间与回答内容均为演示示例，生产实现必须来自真实 OM / Omnigent，不得内置或回退示例数据</span>
+      </div>
+      <div class="proto-Presets" id="presetBar"></div>
+    </div>
+
+    <div class="app-shell">
+      <aside class="primary-rail" aria-label="主导航">
+        <a class="brand" href="#/assets" aria-label="织境">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M9 4v16" />
+            <path d="M15 4v16" />
+            <path d="M3 9.5c3-2.6 6-2.6 9 0s6 2.6 9 0" />
+            <path d="M3 14.5c3-2.6 6-2.6 9 0s6 2.6 9 0" />
+          </svg>
+        </a>
+        <span class="rail-divider" aria-hidden="true"></span>
+        <nav aria-label="一级导航">
+          <button type="button" class="primary-link" title="新建对话" data-nav="new">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z"
+              />
+              <path d="M12 8v8" />
+              <path d="M8 12h8" />
+            </svg>
+          </button>
+          <button type="button" class="primary-link" title="首页" data-nav="home">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M3 10.5 12 3l9 7.5" />
+              <path d="M5 9.5V20h5v-6h4v6h5V9.5" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="primary-link"
+            title="数据资产" data-nav="assets"
+            id="navAssetsBtn"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3Z"
+              />
+              <path d="M4 6v12c0 1.7 3.6 3 8 3" />
+              <path d="M20 6v5" />
+              <path d="M4 12c0 1.7 3.6 3 8 3" />
+              <path d="M17.5 20.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+              <path d="m19.7 19.7 1.8 1.8" />
+            </svg>
+          </button>
+          <button type="button" class="primary-link" title="Agent 工作台" data-nav="agents">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path
+                d="M10 3l1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6Z"
+              />
+              <path
+                d="M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8Z"
+              />
+              <path d="M18 3v3M16.5 4.5h3" />
+            </svg>
+          </button>
+        </nav>
+        <span class="rail-caption">织境</span>
+      </aside>
+
+      <!-- 二级导航栏（D2=A：去掉独立的“资产搜索/数据源”双链接，直接承载 Explore 浏览树 / 搜索命中类型菜单） -->
+      <aside class="secondary-rail" id="secondaryRail" aria-label="数据资产目录">
+        <div class="module-label"><span class="module-label-title">数据资产</span></div>
+        <div class="rail-section-head"><span>资产目录</span></div>
+        <div style="padding:6px 14px;font-size:12.5px;color:var(--ctx-muted)">006 浏览树（此处省略，007 不改动）</div>
+      </aside>
+      <div class="workspace">
+        <header class="page-header">
+          <div class="page-heading">
+            <div class="breadcrumb-bar" id="topBreadcrumb"></div>
+          </div>
+          <div class="header-actions">
+            <button type="button" class="assistant-toggle" id="assistantToggle" aria-pressed="false" title="打开页面助手">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3l1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6Z"/><path d="M18 14l.8 2.2L21 17l-2.2.8L18 20l-.8-2.2L15 17l2.2-.8Z"/></svg>
+              页面助手
+            </button>
+            <div class="account-identity">
+              <span class="account-avatar">工</span>
+              <div>
+                <div style="font-weight: 600; line-height: 1.2">engineer1</div>
+                <div style="font-size: 11.5px; color: var(--ctx-muted)">AI 工程师</div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div class="workspace-row">
+          <div class="workspace-main" id="mainArea"></div>
+          <aside class="assistant-panel" id="assistantPanel" aria-label="页面助手" hidden></aside>
+        </div>
+      </div>
+    </div>
+    <div class="toast" id="toast" hidden></div>
+    <script>
+      // ===== 演示夹具（仅原型使用，生产实现严禁内置） =====
+      const ASSETS = [
+        {
+          id: "a1", type: "table", typeLabel: "表", displayName: "物料主数据", name: "material",
+          fqn: "mock-mes.default.mes.material", service: "mock-mes", serviceType: "PostgreSQL",
+          desc: "MES 物料主数据，记录物料编码、名称、规格与计量单位。", owner: "林工", tier: "Tier2",
+          sec: "数据级别.二级", version: "0.4", updatedAt: "2026-11-08 14:20",
+          columns: [
+            ["material_code", "VARCHAR(32)", "物料编码，主键"],
+            ["material_name", "VARCHAR(128)", "物料名称"],
+            ["spec", "VARCHAR(128)", "规格型号"],
+            ["uom", "VARCHAR(16)", "计量单位"],
+          ],
+        },
+        {
+          id: "a2", type: "table", typeLabel: "表", displayName: "质检记录", name: "qc_inspection",
+          fqn: "mock-qms.default.qms.qc_inspection", service: "mock-qms", serviceType: "PostgreSQL",
+          desc: "QMS 来料与过程检验记录，关联批次与检验结论。", owner: "周工", tier: "Tier1",
+          sec: "数据级别.二级", version: "0.3", updatedAt: "2026-11-08 14:22",
+          columns: [
+            ["inspection_no", "VARCHAR(32)", "检验单号"],
+            ["batch_no", "VARCHAR(32)", "批次号"],
+            ["material_code", "VARCHAR(32)", "物料编码"],
+            ["result", "VARCHAR(8)", "检验结论"],
+          ],
+        },
+        {
+          id: "a3", type: "table", typeLabel: "表", displayName: "生产工单", name: "work_order",
+          fqn: "mock-mes.default.mes.work_order", service: "mock-mes", serviceType: "PostgreSQL",
+          desc: "MES 生产工单，记录产线、物料、计划数量与状态。", owner: "", tier: "",
+          sec: "", version: "0.2", updatedAt: "2026-11-08 14:20",
+          columns: [
+            ["work_order_no", "VARCHAR(32)", "工单号"],
+            ["line_code", "VARCHAR(16)", "产线"],
+            ["material_code", "VARCHAR(32)", "物料编码"],
+            ["plan_qty", "INT", "计划数量"],
+          ],
+        },
+      ];
+      const byId = (id) => ASSETS.find((a) => a.id === id);
+      const AGENT = "数据资产助手";
+      const SESSIONS = [
+        { id: "s1", title: "物料主数据字段含义", project: "数据资产", time: "刚刚" },
+        { id: "s2", title: "质检记录与工单的关联", project: "数据资产", time: "昨天 16:40" },
+        { id: "s3", title: "梳理 QMS 表的负责人", project: "数据资产", time: "11-10 09:12" },
+      ];
+
+      // ===== 状态 =====
+      const state = {
+        view: "assets",           // assets | workbench | newchat
+        selectedAssetId: "a1",
+        summaryOpen: true,
+        assistantOpen: false,
+        historyOpen: false,
+        attachCtx: true,          // 发送时是否携带当前页面上下文
+        sessionId: null,
+        sessionTitle: "新对话",
+        messages: [],
+        streaming: false,
+        banner: null,             // {level, text, action}
+        composerDisabled: null,   // 原因文本
+        assetQuery: "",           // 演示“返回后保留搜索条件”
+        workbenchNote: null,      // reject 等
+        newchatState: "ok",       // ok | empty | error
+      };
+
+      const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+      const $ = (id) => document.getElementById(id);
+      function toast(t) { const el = $("toast"); el.textContent = t; el.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => (el.hidden = true), 2600); }
+
+      function ctxOf(a) { return a ? { type: a.type, typeLabel: a.typeLabel, id: a.id, name: a.displayName, fqn: a.fqn, version: a.version } : { page: "数据资产 · 浏览" }; }
+      function ctxTag(ctx, prefix) {
+        if (!ctx) return `<span class="ctx-tag">${prefix || "上下文"}：无</span>`;
+        if (ctx.page) return `<span class="ctx-tag">${prefix || "页面"}：<b>${esc(ctx.page)}</b></span>`;
+        return `<span class="ctx-tag" title="${esc(ctx.fqn)}">${prefix || "上下文"}：${esc(ctx.typeLabel)} <b>${esc(ctx.name)}</b> · ${esc(ctx.fqn)}</span>`;
+      }
+
+      // ===== 结果组件 =====
+      function rcTable(a, real = true) {
+        return `<div class="rc"><div class="rc-head"><span class="rc-kind">表格</span><span class="grow">${esc(a.displayName)} 的字段</span>${real ? '<span class="rc-real">来自 OM 元数据</span>' : '<span class="rc-sample">组件样例</span>'}</div>
+          <table><thead><tr><th>字段</th><th>类型</th><th>描述</th></tr></thead><tbody>
+          ${a.columns.map((c) => `<tr><td><code>${esc(c[0])}</code></td><td>${esc(c[1])}</td><td>${esc(c[2])}</td></tr>`).join("")}
+          </tbody></table><div class="rc-foot"><span>共 ${a.columns.length} 列</span><span>点击表名可跳转资产详情</span></div></div>`;
+      }
+      function rcObject(a, real = true) {
+        return `<div class="rc"><div class="rc-head"><span class="rc-kind">对象卡片</span><span class="grow"></span>${real ? '<span class="rc-real">来自 OM 元数据</span>' : '<span class="rc-sample">组件样例</span>'}</div>
+          <div class="obj-card"><span class="t" onclick="goAsset('${a.id}')">${esc(a.typeLabel)} · ${esc(a.displayName)}（${esc(a.name)}）→</span>
+          <span class="f">${esc(a.fqn)}</span><span>${esc(a.desc)}</span>
+          <span class="kv"><span>负责人：${esc(a.owner || "未分配")}</span><span>分级(Tier)：${esc(a.tier || "未分级")}</span><span>数据安全级别：${esc(a.sec || "未定级")}</span></span></div></div>`;
+      }
+      function rcLineage(real = true) {
+        const node = (x, y, t, s, focus) => `<g class="lin-node ${focus ? "focus" : ""}" transform="translate(${x},${y})"><rect width="128" height="40" rx="7"/><text x="10" y="17">${t}</text><text class="sub" x="10" y="31">${s}</text></g>`;
+        return `<div class="rc"><div class="rc-head"><span class="rc-kind">血缘 / 追溯子图</span><span class="grow">上游 1 层 · 下游 1 层</span>${real ? '<span class="rc-real">来自 OM 血缘</span>' : '<span class="rc-sample">组件样例</span>'}</div>
+          <div class="lineage"><svg viewBox="0 0 400 120" role="img" aria-label="血缘子图">
+          <g stroke="#94a3b8" stroke-width="1.3" fill="none"><path d="M132 30 C150 30 120 60 136 60"/><path d="M132 90 C150 90 120 60 136 60"/><path d="M264 60 L272 60"/></g>
+          ${node(4, 10, "物料主数据", "mes.material", false)}${node(4, 70, "质检记录", "qms.qc_inspection", false)}
+          ${node(136, 40, "生产工单", "mes.work_order", true)}${node(272, 40, "工单质量宽表", "dw.dws_wo_quality", false)}
+          </svg></div><div class="rc-foot"><span>节点可点击跳转资产详情</span><span>完整血缘见资产详情页</span></div></div>`;
+      }
+      function rcDiff() {
+        return `<div class="rc"><div class="rc-head"><span class="rc-kind">口径差异</span><span class="grow">一次合格率 · v2 → v3</span><span class="rc-sample">组件样例 · 非实际查询结果</span></div>
+          <div class="diff"><div><h6>v2（已生效）</h6><pre>合格数 / 检验数
+<span class="del">范围：全部检验单</span></pre></div><div><h6>v3（待审批）</h6><pre>合格数 / 检验数
+<span class="add">范围：排除复检单</span></pre></div></div>
+          <div class="rc-foot"><span>指标口径与审批随 015 接入，007 只交付渲染组件</span></div></div>`;
+      }
+
+      // ===== 消息渲染 =====
+      function renderMessage(m) {
+        if (m.role === "user") {
+          return `<div class="msg user">${ctxTag(m.ctx, "发送时上下文")}<div class="bubble">${esc(m.text)}</div><span class="msg-meta">${esc(m.time || "")}</span></div>`;
+        }
+        const tools = (m.tools || []).map((t) => `<div class="tool-block"><div class="tool-head" onclick="this.nextElementSibling.hidden=!this.nextElementSibling.hidden">
+            ${t.status === "running" ? '<span class="spin"></span>' : t.status === "error" ? '<span class="dot err"></span>' : '<span class="dot"></span>'}
+            <code>${esc(t.name)}</code><span class="grow"></span><span style="color:var(--ctx-muted)">${t.status === "running" ? "调用中…" : t.status === "error" ? "失败" : "完成"} ▾</span></div>
+            <div class="tool-detail" hidden>${esc(t.detail)}</div></div>`).join("");
+        const results = (m.results || []).map((r) => r()).join("");
+        const sources = m.sources && m.sources.length ? `<div class="sources"><h6>来源（回答时读取的 OM 内容）</h6>${m.sources.map((s) => `<div class="src-row"><a onclick="goAsset('${s.id}')">${esc(s.typeLabel)} · ${esc(s.name)}</a><small>${esc(s.fqn)} · 版本 ${esc(s.version)} · 读取于 ${esc(s.readAt)}</small></div>`).join("")}</div>` : "";
+        let tail = "";
+        if (m.status === "streaming") tail = '<span class="caret"></span>';
+        if (m.status === "cancelled") tail = '<div class="msg-meta" style="margin-top:6px">⏹ 已停止生成，以上为停止前的内容</div>';
+        if (m.status === "error") tail = `<div class="ap-status err" style="margin:8px 0 0"><span class="grow">${esc(m.errorText)}</span></div>`;
+        return `<div class="msg agent"><span class="msg-meta">${esc(AGENT)}</span><div class="bubble">${tools}${m.text ? `<div style="margin-top:${tools ? 8 : 0}px">${m.text}</div>` : ""}${results}${tail}${sources}</div></div>`;
+      }
+
+      // ===== 页面助手 =====
+      function currentCtx() {
+        if (state.view !== "assets") return null;
+        const a = state.summaryOpen ? byId(state.selectedAssetId) : null;
+        return ctxOf(a);
+      }
+      function renderAssistant() {
+        const p = $("assistantPanel");
+        p.hidden = !state.assistantOpen;
+        $("assistantToggle").setAttribute("aria-pressed", String(state.assistantOpen));
+        if (!state.assistantOpen) return;
+        const ctx = currentCtx();
+        const banner = state.banner ? `<div class="ap-status ${state.banner.level}"><span class="grow">${state.banner.text}</span>${state.banner.action || ""}</div>` : "";
+        const history = state.historyOpen ? `<div class="ap-history"><h5>最近会话（来自 Omnigent，与工作台同一列表）</h5>${SESSIONS.map((s) => `<div class="hist-item ${s.id === state.sessionId ? "current" : ""}" onclick="openSession('${s.id}')"><span>${esc(s.title)}</span><small>${esc(s.time)}</small></div>`).join("")}</div>` : "";
+        const body = state.messages.length
+          ? state.messages.map(renderMessage).join("")
+          : `<div class="empty-hero"><strong>有什么可以帮你？</strong>助手会读取你当前查看的资产，并在回答中注明来源。</div>
+             <div class="suggest-list">${ctx && ctx.fqn ? `
+               <button class="suggest" onclick="ask('这张表的各字段是什么含义？')">这张表的各字段是什么含义？</button>
+               <button class="suggest" onclick="ask('这张表的上下游血缘是什么？')">这张表的上下游血缘是什么？</button>
+               <button class="suggest" onclick="ask('这张表的负责人和分级是什么？')">这张表的负责人和分级是什么？</button>` : `
+               <button class="suggest" onclick="ask('MES 里有哪些和物料相关的表？')">MES 里有哪些和物料相关的表？</button>`}</div>
+             <div class="msg-meta" style="text-align:center">建议问题为界面文案，不代表 Agent 能力承诺</div>`;
+        const dis = state.composerDisabled;
+        p.innerHTML = `
+          <div class="ap-head">
+            <div class="ap-head-row">
+              <span class="ap-title" title="${esc(state.sessionTitle)}">${esc(state.sessionTitle)}</span>
+              <button class="icon-btn" title="最近会话" onclick="toggleHistory()">历史 ▾</button>
+              <button class="icon-btn" title="新对话" onclick="newConversation()">＋ 新对话</button>
+              <button class="icon-btn primary" title="在 Agent 工作台继续同一会话" onclick="openWorkbench()" ${state.sessionId ? "" : "disabled style='opacity:.45;cursor:not-allowed'"}>在工作台继续 ↗</button>
+              <button class="icon-btn" title="关闭助手（会话保留）" onclick="toggleAssistant(false)">✕</button>
+            </div>
+            <div class="ap-sub"><span class="agent-chip"><span class="dot ${state.banner && state.banner.level === "err" ? "err" : state.banner && state.banner.level === "warn" ? "warn" : ""}"></span>${esc(AGENT)}</span>
+              <span>${state.sessionId ? "会话已保存，可在工作台继续" : "发送第一条消息后创建会话"}</span></div>
+          </div>
+          ${history}${banner}
+          <div class="ap-body" id="apBody">${body}</div>
+          <div class="ap-composer">
+            <div class="ctx-attach">${state.attachCtx && ctx ? `<span>发送时附带</span>${ctxTag(ctx, "当前")}<button onclick="state.attachCtx=false;renderAssistant()" title="本条消息不附带页面上下文">移除</button>` : `<span>本条消息不附带页面上下文</span>${ctx ? `<button onclick="state.attachCtx=true;renderAssistant()">附带当前页面</button>` : ""}`}</div>
+            <div class="composer-box">
+              <textarea id="apInput" placeholder="${dis ? esc(dis) : "就当前页面提问，Enter 发送，Shift+Enter 换行"}" ${dis ? "disabled" : ""} onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();askFromInput()}"></textarea>
+              ${state.streaming ? `<button class="send-btn stop" onclick="stopStreaming()">停止</button>` : `<button class="send-btn" onclick="askFromInput()" ${dis ? "disabled" : ""}>发送</button>`}
+            </div>
+            <div class="composer-hint">每条消息记录发送时的上下文；切换资产不会改写已发送的消息。</div>
+          </div>`;
+        const b = $("apBody"); if (b) b.scrollTop = b.scrollHeight;
+      }
+
+      function toggleAssistant(v) { state.assistantOpen = v === undefined ? !state.assistantOpen : v; render(); }
+      function toggleHistory() { state.historyOpen = !state.historyOpen; renderAssistant(); }
+      function newConversation() { Object.assign(state, { sessionId: null, sessionTitle: "新对话", messages: [], banner: null, streaming: false, historyOpen: false, attachCtx: true }); renderAssistant(); }
+      function openSession(id) {
+        const s = SESSIONS.find((x) => x.id === id);
+        state.historyOpen = false;
+        if (id === "s1") { presetAnswered(true); return; }
+        Object.assign(state, { sessionId: id, sessionTitle: s.title, banner: null, streaming: false,
+          messages: [{ role: "user", text: s.title + "？", ctx: ctxOf(byId("a2")), time: s.time }, { role: "agent", status: "done", text: "（历史会话内容从 Omnigent 会话快照恢复）", sources: [] }] });
+        renderAssistant();
+      }
+      function askFromInput() { const v = ($("apInput").value || "").trim(); if (v) ask(v); }
+      function now() { const d = new Date(); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; }
+
+      let streamTimer = null;
+      function ask(text) {
+        if (state.streaming || state.composerDisabled) return;
+        const ctx = state.attachCtx ? currentCtx() : null;
+        if (!state.sessionId) { state.sessionId = "s1"; state.sessionTitle = text.slice(0, 18); }
+        state.messages.push({ role: "user", text, ctx, time: now() });
+        const a = ctx && ctx.id ? byId(ctx.id) : null;
+        const lineage = /血缘|上下游/.test(text);
+        const tool = a ? { name: lineage ? "OM MCP · 读取资产血缘" : "OM MCP · 读取资产详情", status: "running", detail: `entity=${a.type}\nfqn=${a.fqn}\n身份：engineer1（委托给 ${AGENT}）` }
+                       : { name: "OM MCP · 搜索资产", status: "running", detail: "q=物料 index=table\n身份：engineer1（委托给 " + AGENT + "）" };
+        const msg = { role: "agent", status: "streaming", text: "", tools: [tool], results: [], sources: [] };
+        state.messages.push(msg); state.streaming = true; state.attachCtx = true; renderAssistant();
+        clearTimeout(streamTimer);
+        streamTimer = setTimeout(() => {
+          tool.status = "done";
+          if (a) {
+            msg.text = lineage
+              ? `<b>${esc(a.displayName)}</b> 在 OM 中记录的直接上下游如下：上游为物料主数据与质检记录，下游为工单质量宽表。`
+              : `<b>${esc(a.displayName)}</b>（<code>${esc(a.name)}</code>）${esc(a.desc)}主要字段如下：`;
+            msg.results = lineage ? [() => rcLineage(true)] : [() => rcTable(a, true)];
+            msg.sources = [{ ...ctxOf(a), readAt: now() }];
+          } else {
+            msg.text = "在 OM 中找到 2 张与物料相关的表：";
+            msg.results = [() => rcObject(byId("a1")), () => rcObject(byId("a2"))];
+            msg.sources = [{ ...ctxOf(byId("a1")), readAt: now() }, { ...ctxOf(byId("a2")), readAt: now() }];
+          }
+          renderAssistant();
+          streamTimer = setTimeout(() => { msg.status = "done"; state.streaming = false; renderAssistant(); }, 900);
+        }, 1300);
+      }
+      function stopStreaming() {
+        clearTimeout(streamTimer);
+        const m = state.messages[state.messages.length - 1];
+        if (m && m.role === "agent") { m.status = "cancelled"; (m.tools || []).forEach((t) => t.status === "running" && (t.status = "error", t.detail += "\n已随停止取消")); }
+        state.streaming = false; renderAssistant();
+      }
+
+      // ===== 主区域 =====
+      function goAsset(id) {
+        state.view = "assets"; state.selectedAssetId = id; state.summaryOpen = true; render();
+        toast("已在数据资产中打开：" + byId(id).displayName);
+      }
+      function selectAsset(id) { state.selectedAssetId = id; state.summaryOpen = true; render(); }
+      function askAboutAsset(id) {
+        state.selectedAssetId = id; state.summaryOpen = true; state.assistantOpen = true; state.attachCtx = true; render();
+        setTimeout(() => $("apInput") && $("apInput").focus(), 0);
+      }
+      function openWorkbench() { state.view = "workbench"; state.workbenchNote = null; render(); }
+      function backToAssets() { state.view = "assets"; render(); toast("已返回数据资产，搜索条件与选中项已保留"); }
+
+      function renderAssets() {
+        const sel = byId(state.selectedAssetId);
+        const list = ASSETS.filter((a) => !state.assetQuery || (a.displayName + a.name + a.fqn).includes(state.assetQuery));
+        return `
+          <div class="explore-wrapper">
+            <div class="explore-toolbar-area">
+              <div class="explore-title-row"><div class="explore-title-left"><h2>全部数据资产</h2><span class="hit-counter">共 <strong>${list.length}</strong> 项</span></div>
+                <div class="explore-actions"><input class="sort-select" style="width:240px" placeholder="（006 搜索框，此处简化）" value="${esc(state.assetQuery)}" oninput="state.assetQuery=this.value;renderMain()"/></div></div>
+              <div class="filter-chips-bar"><span class="chips-idle-hint">006 的筛选、条件条与排序此处省略，007 不改动这些交互</span></div>
+            </div>
+            <div class="explore-main-split">
+              <div class="results-column">
+                ${list.map((a) => `<article class="search-card ${a.id === state.selectedAssetId && state.summaryOpen ? "selected" : ""}" onclick="selectAsset('${a.id}')">
+                  <div class="card-top-row"><div class="card-breadcrumb"><span>${esc(a.serviceType)}</span><span>/</span><span>${esc(a.service)}</span></div></div>
+                  <div class="card-title-row"><span class="entity-type-pill">${esc(a.typeLabel)}</span><span class="card-title-link">${esc(a.displayName)}</span><span class="card-tech-name">(${esc(a.name)})</span></div>
+                  <p class="card-desc">${esc(a.desc)}</p>
+                  <div class="card-meta-footer"><span class="meta-item">负责人: <strong>${esc(a.owner || "未分配")}</strong></span><span class="meta-item">分级(Tier): <strong>${esc(a.tier || "未分级")}</strong></span><span class="meta-item" style="margin-left:auto">更新: ${esc(a.updatedAt)}</span></div>
+                </article>`).join("")}
+              </div>
+              ${state.summaryOpen && sel ? `<aside class="summary-drawer">
+                <div class="summary-head"><div class="summary-head-top"><div>
+                  <div style="font-size:11px;color:var(--ctx-muted);font-weight:600;margin-bottom:2px">${esc(sel.typeLabel)} · 摘要预览</div>
+                  <span class="summary-title-link">${esc(sel.displayName)} →</span></div>
+                  <button type="button" class="summary-close" onclick="state.summaryOpen=false;render()" title="关闭摘要面板">×</button></div>
+                  <div class="summary-fqn">FQN: ${esc(sel.fqn)}</div>
+                  <div style="margin-top:10px"><button class="ask-btn" onclick="askAboutAsset('${sel.id}')">✦ 就此资产提问</button>
+                  <span class="msg-meta" style="margin-left:6px">007 新增入口：打开页面助手并附带该资产</span></div>
+                </div>
+                <div class="summary-body">
+                  <div class="summary-section"><h4>业务描述</h4><div style="font-size:13px">${esc(sel.desc)}</div></div>
+                  <div class="summary-section"><h4>字段（${sel.columns.length}）</h4>${sel.columns.map((c) => `<div class="summary-col-card"><div class="summary-col-top"><strong>${esc(c[0])}</strong><span class="summary-col-type">${esc(c[1])}</span></div><div class="summary-col-desc">${esc(c[2])}</div></div>`).join("")}</div>
+                </div></aside>` : ""}
+            </div>
+          </div>`;
+      }
+
+      function renderWorkbench() {
+        const conv = state.messages.length ? state.messages : null;
+        const transcript = conv
+          ? conv.map((m) => m.role === "user"
+              ? `<div class="omni-user">${esc(m.text)}</div>`
+              : `<div class="omni-agent">${(m.tools || []).map((t) => `<div class="omni-tool">⚙ ${esc(t.name)} · ${t.status === "done" ? "done" : t.status}</div>`).join("")}<div style="margin-top:6px">${m.text || ""}</div>${m.results && m.results.length ? `<div class="omni-tool" style="font-family:inherit;color:#92400e;background:#fffbeb;border-color:#fde68a;margin-top:6px">织境结果组件在工作台内的渲染为扩展可行性验证项（D5），此处按上游默认方式显示工具返回内容</div>` : ""}</div>`).join("")
+          : `<div style="text-align:center;color:#a1a1aa;padding-top:80px">What can I help with?</div>`;
+        const reject = state.workbenchNote ? `<div class="omni-reject">${state.workbenchNote}</div>` : "";
+        return `<div class="embed-frame">
+          <div class="embed-bar"><span>以下为 Omnigent v0.18.0 官方嵌入工作台（OmnigentApp）的布局示意，生产保留上游默认样式与英文界面，原型不复刻其 UI。</span><span class="grow"></span>
+            <button class="ctx-button ctx-button--secondary" onclick="backToAssets()">← 返回数据资产</button></div>
+          <div class="omni">
+            <div class="omni-side">
+              <div class="omni-row" style="font-weight:600;color:#09090b">◎ 织境（branding）</div>
+              <div class="omni-row"><span class="ico"></span>New session</div>
+              <div class="omni-row"><span class="ico"></span>Inbox</div>
+              <div class="omni-sec">Projects</div>
+              <div class="omni-row"><span class="ico"></span>数据资产</div>
+              ${SESSIONS.map((s) => `<div class="omni-row child ${conv && s.id === state.sessionId ? "active" : ""}">${esc(s.title)}<small>${esc(s.time)}</small></div>`).join("")}
+              <div style="flex:1"></div>
+              <div class="omni-row"><span class="ico"></span>Settings</div>
+            </div>
+            <div class="omni-main">
+              <div class="omni-head"><strong>${esc(conv ? state.sessionTitle : "New session")}</strong><span class="omni-pill">${esc(AGENT)}</span><span class="grow"></span>
+                <span class="omni-pill off" title="终端未开放：入口隐藏且服务端拒绝（012 交付安全沙箱后开放）">Terminal</span>
+                <span class="omni-pill off" title="代码执行未开放">Code</span>
+                <span class="omni-pill off" title="定时执行未开放">Tasks</span>
+                <button class="ctx-button ctx-button--secondary" style="padding:2px 8px;font-size:12px" onclick="presetReject()">模拟直接调用终端接口</button></div>
+              <div class="omni-transcript"><div class="omni-col">${reject}${transcript}</div></div>
+              <div class="omni-composer"><div class="box"><span>Message ${esc(AGENT)}…</span><span>↑</span></div>
+                <div class="omni-note">在工作台中发送的消息与页面助手属于同一会话；回到数据资产打开页面助手可继续。</div></div>
+            </div>
+          </div></div>`;
+      }
+
+      function renderNewChat() {
+        let recent;
+        if (state.newchatState === "error") recent = `<div class="state-inline err">无法读取会话列表：Agent 服务暂时不可用（<code>OMNIGENT_UNAVAILABLE</code>）。<button class="ctx-button ctx-button--secondary" style="margin-left:8px" onclick="state.newchatState='ok';render()">重试</button></div>`;
+        else if (state.newchatState === "empty") recent = `<div class="state-inline">还没有对话。发起第一个对话后会显示在这里。</div>`;
+        else recent = SESSIONS.map((s) => `<div class="recent-item" onclick="state.sessionId='${s.id}';state.sessionTitle='${esc(s.title)}';openWorkbench()"><span>${esc(s.title)}</span><small>${esc(s.project)}</small><small>${esc(s.time)}</small></div>`).join("");
+        return `<div class="newchat"><div class="newchat-inner">
+          <h2>新建对话</h2><p class="lead">选择 Agent 开始对话，对话将在 Agent 工作台中打开。</p>
+          <div class="composer-box"><textarea placeholder="输入问题，Enter 发送"></textarea>
+            <select class="agent-select" aria-label="选择 Agent"><option>${esc(AGENT)}</option></select>
+            <button class="send-btn" onclick="state.messages=[];state.sessionId=null;openWorkbench()">开始</button></div>
+          <div class="composer-hint">Agent 列表来自 Omnigent 已配置的 Agent（YAML 入 Git），织境不另建 Agent 定义。</div>
+          <div class="recent"><h3>最近对话 <a onclick="openWorkbench()">在工作台查看全部 →</a></h3><div class="recent-list">${recent}</div></div>
+        </div></div>`;
+      }
+
+      function renderMain() {
+        const m = $("mainArea");
+        m.innerHTML = state.view === "assets" ? renderAssets() : state.view === "workbench" ? renderWorkbench() : renderNewChat();
+      }
+
+      function render() {
+        // 一级导航高亮
+        document.querySelectorAll("[data-nav]").forEach((b) => {
+          const k = b.dataset.nav;
+          const on = (k === "assets" && state.view === "assets") || (k === "agents" && state.view === "workbench") || (k === "new" && state.view === "newchat");
+          on ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current");
+        });
+        $("secondaryRail").hidden = state.view !== "assets";
+        const crumbs = { assets: "<strong>数据资产</strong>", workbench: "<strong>Agent 工作台</strong>", newchat: "<strong>新建对话</strong>" };
+        $("topBreadcrumb").innerHTML = crumbs[state.view];
+        // 工作台整页嵌入时不显示页面助手入口（同一会话已在主区域）
+        $("assistantToggle").hidden = state.view === "workbench";
+        if (state.view === "workbench") $("assistantPanel").hidden = true;
+        renderMain();
+        if (state.view !== "workbench") renderAssistant();
+      }
+
+      // ===== 预设状态 =====
+      function reset(extra) {
+        clearTimeout(streamTimer);
+        Object.assign(state, { view: "assets", selectedAssetId: "a1", summaryOpen: true, assistantOpen: false, historyOpen: false, attachCtx: true,
+          sessionId: null, sessionTitle: "新对话", messages: [], streaming: false, banner: null, composerDisabled: null, workbenchNote: null, newchatState: "ok" }, extra || {});
+      }
+      function answered(a, kind) {
+        return { role: "agent", status: "done", tools: [{ name: kind === "lineage" ? "OM MCP · 读取资产血缘" : "OM MCP · 读取资产详情", status: "done", detail: `entity=${a.type}\nfqn=${a.fqn}\n身份：engineer1（委托给 ${AGENT}）` }],
+          text: kind === "lineage" ? `<b>${esc(a.displayName)}</b> 在 OM 中记录的直接上下游如下：上游为物料主数据与质检记录，下游为工单质量宽表。`
+                                   : `<b>${esc(a.displayName)}</b>（<code>${esc(a.name)}</code>）${esc(a.desc)}主要字段如下：`,
+          results: [kind === "lineage" ? () => rcLineage(true) : () => rcTable(a, true)], sources: [{ ...ctxOf(a), readAt: "14:31" }] };
+      }
+      function presetAnswered(keepView) {
+        const a = byId("a1");
+        reset({ assistantOpen: true, sessionId: "s1", sessionTitle: "物料主数据字段含义",
+          messages: [{ role: "user", text: "这张表的各字段是什么含义？", ctx: ctxOf(a), time: "14:31" }, answered(a)] });
+        render();
+      }
+      function presetReject() {
+        state.workbenchNote = `服务端已拒绝：<code>POST /v1/sessions/…/terminals</code> → <code>403 EXECUTION_NOT_ENABLED</code><br/>终端、代码执行与定时执行尚未开放，待安全执行沙箱（012）验收后启用。隐藏入口不是授权手段，接口由服务端拒绝。`;
+        renderMain();
+      }
+      const PRESETS = [
+        ["1. 资产页 · 就此资产提问入口", () => { reset(); render(); }],
+        ["2. 助手打开（附带选中资产）", () => { reset({ assistantOpen: true }); render(); }],
+        ["3. 回答生成中（工具调用 + 可停止）", () => { reset({ assistantOpen: true }); render(); ask("这张表的各字段是什么含义？"); clearTimeout(streamTimer); }],
+        ["4. 回答完成（表格 + 来源）", () => presetAnswered()],
+        ["5. 切换资产后继续（历史不改写）", () => {
+          const a1 = byId("a1"), a3 = byId("a3");
+          reset({ assistantOpen: true, selectedAssetId: "a3", sessionId: "s1", sessionTitle: "物料主数据字段含义",
+            messages: [{ role: "user", text: "这张表的各字段是什么含义？", ctx: ctxOf(a1), time: "14:31" }, answered(a1),
+                       { role: "user", text: "这张表的上下游血缘是什么？", ctx: ctxOf(a3), time: "14:35" }, answered(a3, "lineage")] });
+          render();
+        }],
+        ["6. 已停止生成", () => {
+          const a = byId("a1");
+          reset({ assistantOpen: true, sessionId: "s1", sessionTitle: "物料主数据字段含义",
+            messages: [{ role: "user", text: "这张表的各字段是什么含义？", ctx: ctxOf(a), time: "14:31" },
+              { role: "agent", status: "cancelled", tools: [{ name: "OM MCP · 读取资产详情", status: "error", detail: `fqn=${a.fqn}\n已随停止取消` }], text: "" }] });
+          render();
+        }],
+        ["7. 连接中断 → 从快照恢复", () => {
+          presetAnswered();
+          state.banner = { level: "warn", text: "与 Agent 的实时连接已中断，正在从会话快照恢复…（不会重复显示已收到的消息）", action: '<span class="spin"></span>' };
+          state.composerDisabled = "正在恢复会话，请稍候"; renderAssistant();
+          streamTimer = setTimeout(() => { state.banner = { level: "info", text: "已恢复会话，消息与服务端一致。" }; state.composerDisabled = null; renderAssistant(); }, 2200);
+        }],
+        ["8. Agent 服务不可用", () => {
+          reset({ assistantOpen: true, banner: { level: "err", text: "Agent 服务暂时不可用（<code>OMNIGENT_UNAVAILABLE</code>）。已发送的消息不受影响。", action: '<button class="icon-btn" onclick="state.banner=null;state.composerDisabled=null;renderAssistant()">重试</button>' }, composerDisabled: "Agent 服务不可用，暂时无法发送" });
+          render();
+        }],
+        ["9. 读取 OM 失败（工具报错）", () => {
+          const a = byId("a1");
+          reset({ assistantOpen: true, sessionId: "s1", sessionTitle: "物料主数据字段含义",
+            messages: [{ role: "user", text: "这张表的各字段是什么含义？", ctx: ctxOf(a), time: "14:31" },
+              { role: "agent", status: "error", tools: [{ name: "OM MCP · 读取资产详情", status: "error", detail: `fqn=${a.fqn}\n→ 503 OM_UNAVAILABLE` }], text: "",
+                errorText: "未能读取 OpenMetadata 中的资产信息（OM_UNAVAILABLE），本次没有生成回答。不会用缓存或示例内容代替。" }] });
+          render();
+        }],
+        ["10. 委托身份失效", () => {
+          presetAnswered();
+          state.banner = { level: "err", text: "登录已过期，Agent 无法再代表你读取数据。请重新登录后继续，本会话会保留。", action: '<button class="icon-btn primary">重新登录</button>' };
+          state.composerDisabled = "需要重新登录"; renderAssistant();
+        }],
+        ["11. 侧栏 → 工作台（同一会话）", () => { presetAnswered(); openWorkbench(); }],
+        ["12. 工作台 · 执行能力服务端拒绝", () => { presetAnswered(); openWorkbench(); presetReject(); }],
+        ["13. 新建对话 + 最近对话", () => { reset({ view: "newchat" }); render(); }],
+        ["14. 新建对话 · 会话列表读取失败", () => { reset({ view: "newchat", newchatState: "error" }); render(); }],
+        ["15. 四类结果组件样例", () => {
+          const a = byId("a2");
+          reset({ assistantOpen: true, sessionTitle: "结果组件样例", sessionId: "s1",
+            messages: [{ role: "agent", status: "done", text: "<b>结果组件样例</b>：表格、血缘 / 追溯子图、对象卡片、口径差异。标“组件样例”的为渲染样例，不是实际查询结果。",
+              results: [() => rcTable(a, false), () => rcLineage(false), () => rcObject(a, false), () => rcDiff(),
+                () => `<div class="rc"><div class="rc-head"><span class="rc-kind">表格 · 空结果</span></div><div class="rc-empty">没有符合条件的记录。</div></div>`,
+                () => `<div class="rc"><div class="rc-head"><span class="rc-kind">血缘 · 无法渲染</span></div><div class="rc-error">结果数据不符合渲染契约（缺少节点 FQN），已按原始文本显示。</div></div>`] }] });
+          render();
+        }],
+      ];
+
+      // ===== 初始化 =====
+      $("presetBar").innerHTML = PRESETS.map((p, i) => `<button type="button" class="proto-btn ${i === 0 ? "active" : ""}" data-i="${i}">${p[0]}</button>`).join("");
+      $("presetBar").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-i]"); if (!b) return;
+        document.querySelectorAll("#presetBar .proto-btn").forEach((x) => x.classList.toggle("active", x === b));
+        PRESETS[+b.dataset.i][1]();
+      });
+      $("assistantToggle").addEventListener("click", () => toggleAssistant());
+      document.querySelectorAll("[data-nav]").forEach((b) => b.addEventListener("click", () => {
+        const k = b.dataset.nav;
+        if (k === "assets") { state.view = "assets"; render(); }
+        else if (k === "agents") openWorkbench();
+        else if (k === "new") { state.view = "newchat"; render(); }
+        else toast("首页不在 007 原型范围内");
+      }));
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && state.assistantOpen) toggleAssistant(false); });
+      reset(); render();
+    </script>
+  </body>
+</html>
